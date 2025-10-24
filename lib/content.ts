@@ -1,0 +1,183 @@
+import fs from "fs";
+import path from "path";
+import {
+  blogPostSchema,
+  recipeSchema,
+  type BlogPost,
+  type Recipe,
+  type RecipeWithIngredients,
+  type SearchIndexItem,
+} from "./schemas";
+
+const contentDirectory = path.join(process.cwd(), "content");
+const blogDirectory = path.join(contentDirectory, "blog");
+const recipeDirectory = path.join(contentDirectory, "recipes");
+
+// Blog Post Functions
+export function getAllBlogPosts(): BlogPost[] {
+  if (!fs.existsSync(blogDirectory)) {
+    return [];
+  }
+
+  const fileNames = fs.readdirSync(blogDirectory);
+  const posts = fileNames
+    .filter((fileName) => fileName.endsWith(".json"))
+    .map((fileName) => {
+      const filePath = path.join(blogDirectory, fileName);
+      const fileContents = fs.readFileSync(filePath, "utf8");
+      const data = JSON.parse(fileContents);
+      return blogPostSchema.parse(data);
+    });
+
+  // Sort by publishedAt date, newest first
+  return posts.sort((a, b) => {
+    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+  });
+}
+
+export function getBlogPostBySlug(slug: string): BlogPost | null {
+  const posts = getAllBlogPosts();
+  return posts.find((post) => post.slug === slug) || null;
+}
+
+export function getBlogPostsByTag(tag: string): BlogPost[] {
+  const posts = getAllBlogPosts();
+  return posts.filter((post) => post.tags?.includes(tag));
+}
+
+export function getAllBlogTags(): string[] {
+  const posts = getAllBlogPosts();
+  const tags = new Set<string>();
+  posts.forEach((post) => {
+    post.tags?.forEach((tag) => tags.add(tag));
+  });
+  return Array.from(tags).sort();
+}
+
+export function getFeaturedBlogPosts(limit?: number): BlogPost[] {
+  const posts = getAllBlogPosts();
+  const featured = posts.filter((post) => post.featured);
+  return limit ? featured.slice(0, limit) : featured;
+}
+
+export function getRecentBlogPosts(limit: number): BlogPost[] {
+  const posts = getAllBlogPosts();
+  return posts.slice(0, limit);
+}
+
+// Recipe Functions
+export function getAllRecipes(): Recipe[] {
+  if (!fs.existsSync(recipeDirectory)) {
+    return [];
+  }
+
+  const fileNames = fs.readdirSync(recipeDirectory);
+  const recipes = fileNames
+    .filter((fileName) => fileName.endsWith(".json"))
+    .map((fileName) => {
+      const filePath = path.join(recipeDirectory, fileName);
+      const fileContents = fs.readFileSync(filePath, "utf8");
+      const data = JSON.parse(fileContents);
+      return recipeSchema.parse(data);
+    });
+
+  // Sort by publishedAt or date:Date:start, newest first
+  return recipes.sort((a, b) => {
+    const dateA = new Date(a.publishedAt || a["date:Date:start"] || 0);
+    const dateB = new Date(b.publishedAt || b["date:Date:start"] || 0);
+    return dateB.getTime() - dateA.getTime();
+  });
+}
+
+export function getRecipeBySlug(slug: string): Recipe | null {
+  const recipes = getAllRecipes();
+  return recipes.find((recipe) => recipe.slug === slug) || null;
+}
+
+export function getRecipesByCategory(category: string): Recipe[] {
+  const recipes = getAllRecipes();
+  return recipes.filter((recipe) => recipe.Category === category);
+}
+
+export function getAllRecipeCategories(): string[] {
+  const recipes = getAllRecipes();
+  const categories = new Set<string>();
+  recipes.forEach((recipe) => {
+    if (recipe.Category) {
+      categories.add(recipe.Category);
+    }
+  });
+  return Array.from(categories).sort();
+}
+
+export function getRecentRecipes(limit: number): Recipe[] {
+  const recipes = getAllRecipes();
+  return recipes.slice(0, limit);
+}
+
+export function getLatestRecipe(): Recipe | null {
+  const recipes = getAllRecipes();
+  return recipes.length > 0 ? recipes[0] : null;
+}
+
+// Pagination Helpers
+export interface PaginationResult<T> {
+  items: T[];
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export function paginateItems<T>(
+  items: T[],
+  page: number,
+  perPage: number
+): PaginationResult<T> {
+  const totalItems = items.length;
+  const totalPages = Math.ceil(totalItems / perPage);
+  const currentPage = Math.max(1, Math.min(page, totalPages || 1));
+  const startIndex = (currentPage - 1) * perPage;
+  const endIndex = startIndex + perPage;
+  const paginatedItems = items.slice(startIndex, endIndex);
+
+  return {
+    items: paginatedItems,
+    currentPage,
+    totalPages,
+    totalItems,
+    hasNextPage: currentPage < totalPages,
+    hasPrevPage: currentPage > 1,
+  };
+}
+
+// Search Index Generation
+export function generateSearchIndex(): SearchIndexItem[] {
+  const posts = getAllBlogPosts();
+  const recipes = getAllRecipes();
+
+  const postItems: SearchIndexItem[] = posts.map((post) => ({
+    title: post.title,
+    slug: post.slug,
+    excerpt: post.excerpt,
+    tags: post.tags || [],
+    type: "post" as const,
+  }));
+
+  const recipeItems: SearchIndexItem[] = recipes.map((recipe) => ({
+    title: recipe.Name,
+    slug: recipe.slug,
+    excerpt: recipe.Description || "",
+    tags: recipe.Category ? [recipe.Category] : [],
+    type: "recipe" as const,
+  }));
+
+  return [...postItems, ...recipeItems];
+}
+
+// Calculate read time (words per minute)
+export function calculateReadTime(content: string, wpm: number = 200): number {
+  const words = content.trim().split(/\s+/).length;
+  return Math.ceil(words / wpm);
+}
