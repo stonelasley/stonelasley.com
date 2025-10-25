@@ -16,7 +16,7 @@ export const siteConfig = {
     github: "https://github.com/stonelasley",
     instagram: "https://instagram.com/sclarklasley",
     whatsapp: "https://wa.link/8f2cuh",
-    hevy: "https://hevy.com/users/stonelasley",
+    hevy: "https://hevy.com/user/stonelasley",
     email: "mailto:website@lasley.io",
   },
   analytics: {
