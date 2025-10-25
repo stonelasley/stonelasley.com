@@ -8,9 +8,14 @@
 
 const { Client } = require("@notionhq/client");
 const path = require("path");
+const fs = require("fs");
 
-// Load environment variables
-require("dotenv").config({ path: path.resolve(process.cwd(), ".env.local") });
+// Load environment variables from .env.local (for local development)
+// In CI/production, environment variables are already set
+const dotenvPath = path.resolve(process.cwd(), ".env.local");
+if (fs.existsSync(dotenvPath)) {
+  require("dotenv").config({ path: dotenvPath });
+}
 
 const NOTION_API_KEY = process.env.NOTION_API_KEY;
 const MEALPREP_PAGE_ID = process.env.MEALPREP_PAGE_ID;

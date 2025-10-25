@@ -22,8 +22,12 @@ const https = require("https");
 const http = require("http");
 const { URL } = require("url");
 
-// Load environment variables
-require("dotenv").config({ path: path.resolve(process.cwd(), ".env.local") });
+// Load environment variables from .env.local (for local development)
+// In CI/production, environment variables are already set
+const dotenvPath = path.resolve(process.cwd(), ".env.local");
+if (fs.existsSync(dotenvPath)) {
+  require("dotenv").config({ path: dotenvPath });
+}
 
 // Configuration
 const NOTION_API_KEY = process.env.NOTION_API_KEY;
@@ -508,12 +512,16 @@ async function main() {
 
   // Validate environment variables
   if (!NOTION_API_KEY) {
-    console.error("✗ ERROR: NOTION_API_KEY not set in .env.local");
+    console.error("✗ ERROR: NOTION_API_KEY environment variable is not set");
+    console.error("   Set it in .env.local locally or as a secret in CI");
     process.exit(1);
   }
 
   if (!BLOG_DATABASE_ID || !RECIPE_DATABASE_ID) {
-    console.error("✗ ERROR: BLOG_DATABASE_ID or RECIPE_DATABASE_ID not set");
+    console.error(
+      "✗ ERROR: BLOG_DATABASE_ID or RECIPE_DATABASE_ID environment variables are not set"
+    );
+    console.error("   Set them in .env.local locally or as secrets in CI");
     process.exit(1);
   }
 
