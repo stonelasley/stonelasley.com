@@ -32,7 +32,10 @@ test.describe("Home Page", () => {
     await page.goto("/");
 
     // Click the recipes link
-    await page.getByRole("link", { name: /recipes/i }).first().click();
+    await page
+      .getByRole("link", { name: /recipes/i })
+      .first()
+      .click();
 
     // Wait for navigation
     await page.waitForURL("**/recipes**");
