@@ -10,6 +10,7 @@ import {
 import { constructMetadata, generateBlogPostJsonLd } from "@/lib/metadata";
 import { formatDate } from "@/lib/utils";
 import { highlightCode } from "@/lib/syntax-highlighting";
+import { markdownToHtml } from "@/lib/markdown";
 
 export const revalidate = false; // Static generation
 
@@ -47,8 +48,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     notFound();
   }
 
-  // Highlight code blocks
-  const highlightedContent = await highlightCode(post.content);
+  // Convert Markdown to HTML, then highlight code blocks
+  const htmlContent = await markdownToHtml(post.content);
+  const highlightedContent = await highlightCode(htmlContent);
 
   // Generate JSON-LD
   const jsonLd = generateBlogPostJsonLd(post);
@@ -99,8 +101,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 <span>By {post.author}</span>
               </div>
               <span>•</span>
-              <time dateTime={post.publishedAt}>
-                {formatDate(post.publishedAt)}
+              <time dateTime={post.date}>
+                {formatDate(post.date)}
               </time>
               <span>•</span>
               <span>{post.readTime} min read</span>

@@ -15,7 +15,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const recipeUrls = recipes.map((recipe) => ({
     url: `${siteConfig.url}/recipes/${recipe.slug}`,
-    lastModified: new Date(recipe.publishedAt || recipe["date:Date:start"] || new Date()),
+    lastModified: new Date(recipe.lastUpdated),
     changeFrequency: "monthly" as const,
     priority: 0.6,
   }));

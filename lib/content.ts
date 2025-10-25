@@ -5,7 +5,6 @@ import {
   recipeSchema,
   type BlogPost,
   type Recipe,
-  type RecipeWithIngredients,
   type SearchIndexItem,
 } from "./schemas";
 
@@ -29,9 +28,9 @@ export function getAllBlogPosts(): BlogPost[] {
       return blogPostSchema.parse(data);
     });
 
-  // Sort by publishedAt date, newest first
+  // Sort by date, newest first
   return posts.sort((a, b) => {
-    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
 }
 
@@ -81,11 +80,9 @@ export function getAllRecipes(): Recipe[] {
       return recipeSchema.parse(data);
     });
 
-  // Sort by publishedAt or date:Date:start, newest first
+  // Sort by name alphabetically (since recipes don't have dates)
   return recipes.sort((a, b) => {
-    const dateA = new Date(a.publishedAt || a["date:Date:start"] || 0);
-    const dateB = new Date(b.publishedAt || b["date:Date:start"] || 0);
-    return dateB.getTime() - dateA.getTime();
+    return a.name.localeCompare(b.name);
   });
 }
 
@@ -96,15 +93,15 @@ export function getRecipeBySlug(slug: string): Recipe | null {
 
 export function getRecipesByCategory(category: string): Recipe[] {
   const recipes = getAllRecipes();
-  return recipes.filter((recipe) => recipe.Category === category);
+  return recipes.filter((recipe) => recipe.category === category);
 }
 
 export function getAllRecipeCategories(): string[] {
   const recipes = getAllRecipes();
   const categories = new Set<string>();
   recipes.forEach((recipe) => {
-    if (recipe.Category) {
-      categories.add(recipe.Category);
+    if (recipe.category) {
+      categories.add(recipe.category);
     }
   });
   return Array.from(categories).sort();
@@ -166,10 +163,10 @@ export function generateSearchIndex(): SearchIndexItem[] {
   }));
 
   const recipeItems: SearchIndexItem[] = recipes.map((recipe) => ({
-    title: recipe.Name,
+    title: recipe.name,
     slug: recipe.slug,
-    excerpt: recipe.Description || "",
-    tags: recipe.Category ? [recipe.Category] : [],
+    excerpt: recipe.description || "",
+    tags: recipe.category ? [recipe.category] : [],
     type: "recipe" as const,
   }));
 

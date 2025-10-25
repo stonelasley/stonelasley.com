@@ -7,18 +7,18 @@ interface RecipeCardProps {
 }
 
 export function RecipeCard({ recipe }: RecipeCardProps) {
-  const totalTime = (recipe.PrepTime || 0) + (recipe.CookTime || 0);
+  const totalTime = recipe.totalTime || 0;
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-colors hover:bg-accent">
       <Link href={`/recipes/${recipe.slug}`} className="absolute inset-0 z-10">
-        <span className="sr-only">View {recipe.Name}</span>
+        <span className="sr-only">View {recipe.name}</span>
       </Link>
       {recipe.heroImg && (
         <div className="relative aspect-video w-full overflow-hidden">
           <Image
             src={recipe.heroImg}
-            alt={recipe.Name}
+            alt={recipe.name}
             fill
             className="object-cover transition-transform group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -27,17 +27,17 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
       )}
       <div className="flex flex-1 flex-col justify-between p-6">
         <div className="flex-1">
-          {recipe.Category && (
+          {recipe.category && (
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              {recipe.Category}
+              {recipe.category}
             </span>
           )}
           <h3 className="mt-2 text-xl font-semibold tracking-tight group-hover:underline">
-            {recipe.Name}
+            {recipe.name}
           </h3>
-          {recipe.Description && (
+          {recipe.description && (
             <p className="mt-3 text-sm text-muted-foreground line-clamp-2">
-              {recipe.Description}
+              {recipe.description}
             </p>
           )}
         </div>
@@ -59,7 +59,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
               <span>{totalTime} min</span>
             </div>
           )}
-          {recipe.Servings && (
+          {recipe.servings && (
             <>
               <span>•</span>
               <div className="flex items-center gap-1">
@@ -71,14 +71,14 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
                 >
                   <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
                 </svg>
-                <span>{recipe.Servings} servings</span>
+                <span>{recipe.servings} servings</span>
               </div>
             </>
           )}
-          {recipe.Difficulty && (
+          {recipe.difficulty && (
             <>
               <span>•</span>
-              <span>{recipe.Difficulty}</span>
+              <span>{recipe.difficulty}</span>
             </>
           )}
         </div>

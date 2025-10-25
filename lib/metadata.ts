@@ -78,7 +78,7 @@ export function generateBlogPostJsonLd(post: BlogPost) {
       "@type": "Person",
       name: post.author,
     },
-    datePublished: post.publishedAt,
+    datePublished: post.date,
     dateModified: post.lastUpdated,
     image: `/og?title=${encodeURIComponent(post.title)}`,
     url: `${siteConfig.url}/blog/${post.slug}`,
@@ -95,27 +95,26 @@ export function generateBlogPostJsonLd(post: BlogPost) {
 }
 
 export function generateRecipeJsonLd(recipe: Recipe) {
-  const totalTime =
-    (recipe.PrepTime || 0) + (recipe.CookTime || 0);
+  const totalTime = recipe.totalTime || 0;
 
   return {
     "@context": "https://schema.org",
     "@type": "Recipe",
-    name: recipe.Name,
-    description: recipe.Description || "",
-    image: recipe.heroImg || `/og?title=${encodeURIComponent(recipe.Name)}`,
+    name: recipe.name,
+    description: recipe.description || "",
+    image: recipe.heroImg || `/og?title=${encodeURIComponent(recipe.name)}`,
     author: {
       "@type": "Person",
       name: siteConfig.author.name,
     },
-    datePublished: recipe.publishedAt || recipe["date:Date:start"],
-    prepTime: recipe.PrepTime ? `PT${recipe.PrepTime}M` : undefined,
-    cookTime: recipe.CookTime ? `PT${recipe.CookTime}M` : undefined,
+    datePublished: recipe.lastUpdated,
+    prepTime: recipe.prepTime ? `PT${recipe.prepTime}M` : undefined,
+    cookTime: recipe.cookTime ? `PT${recipe.cookTime}M` : undefined,
     totalTime: totalTime > 0 ? `PT${totalTime}M` : undefined,
-    recipeYield: recipe.Servings ? `${recipe.Servings} servings` : undefined,
-    recipeCategory: recipe.Category,
+    recipeYield: recipe.servings ? `${recipe.servings} servings` : undefined,
+    recipeCategory: recipe.category,
     recipeCuisine: "American",
-    keywords: recipe.Category,
+    keywords: recipe.category,
     url: `${siteConfig.url}/recipes/${recipe.slug}`,
   };
 }

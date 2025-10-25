@@ -12,7 +12,7 @@ export const blogPostSchema = z.object({
   tags: z.array(z.string()).default([]),
   featured: z.boolean(),
   readTime: z.number(),
-  content: z.string(),
+  content: z.string().default(""),
   lastUpdated: z.string(),
 });
 

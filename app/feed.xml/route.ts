@@ -37,7 +37,7 @@ export async function GET() {
           link: siteConfig.url,
         },
       ],
-      date: new Date(post.publishedAt),
+      date: new Date(post.date),
       category: post.tags?.map((tag) => ({ name: tag })),
     });
   });

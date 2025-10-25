@@ -9,6 +9,7 @@ import {
   getRecipeBySlug,
 } from "@/lib/content";
 import { constructMetadata, generateRecipeJsonLd } from "@/lib/metadata";
+import { markdownToHtml } from "@/lib/markdown";
 
 export const revalidate = false; // Static generation
 
@@ -32,8 +33,8 @@ export async function generateMetadata({ params }: RecipePageProps) {
   }
 
   return constructMetadata({
-    title: recipe.Name,
-    description: recipe.Description || `${recipe.Name} recipe`,
+    title: recipe.name,
+    description: recipe.description || `${recipe.name} recipe`,
   });
 }
 
@@ -45,10 +46,11 @@ export default async function RecipePage({ params }: RecipePageProps) {
     notFound();
   }
 
+  // Convert Markdown to HTML
+  const htmlContent = await markdownToHtml(recipe.content);
+
   // Generate JSON-LD
   const jsonLd = generateRecipeJsonLd(recipe);
-
-  const totalTime = (recipe.PrepTime || 0) + (recipe.CookTime || 0);
 
   return (
     <>
@@ -85,7 +87,7 @@ export default async function RecipePage({ params }: RecipePageProps) {
                 <div className="relative aspect-video w-full overflow-hidden rounded-lg mb-8">
                   <Image
                     src={recipe.heroImg}
-                    alt={recipe.Name}
+                    alt={recipe.name}
                     fill
                     className="object-cover"
                     sizes="(max-width: 768px) 100vw, 66vw"
@@ -95,27 +97,27 @@ export default async function RecipePage({ params }: RecipePageProps) {
               )}
 
               <header className="mb-8">
-                {recipe.Category && (
+                {recipe.category && (
                   <div className="mb-4">
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      {recipe.Category}
+                      {recipe.category}
                     </span>
                   </div>
                 )}
                 <h1 className="text-4xl font-bold tracking-tight mb-4">
-                  {recipe.Name}
+                  {recipe.name}
                 </h1>
-                {recipe.Description && (
+                {recipe.description && (
                   <p className="text-xl text-muted-foreground">
-                    {recipe.Description}
+                    {recipe.description}
                   </p>
                 )}
               </header>
 
               {/* Recipe Content */}
-              {recipe.content && (
+              {htmlContent && (
                 <Prose>
-                  <div dangerouslySetInnerHTML={{ __html: recipe.content }} />
+                  <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
                 </Prose>
               )}
             </div>
@@ -126,45 +128,45 @@ export default async function RecipePage({ params }: RecipePageProps) {
                 <h2 className="text-lg font-semibold">Recipe Info</h2>
 
                 <div className="space-y-4">
-                  {recipe.PrepTime && (
+                  {recipe.prepTime && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Prep Time:</span>
-                      <span className="text-sm font-medium">{recipe.PrepTime} min</span>
+                      <span className="text-sm font-medium">{recipe.prepTime} min</span>
                     </div>
                   )}
 
-                  {recipe.CookTime && (
+                  {recipe.cookTime && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Cook Time:</span>
-                      <span className="text-sm font-medium">{recipe.CookTime} min</span>
+                      <span className="text-sm font-medium">{recipe.cookTime} min</span>
                     </div>
                   )}
 
-                  {totalTime > 0 && (
+                  {recipe.totalTime > 0 && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Total Time:</span>
-                      <span className="text-sm font-medium">{totalTime} min</span>
+                      <span className="text-sm font-medium">{recipe.totalTime} min</span>
                     </div>
                   )}
 
-                  {recipe.Servings && (
+                  {recipe.servings && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Servings:</span>
-                      <span className="text-sm font-medium">{recipe.Servings}</span>
+                      <span className="text-sm font-medium">{recipe.servings}</span>
                     </div>
                   )}
 
-                  {recipe["OvenTemp (F)"] && (
+                  {recipe.ovenTemp && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Oven Temp:</span>
-                      <span className="text-sm font-medium">{recipe["OvenTemp (F)"]}°F</span>
+                      <span className="text-sm font-medium">{recipe.ovenTemp}°F</span>
                     </div>
                   )}
 
-                  {recipe.Difficulty && (
+                  {recipe.difficulty && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Difficulty:</span>
-                      <span className="text-sm font-medium">{recipe.Difficulty}</span>
+                      <span className="text-sm font-medium">{recipe.difficulty}</span>
                     </div>
                   )}
                 </div>
