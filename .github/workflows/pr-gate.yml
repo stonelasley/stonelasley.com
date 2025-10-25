@@ -38,12 +38,6 @@ jobs:
       - name: Run unit tests
         run: npm run test -- --run
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-
-      - name: Run E2E tests
-        run: npm run test:e2e
-
       - name: Build application
         run: npm run build
         env:
@@ -53,6 +47,12 @@ jobs:
           INGREDIENT_DATABASE_ID: ${{ secrets.INGREDIENT_DATABASE_ID }}
           RECIPE_INGREDIENT_DATABASE_ID: ${{ secrets.RECIPE_INGREDIENT_DATABASE_ID }}
           MEALPREP_PAGE_ID: ${{ secrets.MEALPREP_PAGE_ID }}
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests
+        run: npm run test:e2e
 
       - name: Upload Playwright report
         if: always()
