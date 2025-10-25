@@ -10,6 +10,7 @@ Personal website for Stone C. Lasley built with **Next.js 16**, **TypeScript**, 
 - **Validation**: Zod schemas for type-safe content
 - **Code Highlighting**: Shiki (server-side)
 - **Testing**: Vitest (unit), Playwright (e2e)
+- **CMS**: Notion (headless CMS via Notion API)
 
 ## Architecture Principles
 1. **Static Generation**: All pages pre-rendered at build time
@@ -22,14 +23,20 @@ Personal website for Stone C. Lasley built with **Next.js 16**, **TypeScript**, 
 app/                    # Next.js App Router pages
 components/             # React components (Header, Footer, Cards, etc.)
 content/               # Static JSON files (blog/, recipes/)
-  └── blog/            # Blog post JSON files
-  └── recipes/         # Recipe JSON files
+  └── blog/            # Blog post JSON files (generated from Notion)
+  └── recipes/         # Recipe JSON files (generated from Notion)
+  └── metadata.json    # Build metadata (generated from Notion)
 lib/                   # Utilities & business logic
   ├── content.ts       # Content loaders, pagination
   ├── schemas.ts       # Zod validation schemas
   ├── metadata.ts      # SEO helpers
+  ├── types.ts         # TypeScript types for Notion content
   └── utils.ts         # Date formatting, URL helpers
-public/                # Static assets
+public/
+  └── images/
+    └── notion/        # Downloaded images from Notion (URLs expire after 1hr)
+scripts/
+  └── fetch-notion-content.js  # Notion content fetching script
 site.config.ts         # Central site configuration
 ```
 
@@ -39,10 +46,10 @@ site.config.ts         # Central site configuration
 ```typescript
 // Validated by blogPostSchema in lib/schemas.ts
 {
-  id, title, slug, excerpt, author,
-  category, tags, featured, readTime,
-  content, // HTML string
-  publishedAt, lastUpdated
+  id, title, slug, date, excerpt,
+  author, category, tags, featured,
+  readTime, content, // Markdown string
+  lastUpdated
 }
 ```
 
@@ -50,14 +57,197 @@ site.config.ts         # Central site configuration
 ```typescript
 // Validated by recipeSchema in lib/schemas.ts
 {
-  Name, Description, Category,
-  PrepTime, CookTime, ServingsCount,
-  Difficulty, Status, // "Draft" | "Published" | "Archived"
-  IngredientList, // Notion-style ingredient objects
-  Instructions, // HTML string
-  NutritionInfo
+  id, name, slug, description,
+  prepTime, cookTime, totalTime,
+  ovenTemp, category, difficulty,
+  servings, tags, favorite,
+  content, // Markdown string
+  ingredients, // Optional structured ingredients
+  heroImg, lastUpdated
 }
 ```
+
+## Notion Integration (Headless CMS)
+
+### Overview
+This site uses **Notion as a headless CMS**. Content is fetched from Notion databases at build time and converted to static JSON files. This approach provides:
+- ✓ User-friendly content editing in Notion
+- ✓ Zero runtime API calls (fully static)
+- ✓ No Notion dependency in production
+- ✓ Locally cached images (Notion URLs expire after 1 hour)
+
+### Setup Instructions
+
+#### 1. Create Notion Integration
+1. Go to https://www.notion.so/my-integrations
+2. Click "New integration"
+3. Give it a name (e.g., "Personal Website")
+4. Copy the **Internal Integration Secret** (starts with `secret_`)
+5. Add this secret to `.env.local` as `NOTION_API_KEY`
+
+#### 2. Set Up Notion Databases
+
+**Required Databases:**
+- **Blog Database** - For blog posts
+- **Recipe Database** - For recipes
+
+**Optional Databases:**
+- **Ingredient Database** - For ingredient details
+- **RecipeIngredient Database** - Junction table linking recipes to ingredients
+- **Meal Prep Page** - Single page for meal prep content
+
+#### 3. Blog Database Schema
+
+Create a database in Notion with these properties:
+
+| Property | Type | Description | Required |
+|----------|------|-------------|----------|
+| `Title` | Title | Blog post title | ✓ |
+| `Status` | Select | Draft/Published/Archive | ✓ |
+| `Date` | Date | Publication date | ✓ |
+| `Tags` | Multi-select | Array of tag names | |
+| `Category` | Select | Content category | |
+| `Excerpt` | Text | Short description (auto-generated if empty) | |
+| `Author` | Text | Author name | |
+| `Slug` | Text | URL-friendly slug (auto-generated if empty) | |
+| `Featured` | Checkbox | Featured post flag | |
+| `ReadTime` | Number | Reading time in minutes (auto-calculated if empty) | |
+
+**Important:** Only posts with `Status = Published` will be fetched.
+
+#### 4. Recipe Database Schema
+
+Create a database in Notion with these properties:
+
+| Property | Type | Description | Required |
+|----------|------|-------------|----------|
+| `Name` | Title | Recipe name | ✓ |
+| `Status` | Select | Draft/Published/Archive | ✓ |
+| `Description` | Text | Recipe description (auto-generated from content if empty) | |
+| `PrepTime` | Number | Preparation time in minutes | |
+| `CookTime` | Number | Cooking time in minutes | |
+| `Oven Temp (F)` | Number | Oven temperature in Fahrenheit | |
+| `Category` | Select | Recipe category | |
+| `Difficulty` | Select | Easy/Medium/Veteran | |
+| `Servings` | Number | Number of servings | |
+| `Tags` | Multi-select | Array of tag names | |
+| `Favorite` | Checkbox | Favorite recipe flag | |
+| `heroImg` | Files | Hero image URL | |
+| `RecipeIngredient` | Relation | Links to RecipeIngredient junction table (optional) | |
+
+**Important:** Only recipes with `Status = Published` and non-empty `Name` will be fetched.
+
+#### 5. Share Databases with Integration
+1. Open each database in Notion
+2. Click the "..." menu in the top right
+3. Click "Add connections"
+4. Select your integration
+5. Copy the database ID from the URL:
+   - URL format: `notion.so/workspace/<DATABASE_ID>?v=...`
+   - The database ID is a 32-character hex string
+6. Add database IDs to `.env.local`:
+   ```
+   BLOG_DATABASE_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   RECIPE_DATABASE_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   ```
+
+### Fetching Content
+
+**Manual Fetch:**
+```bash
+npm run fetch-content
+```
+
+**Automatic Fetch (during build):**
+```bash
+npm run build  # Runs prebuild hook which fetches content
+```
+
+### How It Works
+
+1. **Script Execution** (`scripts/fetch-notion-content.js`):
+   - Connects to Notion API using `NOTION_API_KEY`
+   - Queries each database for published content
+   - Converts Notion blocks to Markdown using `notion-to-md`
+   - Downloads images locally to `public/images/notion/`
+   - Generates individual JSON files for each post/recipe
+   - Creates `content/metadata.json` with build statistics
+
+2. **Rate Limiting**:
+   - Notion API allows 3 requests per second
+   - Script includes 350ms delays between API calls
+   - Image downloads include 100ms delays
+
+3. **Content Processing**:
+   - Notion blocks → Markdown conversion
+   - Image URLs → Local file downloads
+   - Auto-generated slugs (if not provided)
+   - Auto-calculated reading time (if not provided)
+   - Auto-generated excerpts (if not provided)
+
+4. **Type Safety**:
+   - All JSON validated against Zod schemas in `lib/schemas.ts`
+   - TypeScript types in `lib/types.ts`
+   - Build fails if content doesn't match schemas
+
+### Advanced: Ingredient Relationships
+
+For complex recipes with structured ingredients:
+
+#### Ingredient Database Schema
+| Property | Type | Description |
+|----------|------|-------------|
+| `Name` | Title | Ingredient name |
+| `Description` | Text | Ingredient description |
+| `Brand` | Select | Brand name |
+| `In Pantry` | Checkbox | Pantry availability |
+
+#### RecipeIngredient Junction Schema
+| Property | Type | Description |
+|----------|------|-------------|
+| `Recipe` | Relation | Single relation to Recipe database |
+| `Ingredient Database` | Relation | Single relation to Ingredient database |
+| `Quantity` | Number | Amount of ingredient |
+| `Unit` | Select | Measurement unit (cup, tbsp, tsp, etc.) |
+| `Purpose` | Text | Purpose in recipe |
+| `Instructions` | Text | Preparation instructions |
+| `Optional` | Checkbox | Whether ingredient is optional |
+| `Display` | Formula | Auto-formatted display string |
+
+**Environment Variables:**
+```
+INGREDIENT_DATABASE_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+RECIPE_INGREDIENT_DATABASE_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+### Troubleshooting
+
+**Error: "NOTION_API_KEY not set"**
+- Ensure `.env.local` exists and contains `NOTION_API_KEY`
+- Verify the API key starts with `secret_`
+
+**Error: "Failed to download image"**
+- Notion image URLs expire after 1 hour
+- Re-run `npm run fetch-content` to download fresh URLs
+- Check network connectivity
+
+**Error: Zod validation failed**
+- Check that JSON structure matches schemas in `lib/schemas.ts`
+- Verify all required fields are present in Notion
+- Check for typos in property names
+
+**Rate limit errors**
+- Notion API allows 3 requests per second
+- Script includes delays, but very large databases may need adjustment
+- Increase delays in `scripts/fetch-notion-content.js` if needed
+
+### Content Workflow
+
+1. **Edit content in Notion** - Use rich text, images, code blocks, etc.
+2. **Set Status to "Published"** - Only published content is fetched
+3. **Run fetch script** - `npm run fetch-content` (or happens automatically during build)
+4. **Review generated JSON** - Check `content/blog/` and `content/recipes/`
+5. **Build and deploy** - `npm run build` (includes fetch in prebuild hook)
 
 ## Key Patterns
 
@@ -100,14 +290,28 @@ Central configuration for:
 - Analytics (GTM container ID)
 
 ### Environment Variables
+
+**Site Configuration:**
 - `NEXT_PUBLIC_GTM_ID` - Google Tag Manager (optional)
 - `NEXT_PUBLIC_SITE_URL` - Site URL for absolute links
 - `VERCEL_URL` - Auto-set by Vercel deployment
 
+**Notion Integration (Required for content fetching):**
+- `NOTION_API_KEY` - Notion integration secret (starts with `secret_`)
+- `BLOG_DATABASE_ID` - 32-character Notion database ID for blog posts
+- `RECIPE_DATABASE_ID` - 32-character Notion database ID for recipes
+
+**Notion Integration (Optional):**
+- `INGREDIENT_DATABASE_ID` - For ingredient details
+- `RECIPE_INGREDIENT_DATABASE_ID` - For recipe-ingredient relationships
+- `MEALPREP_PAGE_ID` - For meal prep page content
+
 ## Development Commands
 ```bash
 npm run dev           # Start dev server
-npm run build         # Build for production
+npm run fetch-content # Fetch content from Notion
+npm run build         # Build for production (includes fetch-content via prebuild hook)
+npm run start         # Start production server
 npm run lint          # Run ESLint
 npm run lint:fix      # Fix ESLint violations
 npm run format        # Format with Prettier

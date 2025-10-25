@@ -1,32 +1,25 @@
 import { z } from "zod";
 
-// Blog Post Schema
+// Blog Post Schema (Notion format)
 export const blogPostSchema = z.object({
   id: z.string(),
   title: z.string(),
   slug: z.string(),
+  date: z.string(), // ISO 8601 date string
   excerpt: z.string(),
   author: z.string(),
   category: z.string(),
-  tags: z.array(z.string()).optional(),
+  tags: z.array(z.string()).default([]),
   featured: z.boolean(),
   readTime: z.number(),
   content: z.string(),
-  publishedAt: z.string(),
   lastUpdated: z.string(),
 });
 
 export type BlogPost = z.infer<typeof blogPostSchema>;
 
-// Recipe Category
-const recipeCategorySchema = z.enum([
-  "Meal Prep",
-  "Smoothies",
-  "Vegetables",
-  "Meats",
-  "Baking",
-  "Snacks",
-]);
+// Recipe Category (flexible string instead of strict enum)
+const recipeCategorySchema = z.string();
 
 // Recipe Difficulty
 const recipeDifficultySchema = z.enum(["Easy", "Medium", "Veteran"]);
@@ -34,93 +27,62 @@ const recipeDifficultySchema = z.enum(["Easy", "Medium", "Veteran"]);
 // Recipe Status
 const recipeStatusSchema = z.enum(["Draft", "Published", "Archived"]);
 
-// Recipe Brand
-const recipeBrandSchema = z.enum([
-  "Kirkland",
-  "Great Value",
-  "Dole",
-  "Mortons",
-  "Jell-O",
-  "Impact",
-]);
+// Recipe Brand (flexible string instead of strict enum)
+const recipeBrandSchema = z.string().nullable();
 
-// Recipe Unit
-const recipeUnitSchema = z.enum([
-  "cup",
-  "tablespoon",
-  "teaspoon",
-  "ounce",
-  "pound",
-  "gram",
-  "kilogram",
-  "milliliter",
-  "liter",
-  "pinch",
-  "each",
-]);
+// Recipe Unit (flexible string instead of strict enum)
+const recipeUnitSchema = z.string().nullable();
 
-// Ingredient Schema
+// Ingredient Schema (Notion format)
 export const ingredientSchema = z.object({
-  url: z.string(),
-  Name: z.string(),
-  Description: z.string().optional(),
-  Brand: recipeBrandSchema.optional(),
-  "In Pantry": z.enum(["__YES__", "__NO__"]).optional(),
-  RecipeIngredient: z.string().optional(),
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  brand: recipeBrandSchema.optional(),
+  inPantry: z.boolean(),
 });
 
 export type Ingredient = z.infer<typeof ingredientSchema>;
 
-// RecipeIngredient Junction Schema
-export const recipeIngredientSchema = z.object({
-  url: z.string(),
-  "userDefined:Id": z.string(),
-  Recipe: z.string().optional(),
-  "Ingredient Database": z.string().optional(),
-  Quantity: z.number().optional(),
-  Unit: recipeUnitSchema.optional(),
-  Purpose: z.string().optional(),
-  Instructions: z.string().optional(),
-  Optional: z.enum(["__YES__", "__NO__"]).optional(),
-  Display: z.string().optional(),
+// RecipeIngredient Display Schema (Notion format)
+export const recipeIngredientDisplaySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  quantity: z.number().nullable().optional(),
+  unit: recipeUnitSchema.optional(),
+  brand: recipeBrandSchema.optional(),
+  description: z.string().optional(),
+  instructions: z.string().optional(),
+  purpose: z.string().optional(),
+  optional: z.boolean(),
+  inPantry: z.boolean(),
+  display: z.string().optional(),
 });
 
-export type RecipeIngredient = z.infer<typeof recipeIngredientSchema>;
+export type RecipeIngredientDisplay = z.infer<typeof recipeIngredientDisplaySchema>;
 
-// RecipeIngredient with Details
-export interface RecipeIngredientWithDetails extends RecipeIngredient {
-  ingredient?: Ingredient;
-}
-
-// Recipe Schema
+// Recipe Schema (Notion format)
 export const recipeSchema = z.object({
-  url: z.string(),
-  Name: z.string(),
+  id: z.string(),
+  name: z.string(),
   slug: z.string(),
-  Description: z.string().optional(),
-  Category: recipeCategorySchema.optional(),
-  PrepTime: z.number().optional(),
-  CookTime: z.number().optional(),
-  "OvenTemp (F)": z.number().optional(),
-  Servings: z.number().optional(),
-  "date:Date:start": z.string().optional(),
-  "date:Date:end": z.string().optional(),
-  "date:Date:is_datetime": z.union([z.literal(0), z.literal(1)]).optional(),
-  Difficulty: recipeDifficultySchema.optional(),
-  Status: recipeStatusSchema.optional(),
-  RecipeIngredient: z.string().optional(),
-  IngredientList: z.string().optional(),
+  description: z.string(),
+  prepTime: z.number(),
+  cookTime: z.number(),
+  totalTime: z.number(),
+  ovenTemp: z.number().nullable().optional(),
+  category: recipeCategorySchema,
+  difficulty: recipeDifficultySchema,
+  servings: z.number(),
+  tags: z.array(z.string()).default([]),
+  favorite: z.boolean(),
+  content: z.string(),
+  ingredients: z.array(recipeIngredientDisplaySchema).optional(),
   heroImg: z.string().optional(),
-  content: z.string().optional(), // Recipe steps/instructions
-  publishedAt: z.string().optional(),
+  lastUpdated: z.string(),
 });
 
 export type Recipe = z.infer<typeof recipeSchema>;
-
-// Recipe with Ingredients
-export interface RecipeWithIngredients extends Recipe {
-  ingredients?: RecipeIngredientWithDetails[];
-}
 
 // Search Index Item Schema
 export const searchIndexItemSchema = z.object({
