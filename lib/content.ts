@@ -178,3 +178,28 @@ export function calculateReadTime(content: string, wpm: number = 200): number {
   const words = content.trim().split(/\s+/).length;
   return Math.ceil(words / wpm);
 }
+
+// Meal Prep Page
+export interface MealPrepPage {
+  id: string;
+  title: string;
+  content: string;
+  lastUpdated: string;
+}
+
+export function getMealPrepPage(): MealPrepPage | null {
+  const filePath = path.join(contentDirectory, "meal-prep.json");
+
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+
+  try {
+    const fileContents = fs.readFileSync(filePath, "utf8");
+    const data = JSON.parse(fileContents);
+    return data as MealPrepPage;
+  } catch (error) {
+    console.error("Error reading meal prep page:", error);
+    return null;
+  }
+}
