@@ -62,13 +62,13 @@ export default function Home() {
                 <h2 className="text-2xl font-bold tracking-tight mb-4">About</h2>
                 <div className="prose prose-zinc dark:prose-invert">
                   <p>
-                    I'm a software leader and builder with a passion for creating
+                    I&apos;m a software leader and builder with a passion for creating
                     elegant solutions to complex problems. With years of experience
                     leading engineering teams, I focus on clean architecture,
                     scalable systems, and empowering teams to do their best work.
                   </p>
                   <p>
-                    When I'm not coding or leading teams, you'll find me in the gym,
+                    When I&apos;m not coding or leading teams, you&apos;ll find me in the gym,
                     experimenting with meal prep recipes, or exploring the latest in
                     software engineering practices. This site is where I share my
                     thoughts on technology, leadership, fitness, and food.

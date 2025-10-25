@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 /**
  * Test script to verify Meal Prep page access
  */
@@ -55,7 +57,7 @@ async function testMealPrepAccess() {
 
     // Extract page title
     let title = 'Untitled';
-    for (const [key, property] of Object.entries(page.properties)) {
+    for (const property of Object.values(page.properties)) {
       if (property?.type === 'title' && Array.isArray(property.title)) {
         const titleText = property.title.map(t => t.plain_text).join('');
         if (titleText) {
