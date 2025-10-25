@@ -36,10 +36,8 @@ export default async function MealPrepPage() {
       <Container className="py-16 md:py-24">
         {/* Page Header */}
         <header className="mb-12 max-w-3xl">
-          <h1 className="text-4xl font-bold tracking-tight mb-4 md:text-5xl">
-            {mealPrep.title}
-          </h1>
-          <p className="text-xl text-muted-foreground">
+          <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">{mealPrep.title}</h1>
+          <p className="text-muted-foreground text-xl">
             Weekly meal prep plan for training and rest days
           </p>
         </header>
@@ -50,8 +48,8 @@ export default async function MealPrepPage() {
         </Prose>
 
         {/* Page Footer */}
-        <footer className="mt-16 pt-8 border-t border-border max-w-3xl">
-          <div className="text-sm text-muted-foreground">
+        <footer className="border-border mt-16 max-w-3xl border-t pt-8">
+          <div className="text-muted-foreground text-sm">
             Last updated: {formatDate(mealPrep.lastUpdated)}
           </div>
         </footer>

@@ -30,7 +30,7 @@ export function ThemeToggle() {
   if (!mounted) {
     return (
       <button
-        className="h-9 w-9 rounded-md border border-border bg-transparent"
+        className="border-border h-9 w-9 rounded-md border bg-transparent"
         aria-label="Toggle theme"
       />
     );
@@ -39,7 +39,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="h-9 w-9 rounded-md border border-border bg-transparent hover:bg-accent hover:text-accent-foreground transition-colors"
+      className="border-border hover:bg-accent hover:text-accent-foreground h-9 w-9 rounded-md border bg-transparent transition-colors"
       aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
     >
       {theme === "light" ? (
@@ -49,7 +49,7 @@ export function ThemeToggle() {
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="h-5 w-5 mx-auto"
+          className="mx-auto h-5 w-5"
         >
           <path
             strokeLinecap="round"
@@ -64,7 +64,7 @@ export function ThemeToggle() {
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="h-5 w-5 mx-auto"
+          className="mx-auto h-5 w-5"
         >
           <path
             strokeLinecap="round"

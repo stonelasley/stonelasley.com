@@ -1,9 +1,5 @@
 import Link from "next/link";
-import {
-  siGithub,
-  siInstagram,
-  siWhatsapp,
-} from "simple-icons";
+import { siGithub, siInstagram, siWhatsapp } from "simple-icons";
 import { siteConfig } from "@/site.config";
 
 interface SocialLink {

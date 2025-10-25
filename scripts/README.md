@@ -73,6 +73,7 @@ public/images/notion/
 ### Error Handling
 
 The script will:
+
 - ✓ Exit with error code 1 if required env vars are missing
 - ✓ Log errors for individual content items but continue processing
 - ✓ Log warnings for failed image downloads
@@ -81,20 +82,24 @@ The script will:
 ### Troubleshooting
 
 **"NOTION_API_KEY not set"**
+
 - Create `.env.local` with your Notion integration secret
 - Get secret from https://www.notion.so/my-integrations
 
 **"Failed to download image"**
+
 - Notion image URLs expire after 1 hour
 - Re-run the script to get fresh URLs
 - Check network connectivity
 
 **Zod validation errors**
+
 - Content structure doesn't match schemas in `lib/schemas.ts`
 - Check required fields are present in Notion
 - Verify property names match expected schema
 
 **Rate limit errors (429)**
+
 - Increase delay values in script (currently 350ms)
 - Reduce concurrent operations
 - Wait and retry

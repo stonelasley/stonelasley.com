@@ -13,17 +13,17 @@
  * - Handles complex relationships (recipes with ingredients)
  */
 
-const { Client } = require('@notionhq/client');
-const { NotionToMarkdown } = require('notion-to-md');
-const readingTime = require('reading-time');
-const fs = require('fs');
-const path = require('path');
-const https = require('https');
-const http = require('http');
-const { URL } = require('url');
+const { Client } = require("@notionhq/client");
+const { NotionToMarkdown } = require("notion-to-md");
+const readingTime = require("reading-time");
+const fs = require("fs");
+const path = require("path");
+const https = require("https");
+const http = require("http");
+const { URL } = require("url");
 
 // Load environment variables
-require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') });
+require("dotenv").config({ path: path.resolve(process.cwd(), ".env.local") });
 
 // Configuration
 const NOTION_API_KEY = process.env.NOTION_API_KEY;
@@ -34,36 +34,36 @@ const RECIPE_INGREDIENT_DATABASE_ID = process.env.RECIPE_INGREDIENT_DATABASE_ID;
 const MEALPREP_PAGE_ID = process.env.MEALPREP_PAGE_ID;
 
 // Output directories
-const CONTENT_DIR = path.join(process.cwd(), 'content');
-const BLOG_DIR = path.join(CONTENT_DIR, 'blog');
-const RECIPE_DIR = path.join(CONTENT_DIR, 'recipes');
-const IMAGES_DIR = path.join(process.cwd(), 'public', 'images', 'notion');
+const CONTENT_DIR = path.join(process.cwd(), "content");
+const BLOG_DIR = path.join(CONTENT_DIR, "blog");
+const RECIPE_DIR = path.join(CONTENT_DIR, "recipes");
+const IMAGES_DIR = path.join(process.cwd(), "public", "images", "notion");
 
 // Initialize Notion clients
 const notion = new Client({ auth: NOTION_API_KEY });
 const n2m = new NotionToMarkdown({ notionClient: notion });
 
 // Helper: Delay for rate limiting
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Helper: Extract plain text from Notion rich text
 function extractPlainText(richText) {
-  if (!richText || !Array.isArray(richText)) return '';
-  return richText.map(rt => rt.plain_text).join('');
+  if (!richText || !Array.isArray(richText)) return "";
+  return richText.map((rt) => rt.plain_text).join("");
 }
 
 // Helper: Generate URL-friendly slug
 function generateSlug(title) {
   return title
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 // Helper: Parse Notion multi-select relations
 function parseNotionRelation(relationField) {
   if (!relationField || !Array.isArray(relationField)) return [];
-  return relationField.map(item => item.id);
+  return relationField.map((item) => item.id);
 }
 
 // Helper: Parse Notion single-select relation
@@ -75,11 +75,11 @@ function parseNotionSingleRelation(relationField) {
 }
 
 // Helper: Extract page title (works for any title property)
-function extractPageTitle(page, fallback = '') {
+function extractPageTitle(page, fallback = "") {
   if (!page || !page.properties) return fallback;
 
   for (const property of Object.values(page.properties)) {
-    if (property?.type === 'title' && Array.isArray(property.title)) {
+    if (property?.type === "title" && Array.isArray(property.title)) {
       const titleText = extractPlainText(property.title);
       if (titleText) return titleText;
     }
@@ -90,15 +90,15 @@ function extractPageTitle(page, fallback = '') {
 
 // Helper: Generate excerpt from markdown
 function generateExcerptFromMarkdown(markdown, length = 160) {
-  if (!markdown) return '';
+  if (!markdown) return "";
 
   const plainText = markdown
-    .replace(/```[\s\S]*?```/g, '')        // Remove code blocks
-    .replace(/`[^`]*`/g, '')               // Remove inline code
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')  // Remove images
-    .replace(/\[(.*?)\]\([^)]*\)/g, '$1')  // Replace links with text
-    .replace(/[*_>#\-]+/g, ' ')            // Remove markdown characters
-    .replace(/\s+/g, ' ')                  // Collapse whitespace
+    .replace(/```[\s\S]*?```/g, "") // Remove code blocks
+    .replace(/`[^`]*`/g, "") // Remove inline code
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "") // Remove images
+    .replace(/\[(.*?)\]\([^)]*\)/g, "$1") // Replace links with text
+    .replace(/[*_>#\-]+/g, " ") // Remove markdown characters
+    .replace(/\s+/g, " ") // Collapse whitespace
     .trim();
 
   return plainText.slice(0, length).trim();
@@ -108,28 +108,30 @@ function generateExcerptFromMarkdown(markdown, length = 160) {
 async function downloadImage(url, filename) {
   return new Promise((resolve, reject) => {
     const parsedUrl = new URL(url);
-    const protocol = parsedUrl.protocol === 'https:' ? https : http;
+    const protocol = parsedUrl.protocol === "https:" ? https : http;
 
     const filepath = path.join(IMAGES_DIR, filename);
     const file = fs.createWriteStream(filepath);
 
-    protocol.get(url, (response) => {
-      if (response.statusCode === 200) {
-        response.pipe(file);
-        file.on('finish', () => {
+    protocol
+      .get(url, (response) => {
+        if (response.statusCode === 200) {
+          response.pipe(file);
+          file.on("finish", () => {
+            file.close();
+            resolve(`/images/notion/${filename}`);
+          });
+        } else {
           file.close();
-          resolve(`/images/notion/${filename}`);
-        });
-      } else {
+          fs.unlink(filepath, () => {});
+          reject(new Error(`Failed to download image: ${response.statusCode}`));
+        }
+      })
+      .on("error", (err) => {
         file.close();
         fs.unlink(filepath, () => {});
-        reject(new Error(`Failed to download image: ${response.statusCode}`));
-      }
-    }).on('error', (err) => {
-      file.close();
-      fs.unlink(filepath, () => {});
-      reject(err);
-    });
+        reject(err);
+      });
   });
 }
 
@@ -148,7 +150,7 @@ async function processPageContent(pageId, slug) {
 
     while ((match = imageRegex.exec(markdown)) !== null) {
       const imageUrl = match[1];
-      const imageExt = path.extname(new URL(imageUrl).pathname) || '.png';
+      const imageExt = path.extname(new URL(imageUrl).pathname) || ".png";
       const filename = `${slug}-${imageIndex}${imageExt}`;
 
       try {
@@ -165,21 +167,21 @@ async function processPageContent(pageId, slug) {
     return { markdown, imageMap };
   } catch (error) {
     console.error(`  ✗ Error processing content for page ${pageId}:`, error.message);
-    return { markdown: '', imageMap: {} };
+    return { markdown: "", imageMap: {} };
   }
 }
 
 // Fetch all ingredients (if database exists)
 async function fetchAllIngredients() {
   if (!INGREDIENT_DATABASE_ID) {
-    console.log('⊘ Ingredient database not configured, skipping...');
+    console.log("⊘ Ingredient database not configured, skipping...");
     return new Map();
   }
 
   try {
-    console.log('Fetching ingredients...');
+    console.log("Fetching ingredients...");
     const response = await notion.databases.query({
-      database_id: INGREDIENT_DATABASE_ID
+      database_id: INGREDIENT_DATABASE_ID,
     });
 
     const ingredientsMap = new Map();
@@ -189,7 +191,7 @@ async function fetchAllIngredients() {
         name: extractPlainText(page.properties.Name?.title),
         description: extractPlainText(page.properties.Description?.rich_text),
         brand: page.properties.Brand?.select?.name || null,
-        inPantry: page.properties['In Pantry']?.checkbox || false
+        inPantry: page.properties["In Pantry"]?.checkbox || false,
       });
     }
 
@@ -197,7 +199,7 @@ async function fetchAllIngredients() {
     await delay(350); // Rate limiting
     return ingredientsMap;
   } catch (error) {
-    console.error('✗ Error fetching ingredients:', error.message);
+    console.error("✗ Error fetching ingredients:", error.message);
     return new Map();
   }
 }
@@ -205,14 +207,14 @@ async function fetchAllIngredients() {
 // Fetch all recipe-ingredients (if database exists)
 async function fetchAllRecipeIngredients() {
   if (!RECIPE_INGREDIENT_DATABASE_ID) {
-    console.log('⊘ RecipeIngredient database not configured, skipping...');
+    console.log("⊘ RecipeIngredient database not configured, skipping...");
     return new Map();
   }
 
   try {
-    console.log('Fetching recipe-ingredients...');
+    console.log("Fetching recipe-ingredients...");
     const response = await notion.databases.query({
-      database_id: RECIPE_INGREDIENT_DATABASE_ID
+      database_id: RECIPE_INGREDIENT_DATABASE_ID,
     });
 
     const recipeIngredientsMap = new Map();
@@ -220,13 +222,13 @@ async function fetchAllRecipeIngredients() {
       recipeIngredientsMap.set(page.id, {
         id: page.id,
         recipeId: parseNotionSingleRelation(page.properties.Recipe?.relation),
-        ingredientId: parseNotionSingleRelation(page.properties['Ingredient Database']?.relation),
+        ingredientId: parseNotionSingleRelation(page.properties["Ingredient Database"]?.relation),
         quantity: page.properties.Quantity?.number || null,
         unit: page.properties.Unit?.select?.name || null,
         purpose: extractPlainText(page.properties.Purpose?.rich_text),
         instructions: extractPlainText(page.properties.Instructions?.rich_text),
         optional: page.properties.Optional?.checkbox || false,
-        display: page.properties.Display?.formula?.string || null
+        display: page.properties.Display?.formula?.string || null,
       });
     }
 
@@ -234,7 +236,7 @@ async function fetchAllRecipeIngredients() {
     await delay(350); // Rate limiting
     return recipeIngredientsMap;
   } catch (error) {
-    console.error('✗ Error fetching recipe-ingredients:', error.message);
+    console.error("✗ Error fetching recipe-ingredients:", error.message);
     return new Map();
   }
 }
@@ -251,21 +253,20 @@ function buildRecipeIngredients(recipeIngredientIds, recipeIngredientsMap, ingre
     const riData = recipeIngredientsMap.get(riPageId);
     if (!riData) continue;
 
-    const ingredientData = riData.ingredientId ?
-      ingredientsMap.get(riData.ingredientId) : null;
+    const ingredientData = riData.ingredientId ? ingredientsMap.get(riData.ingredientId) : null;
 
     ingredientsWithDetails.push({
       id: riData.id,
-      name: ingredientData?.name || 'Unknown Ingredient',
+      name: ingredientData?.name || "Unknown Ingredient",
       quantity: riData.quantity,
       unit: riData.unit,
       brand: ingredientData?.brand || null,
-      description: ingredientData?.description || '',
+      description: ingredientData?.description || "",
       instructions: riData.instructions,
       purpose: riData.purpose,
       optional: riData.optional,
       inPantry: ingredientData?.inPantry || false,
-      display: riData.display
+      display: riData.display,
     });
   }
 
@@ -275,22 +276,22 @@ function buildRecipeIngredients(recipeIngredientIds, recipeIngredientsMap, ingre
 // Fetch blog posts
 async function fetchBlogPosts() {
   try {
-    console.log('\nFetching blog posts...');
+    console.log("\nFetching blog posts...");
 
     const response = await notion.databases.query({
       database_id: BLOG_DATABASE_ID,
       filter: {
-        property: 'Status',
+        property: "Status",
         select: {
-          equals: 'Published'
-        }
+          equals: "Published",
+        },
       },
       sorts: [
         {
-          property: 'Date',
-          direction: 'descending'
-        }
-      ]
+          property: "Date",
+          direction: "descending",
+        },
+      ],
     });
 
     await delay(350); // Rate limiting
@@ -308,9 +309,8 @@ async function fetchBlogPosts() {
       await delay(350); // Rate limiting
 
       // Calculate reading time
-      const calculatedReadTime = markdown && markdown.trim()
-        ? Math.ceil(readingTime(markdown).minutes)
-        : 1;
+      const calculatedReadTime =
+        markdown && markdown.trim() ? Math.ceil(readingTime(markdown).minutes) : 1;
       const readTimeFromNotion = page.properties.ReadTime?.number;
 
       // Extract or generate excerpt
@@ -321,22 +321,19 @@ async function fetchBlogPosts() {
         id: page.id,
         title,
         slug,
-        date: page.properties.Date?.date?.start || new Date().toISOString().split('T')[0],
+        date: page.properties.Date?.date?.start || new Date().toISOString().split("T")[0],
         excerpt,
-        author: extractPlainText(page.properties.Author?.rich_text) || 'Anonymous',
-        category: page.properties.Category?.select?.name || 'Uncategorized',
-        tags: page.properties.Tags?.multi_select?.map(tag => tag.name) || [],
+        author: extractPlainText(page.properties.Author?.rich_text) || "Anonymous",
+        category: page.properties.Category?.select?.name || "Uncategorized",
+        tags: page.properties.Tags?.multi_select?.map((tag) => tag.name) || [],
         featured: page.properties.Featured?.checkbox || false,
         readTime: readTimeFromNotion || calculatedReadTime,
         content: markdown,
-        lastUpdated: page.last_edited_time
+        lastUpdated: page.last_edited_time,
       };
 
       // Write individual JSON file
-      fs.writeFileSync(
-        path.join(BLOG_DIR, `${slug}.json`),
-        JSON.stringify(blogPost, null, 2)
-      );
+      fs.writeFileSync(path.join(BLOG_DIR, `${slug}.json`), JSON.stringify(blogPost, null, 2));
 
       blogPosts.push(blogPost);
       console.log(`  ✓ Saved: ${slug}.json`);
@@ -345,7 +342,7 @@ async function fetchBlogPosts() {
     console.log(`✓ Fetched ${blogPosts.length} blog posts`);
     return blogPosts;
   } catch (error) {
-    console.error('✗ Error fetching blog posts:', error);
+    console.error("✗ Error fetching blog posts:", error);
     throw error;
   }
 }
@@ -353,32 +350,32 @@ async function fetchBlogPosts() {
 // Fetch recipes
 async function fetchRecipes(recipeIngredientsMap, ingredientsMap) {
   try {
-    console.log('\nFetching recipes...');
+    console.log("\nFetching recipes...");
 
     const response = await notion.databases.query({
       database_id: RECIPE_DATABASE_ID,
       filter: {
         and: [
           {
-            property: 'Status',
+            property: "Status",
             select: {
-              equals: 'Published'
-            }
+              equals: "Published",
+            },
           },
           {
-            property: 'Name',
+            property: "Name",
             title: {
-              is_not_empty: true
-            }
-          }
-        ]
+              is_not_empty: true,
+            },
+          },
+        ],
       },
       sorts: [
         {
-          property: 'Name',
-          direction: 'ascending'
-        }
-      ]
+          property: "Name",
+          direction: "ascending",
+        },
+      ],
     });
 
     await delay(350); // Rate limiting
@@ -402,7 +399,7 @@ async function fetchRecipes(recipeIngredientsMap, ingredientsMap) {
         const imageUrl = imageFile.file?.url || imageFile.external?.url;
         if (imageUrl) {
           try {
-            const imageExt = path.extname(new URL(imageUrl).pathname) || '.png';
+            const imageExt = path.extname(new URL(imageUrl).pathname) || ".png";
             const filename = `${slug}-hero${imageExt}`;
             heroImg = await downloadImage(imageUrl, filename);
             await delay(100);
@@ -414,7 +411,11 @@ async function fetchRecipes(recipeIngredientsMap, ingredientsMap) {
 
       // Build ingredient relationships
       const recipeIngredientIds = parseNotionRelation(page.properties.RecipeIngredient?.relation);
-      const ingredients = buildRecipeIngredients(recipeIngredientIds, recipeIngredientsMap, ingredientsMap);
+      const ingredients = buildRecipeIngredients(
+        recipeIngredientIds,
+        recipeIngredientsMap,
+        ingredientsMap
+      );
 
       // Extract times
       const prepTime = page.properties.PrepTime?.number || 0;
@@ -432,23 +433,20 @@ async function fetchRecipes(recipeIngredientsMap, ingredientsMap) {
         prepTime,
         cookTime,
         totalTime: prepTime + cookTime,
-        ovenTemp: page.properties['Oven Temp (F)']?.number || null,
-        category: page.properties.Category?.select?.name || 'Other',
-        difficulty: page.properties.Difficulty?.select?.name || 'Medium',
+        ovenTemp: page.properties["Oven Temp (F)"]?.number || null,
+        category: page.properties.Category?.select?.name || "Other",
+        difficulty: page.properties.Difficulty?.select?.name || "Medium",
         servings: page.properties.Servings?.number || 1,
-        tags: page.properties.Tags?.multi_select?.map(tag => tag.name) || [],
+        tags: page.properties.Tags?.multi_select?.map((tag) => tag.name) || [],
         favorite: page.properties.Favorite?.checkbox || false,
         content: markdown,
         ingredients: ingredients.length > 0 ? ingredients : undefined,
         heroImg: heroImg || undefined,
-        lastUpdated: page.last_edited_time
+        lastUpdated: page.last_edited_time,
       };
 
       // Write individual JSON file
-      fs.writeFileSync(
-        path.join(RECIPE_DIR, `${slug}.json`),
-        JSON.stringify(recipe, null, 2)
-      );
+      fs.writeFileSync(path.join(RECIPE_DIR, `${slug}.json`), JSON.stringify(recipe, null, 2));
 
       recipes.push(recipe);
       console.log(`  ✓ Saved: ${slug}.json`);
@@ -457,7 +455,7 @@ async function fetchRecipes(recipeIngredientsMap, ingredientsMap) {
     console.log(`✓ Fetched ${recipes.length} recipes`);
     return recipes;
   } catch (error) {
-    console.error('✗ Error fetching recipes:', error);
+    console.error("✗ Error fetching recipes:", error);
     throw error;
   }
 }
@@ -465,17 +463,17 @@ async function fetchRecipes(recipeIngredientsMap, ingredientsMap) {
 // Fetch meal prep page (optional)
 async function fetchMealPrepPage() {
   if (!MEALPREP_PAGE_ID) {
-    console.log('\n⊘ Meal prep page not configured, skipping...');
+    console.log("\n⊘ Meal prep page not configured, skipping...");
     return null;
   }
 
   try {
-    console.log('\nFetching meal prep page...');
+    console.log("\nFetching meal prep page...");
 
     const page = await notion.pages.retrieve({ page_id: MEALPREP_PAGE_ID });
     await delay(350);
 
-    const title = extractPageTitle(page, 'Meal Prep');
+    const title = extractPageTitle(page, "Meal Prep");
     const slug = generateSlug(title);
 
     const { markdown } = await processPageContent(MEALPREP_PAGE_ID, slug);
@@ -485,37 +483,37 @@ async function fetchMealPrepPage() {
       id: page.id,
       title,
       content: markdown,
-      lastUpdated: page.last_edited_time
+      lastUpdated: page.last_edited_time,
     };
 
     // Write JSON file
     fs.writeFileSync(
-      path.join(CONTENT_DIR, 'meal-prep.json'),
+      path.join(CONTENT_DIR, "meal-prep.json"),
       JSON.stringify(mealPrepPage, null, 2)
     );
 
     console.log(`✓ Fetched meal prep page`);
     return mealPrepPage;
   } catch (error) {
-    console.error('✗ Error fetching meal prep page:', error.message);
+    console.error("✗ Error fetching meal prep page:", error.message);
     return null;
   }
 }
 
 // Main execution
 async function main() {
-  console.log('========================================');
-  console.log('Starting Notion content fetch...');
-  console.log('========================================\n');
+  console.log("========================================");
+  console.log("Starting Notion content fetch...");
+  console.log("========================================\n");
 
   // Validate environment variables
   if (!NOTION_API_KEY) {
-    console.error('✗ ERROR: NOTION_API_KEY not set in .env.local');
+    console.error("✗ ERROR: NOTION_API_KEY not set in .env.local");
     process.exit(1);
   }
 
   if (!BLOG_DATABASE_ID || !RECIPE_DATABASE_ID) {
-    console.error('✗ ERROR: BLOG_DATABASE_ID or RECIPE_DATABASE_ID not set');
+    console.error("✗ ERROR: BLOG_DATABASE_ID or RECIPE_DATABASE_ID not set");
     process.exit(1);
   }
 
@@ -551,29 +549,26 @@ async function main() {
       ingredientCount: ingredientsMap.size,
       recipeIngredientCount: recipeIngredientsMap.size,
       totalItems: blogPosts.length + recipes.length,
-      mealPrepPageAvailable: Boolean(mealPrepPage && mealPrepPage.content)
+      mealPrepPageAvailable: Boolean(mealPrepPage && mealPrepPage.content),
     };
 
     // Write metadata file
-    fs.writeFileSync(
-      path.join(CONTENT_DIR, 'metadata.json'),
-      JSON.stringify(metadata, null, 2)
-    );
+    fs.writeFileSync(path.join(CONTENT_DIR, "metadata.json"), JSON.stringify(metadata, null, 2));
 
-    console.log('\n========================================');
-    console.log('✓ Content fetch completed successfully!');
-    console.log('========================================');
+    console.log("\n========================================");
+    console.log("✓ Content fetch completed successfully!");
+    console.log("========================================");
     console.log(`\n📊 Summary:`);
     console.log(`  Blog posts: ${metadata.blogPostCount}`);
     console.log(`  Recipes: ${metadata.recipeCount}`);
     console.log(`  Ingredients: ${metadata.ingredientCount}`);
     console.log(`  Recipe-Ingredients: ${metadata.recipeIngredientCount}`);
     console.log(`  Last fetched: ${metadata.lastFetched}`);
-    console.log('');
+    console.log("");
   } catch (error) {
-    console.error('\n========================================');
-    console.error('✗ Fatal error:', error);
-    console.error('========================================\n');
+    console.error("\n========================================");
+    console.error("✗ Fatal error:", error);
+    console.error("========================================\n");
     process.exit(1);
   }
 }

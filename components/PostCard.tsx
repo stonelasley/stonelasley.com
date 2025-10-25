@@ -16,7 +16,7 @@ export function PostCard({ post }: PostCardProps) {
       <div className="space-y-2">
         {post.featured && (
           <div className="inline-block">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <span className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
               Featured
             </span>
           </div>
@@ -26,7 +26,7 @@ export function PostCard({ post }: PostCardProps) {
         </h3>
         <p className="text-muted-foreground">{post.excerpt}</p>
       </div>
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
+      <div className="text-muted-foreground flex items-center justify-between text-sm">
         <div className="flex items-center gap-3">
           <time dateTime={post.date}>{formatDate(post.date)}</time>
           <span>•</span>
@@ -34,7 +34,7 @@ export function PostCard({ post }: PostCardProps) {
         </div>
       </div>
       {post.tags && post.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 relative z-20">
+        <div className="relative z-20 flex flex-wrap gap-2">
           {post.tags.map((tag) => (
             <Tag key={tag} tag={tag} />
           ))}

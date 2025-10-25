@@ -4,10 +4,7 @@ import Image from "next/image";
 import { Container } from "@/components/Container";
 import { Prose } from "@/components/Prose";
 import { PrintButton } from "@/components/PrintButton";
-import {
-  getAllRecipes,
-  getRecipeBySlug,
-} from "@/lib/content";
+import { getAllRecipes, getRecipeBySlug } from "@/lib/content";
 import { constructMetadata, generateRecipeJsonLd } from "@/lib/metadata";
 import { markdownToHtml } from "@/lib/markdown";
 
@@ -63,7 +60,7 @@ export default async function RecipePage({ params }: RecipePageProps) {
           {/* Back link */}
           <Link
             href="/recipes"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 no-print"
+            className="text-muted-foreground hover:text-foreground no-print mb-8 inline-flex items-center gap-2 text-sm transition-colors"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -84,7 +81,7 @@ export default async function RecipePage({ params }: RecipePageProps) {
             {/* Recipe Header */}
             <div className="md:col-span-2">
               {recipe.heroImg && (
-                <div className="relative aspect-video w-full overflow-hidden rounded-lg mb-8">
+                <div className="relative mb-8 aspect-video w-full overflow-hidden rounded-lg">
                   <Image
                     src={recipe.heroImg}
                     alt={recipe.name}
@@ -99,18 +96,14 @@ export default async function RecipePage({ params }: RecipePageProps) {
               <header className="mb-8">
                 {recipe.category && (
                   <div className="mb-4">
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <span className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                       {recipe.category}
                     </span>
                   </div>
                 )}
-                <h1 className="text-4xl font-bold tracking-tight mb-4">
-                  {recipe.name}
-                </h1>
+                <h1 className="mb-4 text-4xl font-bold tracking-tight">{recipe.name}</h1>
                 {recipe.description && (
-                  <p className="text-xl text-muted-foreground">
-                    {recipe.description}
-                  </p>
+                  <p className="text-muted-foreground text-xl">{recipe.description}</p>
                 )}
               </header>
 
@@ -124,48 +117,48 @@ export default async function RecipePage({ params }: RecipePageProps) {
 
             {/* Recipe Meta Sidebar */}
             <div className="md:col-span-1">
-              <div className="sticky top-24 space-y-6 rounded-lg border border-border bg-card p-6">
+              <div className="border-border bg-card sticky top-24 space-y-6 rounded-lg border p-6">
                 <h2 className="text-lg font-semibold">Recipe Info</h2>
 
                 <div className="space-y-4">
                   {recipe.prepTime && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Prep Time:</span>
+                      <span className="text-muted-foreground text-sm">Prep Time:</span>
                       <span className="text-sm font-medium">{recipe.prepTime} min</span>
                     </div>
                   )}
 
                   {recipe.cookTime && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Cook Time:</span>
+                      <span className="text-muted-foreground text-sm">Cook Time:</span>
                       <span className="text-sm font-medium">{recipe.cookTime} min</span>
                     </div>
                   )}
 
                   {recipe.totalTime > 0 && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Total Time:</span>
+                      <span className="text-muted-foreground text-sm">Total Time:</span>
                       <span className="text-sm font-medium">{recipe.totalTime} min</span>
                     </div>
                   )}
 
                   {recipe.servings && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Servings:</span>
+                      <span className="text-muted-foreground text-sm">Servings:</span>
                       <span className="text-sm font-medium">{recipe.servings}</span>
                     </div>
                   )}
 
                   {recipe.ovenTemp && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Oven Temp:</span>
+                      <span className="text-muted-foreground text-sm">Oven Temp:</span>
                       <span className="text-sm font-medium">{recipe.ovenTemp}°F</span>
                     </div>
                   )}
 
                   {recipe.difficulty && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Difficulty:</span>
+                      <span className="text-muted-foreground text-sm">Difficulty:</span>
                       <span className="text-sm font-medium">{recipe.difficulty}</span>
                     </div>
                   )}

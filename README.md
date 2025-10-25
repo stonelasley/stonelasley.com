@@ -63,22 +63,26 @@ A modern, minimal, and fast personal website built with Next.js 16, featuring a 
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/stonelasley/stonelasley.com.git
    cd stonelasley.com
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Create environment file (optional):
+
    ```bash
    cp .env.example .env.local
    ```
 
 4. Run the development server:
+
    ```bash
    npm run dev
    ```
@@ -194,6 +198,7 @@ The site is optimized for performance:
 - ✅ Minimal JavaScript bundle size
 
 **Target Metrics:**
+
 - LCP < 2.0s
 - CLS < 0.05
 - TBT < 200ms
@@ -218,6 +223,7 @@ This project is private and proprietary. All rights reserved.
 ## Contact
 
 Stone C. Lasley
+
 - Website: [https://stonelasley.com](https://stonelasley.com)
 - GitHub: [@stonelasley](https://github.com/stonelasley)
 - Email: website@lasley.io

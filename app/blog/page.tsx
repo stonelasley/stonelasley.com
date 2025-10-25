@@ -2,12 +2,7 @@ import { Container } from "@/components/Container";
 import { PostList } from "@/components/PostList";
 import { Pagination } from "@/components/Pagination";
 import { Tag } from "@/components/Tag";
-import {
-  getAllBlogPosts,
-  getBlogPostsByTag,
-  getAllBlogTags,
-  paginateItems,
-} from "@/lib/content";
+import { getAllBlogPosts, getBlogPostsByTag, getAllBlogTags, paginateItems } from "@/lib/content";
 import { siteConfig } from "@/site.config";
 import { constructMetadata } from "@/lib/metadata";
 
@@ -28,16 +23,10 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
   const selectedTag = params.tag;
 
   // Get posts, filtered by tag if provided
-  const allPosts = selectedTag
-    ? getBlogPostsByTag(selectedTag)
-    : getAllBlogPosts();
+  const allPosts = selectedTag ? getBlogPostsByTag(selectedTag) : getAllBlogPosts();
 
   // Paginate
-  const paginatedPosts = paginateItems(
-    allPosts,
-    currentPage,
-    siteConfig.pagination.postsPerPage
-  );
+  const paginatedPosts = paginateItems(allPosts, currentPage, siteConfig.pagination.postsPerPage);
 
   // Get all tags for filter
   const allTags = getAllBlogTags();
@@ -45,8 +34,8 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
   return (
     <Container className="py-16 md:py-24">
       <div className="mb-12">
-        <h1 className="text-4xl font-bold tracking-tight mb-4">Blog</h1>
-        <p className="text-lg text-muted-foreground">
+        <h1 className="mb-4 text-4xl font-bold tracking-tight">Blog</h1>
+        <p className="text-muted-foreground text-lg">
           Thoughts on software engineering, leadership, and technology.
         </p>
       </div>
@@ -54,13 +43,9 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
       {/* Tag Filter */}
       {allTags.length > 0 && (
         <div className="mb-12">
-          <h2 className="text-sm font-medium mb-4">Filter by tag:</h2>
+          <h2 className="mb-4 text-sm font-medium">Filter by tag:</h2>
           <div className="flex flex-wrap gap-2">
-            <Tag
-              tag="All"
-              active={!selectedTag}
-              href="/blog"
-            />
+            <Tag tag="All" active={!selectedTag} href="/blog" />
             {allTags.map((tag) => (
               <Tag
                 key={tag}
@@ -76,7 +61,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
       {/* Results Info */}
       {selectedTag && (
         <div className="mb-8">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Showing {paginatedPosts.totalItems} {paginatedPosts.totalItems === 1 ? "post" : "posts"}{" "}
             tagged with <strong>{selectedTag}</strong>
           </p>

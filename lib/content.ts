@@ -127,11 +127,7 @@ export interface PaginationResult<T> {
   hasPrevPage: boolean;
 }
 
-export function paginateItems<T>(
-  items: T[],
-  page: number,
-  perPage: number
-): PaginationResult<T> {
+export function paginateItems<T>(items: T[], page: number, perPage: number): PaginationResult<T> {
   const totalItems = items.length;
   const totalPages = Math.ceil(totalItems / perPage);
   const currentPage = Math.max(1, Math.min(page, totalPages || 1));
