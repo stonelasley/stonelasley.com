@@ -48,8 +48,20 @@ jobs:
           RECIPE_INGREDIENT_DATABASE_ID: ${{ secrets.RECIPE_INGREDIENT_DATABASE_ID }}
           MEALPREP_PAGE_ID: ${{ secrets.MEALPREP_PAGE_ID }}
 
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(npm ls @playwright/test --depth=0 --json | jq -r '.dependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
 
       - name: Run E2E tests
         run: npm run test:e2e
