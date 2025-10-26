@@ -19,13 +19,13 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="border-border bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur">
       <Container>
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
             <Link
               href="/"
-              className="text-xl font-bold tracking-tight hover:text-muted-foreground transition-colors"
+              className="hover:text-muted-foreground text-xl font-bold tracking-tight transition-colors"
             >
               {siteConfig.name}
             </Link>
@@ -36,10 +36,8 @@ export function Header() {
                     <Link
                       href={item.href}
                       className={cn(
-                        "text-sm font-medium transition-colors hover:text-foreground/80",
-                        isActive(item.href)
-                          ? "text-foreground"
-                          : "text-muted-foreground"
+                        "hover:text-foreground/80 text-sm font-medium transition-colors",
+                        isActive(item.href) ? "text-foreground" : "text-muted-foreground"
                       )}
                       aria-current={isActive(item.href) ? "page" : undefined}
                     >

@@ -10,7 +10,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   const totalTime = recipe.totalTime || 0;
 
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-colors hover:bg-accent">
+    <article className="group border-border bg-card hover:bg-accent relative flex flex-col overflow-hidden rounded-lg border transition-colors">
       <Link href={`/recipes/${recipe.slug}`} className="absolute inset-0 z-10">
         <span className="sr-only">View {recipe.name}</span>
       </Link>
@@ -28,7 +28,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
       <div className="flex flex-1 flex-col justify-between p-6">
         <div className="flex-1">
           {recipe.category && (
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <span className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
               {recipe.category}
             </span>
           )}
@@ -36,12 +36,10 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
             {recipe.name}
           </h3>
           {recipe.description && (
-            <p className="mt-3 text-sm text-muted-foreground line-clamp-2">
-              {recipe.description}
-            </p>
+            <p className="text-muted-foreground mt-3 line-clamp-2 text-sm">{recipe.description}</p>
           )}
         </div>
-        <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
+        <div className="text-muted-foreground mt-4 flex items-center gap-4 text-sm">
           {totalTime > 0 && (
             <div className="flex items-center gap-1">
               <svg

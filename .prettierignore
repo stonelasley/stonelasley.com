@@ -1,0 +1,30 @@
+# Dependencies
+node_modules
+
+# Build outputs
+.next
+out
+dist
+build
+
+# Test outputs
+test-results
+playwright-report
+coverage
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# Package manager
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Generated content
+content/
+public/images/notion/

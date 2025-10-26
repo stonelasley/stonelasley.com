@@ -24,9 +24,6 @@ const recipeCategorySchema = z.string();
 // Recipe Difficulty
 const recipeDifficultySchema = z.enum(["Easy", "Medium", "Veteran"]);
 
-// Recipe Status
-const recipeStatusSchema = z.enum(["Draft", "Published", "Archived"]);
-
 // Recipe Brand (flexible string instead of strict enum)
 const recipeBrandSchema = z.string().nullable();
 

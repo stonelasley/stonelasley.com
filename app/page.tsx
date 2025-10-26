@@ -15,25 +15,21 @@ export default function Home() {
   return (
     <>
       {/* Hero Section */}
-      <section className="border-b border-border py-20 md:py-32">
+      <section className="border-border border-b py-20 md:py-32">
         <Container>
           <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-              {siteConfig.name}
-            </h1>
-            <p className="mt-6 text-lg leading-8 text-muted-foreground">
-              {siteConfig.description}
-            </p>
+            <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">{siteConfig.name}</h1>
+            <p className="text-muted-foreground mt-6 text-lg leading-8">{siteConfig.description}</p>
             <div className="mt-10 flex items-center justify-center gap-4">
               <Link
                 href="/blog"
-                className="rounded-md bg-foreground px-6 py-3 text-sm font-semibold text-background shadow-sm hover:bg-foreground/90 transition-colors"
+                className="bg-foreground text-background hover:bg-foreground/90 rounded-md px-6 py-3 text-sm font-semibold shadow-sm transition-colors"
               >
                 Read the Blog
               </Link>
               <Link
                 href="/recipes"
-                className="rounded-md border border-border bg-background px-6 py-3 text-sm font-semibold hover:bg-accent transition-colors"
+                className="border-border bg-background hover:bg-accent rounded-md border px-6 py-3 text-sm font-semibold transition-colors"
               >
                 View Recipes
               </Link>
@@ -43,7 +39,7 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section className="border-b border-border py-16 md:py-24">
+      <section className="border-border border-b py-16 md:py-24">
         <Container>
           <div className="mx-auto max-w-3xl">
             <div className="flex flex-col gap-8 md:flex-row md:items-start">
@@ -59,19 +55,19 @@ export default function Home() {
                 </div>
               )}
               <div>
-                <h2 className="text-2xl font-bold tracking-tight mb-4">About</h2>
+                <h2 className="mb-4 text-2xl font-bold tracking-tight">About</h2>
                 <div className="prose prose-zinc dark:prose-invert">
                   <p>
-                    I'm a software leader and builder with a passion for creating
-                    elegant solutions to complex problems. With years of experience
-                    leading engineering teams, I focus on clean architecture,
-                    scalable systems, and empowering teams to do their best work.
+                    I&apos;m a software leader and builder with a passion for creating elegant
+                    solutions to complex problems. With years of experience leading engineering
+                    teams, I focus on clean architecture, scalable systems, and empowering teams to
+                    do their best work.
                   </p>
                   <p>
-                    When I'm not coding or leading teams, you'll find me in the gym,
-                    experimenting with meal prep recipes, or exploring the latest in
-                    software engineering practices. This site is where I share my
-                    thoughts on technology, leadership, fitness, and food.
+                    When I&apos;m not coding or leading teams, you&apos;ll find me in the gym,
+                    experimenting with meal prep recipes, or exploring the latest in software
+                    engineering practices. This site is where I share my thoughts on technology,
+                    leadership, fitness, and food.
                   </p>
                 </div>
               </div>
@@ -82,13 +78,13 @@ export default function Home() {
 
       {/* Recent Blog Posts */}
       {recentPosts.length > 0 && (
-        <section className="border-b border-border py-16 md:py-24">
+        <section className="border-border border-b py-16 md:py-24">
           <Container>
-            <div className="flex items-center justify-between mb-12">
+            <div className="mb-12 flex items-center justify-between">
               <h2 className="text-3xl font-bold tracking-tight">Recent Posts</h2>
               <Link
                 href="/blog"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
               >
                 View all posts →
               </Link>
@@ -106,11 +102,11 @@ export default function Home() {
       {latestRecipe && (
         <section className="py-16 md:py-24">
           <Container>
-            <div className="flex items-center justify-between mb-12">
+            <div className="mb-12 flex items-center justify-between">
               <h2 className="text-3xl font-bold tracking-tight">Latest Recipe</h2>
               <Link
                 href="/recipes"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
               >
                 View all recipes →
               </Link>

@@ -1,0 +1,25 @@
+name: Deploy Latest Content
+
+on:
+  # Run every morning at 08:00 MDT (14:00 UTC)
+  schedule:
+    - cron: '0 14 * * *'
+
+  # Allow manual triggering from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  trigger-deployment:
+    name: Trigger Vercel Deployment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Vercel Deploy Hook
+        run: |
+          curl -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}"
+
+      - name: Deployment triggered
+        run: |
+          echo "✅ Vercel deployment triggered successfully"
+          echo "⏰ Scheduled to run daily at 2:00 PM UTC (8:00 AM MDT)"
+          echo "🔗 Check deployment status at: https://vercel.com"

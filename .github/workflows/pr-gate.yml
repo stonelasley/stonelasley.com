@@ -1,0 +1,75 @@
+name: PR Gate
+
+on:
+  pull_request:
+    branches:
+      - master
+      - main
+  # Allow manual triggering from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  quality-checks:
+    name: Code Quality & Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Prettier check
+        run: npm run format:check
+
+      - name: Run TypeScript type checking
+        run: npm run type-check
+
+      - name: Run unit tests
+        run: npm run test -- --run
+
+      - name: Build application
+        run: npm run build
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          BLOG_DATABASE_ID: ${{ secrets.BLOG_DATABASE_ID }}
+          RECIPE_DATABASE_ID: ${{ secrets.RECIPE_DATABASE_ID }}
+          INGREDIENT_DATABASE_ID: ${{ secrets.INGREDIENT_DATABASE_ID }}
+          RECIPE_INGREDIENT_DATABASE_ID: ${{ secrets.RECIPE_INGREDIENT_DATABASE_ID }}
+          MEALPREP_PAGE_ID: ${{ secrets.MEALPREP_PAGE_ID }}
+
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(npm ls @playwright/test --depth=0 --json | jq -r '.dependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30

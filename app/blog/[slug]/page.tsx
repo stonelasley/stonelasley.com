@@ -3,10 +3,7 @@ import Link from "next/link";
 import { Container } from "@/components/Container";
 import { Prose } from "@/components/Prose";
 import { Tag } from "@/components/Tag";
-import {
-  getAllBlogPosts,
-  getBlogPostBySlug,
-} from "@/lib/content";
+import { getAllBlogPosts, getBlogPostBySlug } from "@/lib/content";
 import { constructMetadata, generateBlogPostJsonLd } from "@/lib/metadata";
 import { formatDate } from "@/lib/utils";
 import { highlightCode } from "@/lib/syntax-highlighting";
@@ -66,7 +63,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           {/* Back link */}
           <Link
             href="/blog"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+            className="text-muted-foreground hover:text-foreground mb-8 inline-flex items-center gap-2 text-sm transition-colors"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -87,28 +84,24 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           <header className="mb-12 max-w-3xl">
             {post.featured && (
               <div className="mb-4">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <span className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                   Featured
                 </span>
               </div>
             )}
-            <h1 className="text-4xl font-bold tracking-tight mb-4 md:text-5xl">
-              {post.title}
-            </h1>
-            <p className="text-xl text-muted-foreground mb-6">{post.excerpt}</p>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+            <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">{post.title}</h1>
+            <p className="text-muted-foreground mb-6 text-xl">{post.excerpt}</p>
+            <div className="text-muted-foreground flex flex-wrap items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <span>By {post.author}</span>
               </div>
               <span>•</span>
-              <time dateTime={post.date}>
-                {formatDate(post.date)}
-              </time>
+              <time dateTime={post.date}>{formatDate(post.date)}</time>
               <span>•</span>
               <span>{post.readTime} min read</span>
             </div>
             {post.tags && post.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-6">
+              <div className="mt-6 flex flex-wrap gap-2">
                 {post.tags.map((tag) => (
                   <Tag key={tag} tag={tag} href={`/blog?tag=${encodeURIComponent(tag)}`} />
                 ))}
@@ -122,8 +115,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </Prose>
 
           {/* Post Footer */}
-          <footer className="mt-16 pt-8 border-t border-border max-w-3xl">
-            <div className="text-sm text-muted-foreground">
+          <footer className="border-border mt-16 max-w-3xl border-t pt-8">
+            <div className="text-muted-foreground text-sm">
               Last updated: {formatDate(post.lastUpdated)}
             </div>
           </footer>

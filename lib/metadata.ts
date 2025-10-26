@@ -21,13 +21,7 @@ export function constructMetadata({
       template: `%s | ${siteConfig.name}`,
     },
     description,
-    keywords: [
-      "software engineering",
-      "web development",
-      "recipes",
-      "meal prep",
-      "fitness",
-    ],
+    keywords: ["software engineering", "web development", "recipes", "meal prep", "fitness"],
     authors: [{ name: siteConfig.author.name, url: siteConfig.url }],
     creator: siteConfig.author.name,
     openGraph: {

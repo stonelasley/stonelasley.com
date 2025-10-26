@@ -30,7 +30,7 @@ export function Pagination({
   const pages = [];
   const showPages = 5; // Show 5 page numbers
   let startPage = Math.max(1, currentPage - Math.floor(showPages / 2));
-  let endPage = Math.min(totalPages, startPage + showPages - 1);
+  const endPage = Math.min(totalPages, startPage + showPages - 1);
 
   if (endPage - startPage + 1 < showPages) {
     startPage = Math.max(1, endPage - showPages + 1);
@@ -41,14 +41,11 @@ export function Pagination({
   }
 
   return (
-    <nav
-      aria-label="Pagination"
-      className="flex items-center justify-center gap-2 mt-12"
-    >
+    <nav aria-label="Pagination" className="mt-12 flex items-center justify-center gap-2">
       {currentPage > 1 && (
         <Link
           href={createPageUrl(currentPage - 1)}
-          className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent transition-colors"
+          className="border-border bg-background hover:bg-accent inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors"
           aria-label="Go to previous page"
         >
           <svg
@@ -71,7 +68,7 @@ export function Pagination({
           <Link
             href={createPageUrl(1)}
             className={cn(
-              "inline-flex h-10 w-10 items-center justify-center rounded-md border border-border text-sm font-medium transition-colors",
+              "border-border inline-flex h-10 w-10 items-center justify-center rounded-md border text-sm font-medium transition-colors",
               "hover:bg-accent"
             )}
           >
@@ -88,7 +85,7 @@ export function Pagination({
           className={cn(
             "inline-flex h-10 w-10 items-center justify-center rounded-md border text-sm font-medium transition-colors",
             page === currentPage
-              ? "border-transparent bg-foreground text-background"
+              ? "bg-foreground text-background border-transparent"
               : "border-border hover:bg-accent"
           )}
         >
@@ -101,7 +98,7 @@ export function Pagination({
           <Link
             href={createPageUrl(totalPages)}
             className={cn(
-              "inline-flex h-10 w-10 items-center justify-center rounded-md border border-border text-sm font-medium transition-colors",
+              "border-border inline-flex h-10 w-10 items-center justify-center rounded-md border text-sm font-medium transition-colors",
               "hover:bg-accent"
             )}
           >
@@ -112,7 +109,7 @@ export function Pagination({
       {currentPage < totalPages && (
         <Link
           href={createPageUrl(currentPage + 1)}
-          className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent transition-colors"
+          className="border-border bg-background hover:bg-accent inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors"
           aria-label="Go to next page"
         >
           Next
