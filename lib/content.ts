@@ -7,6 +7,7 @@ import {
   type Recipe,
   type SearchIndexItem,
 } from "./schemas";
+import { ZodError } from "zod";
 
 const contentDirectory = path.join(process.cwd(), "content");
 const blogDirectory = path.join(contentDirectory, "blog");
@@ -25,7 +26,29 @@ export function getAllBlogPosts(): BlogPost[] {
       const filePath = path.join(blogDirectory, fileName);
       const fileContents = fs.readFileSync(filePath, "utf8");
       const data = JSON.parse(fileContents);
-      return blogPostSchema.parse(data);
+
+      try {
+        return blogPostSchema.parse(data);
+      } catch (error) {
+        // Provide helpful error message for validation failures
+        const postTitle = data.title || fileName;
+        console.error(`\n❌ Blog post validation failed for: ${postTitle} (${fileName})`);
+        console.error(`   File path: ${filePath}`);
+
+        if (error instanceof ZodError) {
+          error.issues.forEach((issue) => {
+            const field = issue.path.join(".");
+            console.error(`   - Missing or invalid field: "${field}"`);
+            console.error(`     ${issue.message}`);
+          });
+          console.error(`\n   Please ensure the blog post has all required fields.`);
+          console.error(
+            `   You may need to run "npm run fetch-content" to update posts from Notion.\n`
+          );
+        }
+
+        throw error;
+      }
     });
 
   // Sort by date, newest first
@@ -77,12 +100,36 @@ export function getAllRecipes(): Recipe[] {
       const filePath = path.join(recipeDirectory, fileName);
       const fileContents = fs.readFileSync(filePath, "utf8");
       const data = JSON.parse(fileContents);
-      return recipeSchema.parse(data);
+
+      try {
+        return recipeSchema.parse(data);
+      } catch (error) {
+        // Provide helpful error message for validation failures
+        const recipeName = data.name || fileName;
+        console.error(`\n❌ Recipe validation failed for: ${recipeName} (${fileName})`);
+        console.error(`   File path: ${filePath}`);
+
+        if (error instanceof ZodError) {
+          error.issues.forEach((issue) => {
+            const field = issue.path.join(".");
+            console.error(`   - Missing or invalid field: "${field}"`);
+            console.error(`     ${issue.message}`);
+          });
+          console.error(
+            `\n   Please ensure the recipe has all required fields, including "content".`
+          );
+          console.error(
+            `   You may need to run "npm run fetch-content" to update recipes from Notion.\n`
+          );
+        }
+
+        throw error;
+      }
     });
 
-  // Sort by name alphabetically (since recipes don't have dates)
+  // Sort by date, newest first (using lastUpdated)
   return recipes.sort((a, b) => {
-    return a.name.localeCompare(b.name);
+    return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
   });
 }
 
