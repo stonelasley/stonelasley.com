@@ -73,7 +73,7 @@ export const recipeSchema = z.object({
   servings: z.number(),
   tags: z.array(z.string()).default([]),
   favorite: z.boolean(),
-  content: z.string().default(""),
+  content: z.string(),
   ingredients: z.array(recipeIngredientDisplaySchema).optional(),
   heroImg: z.string().optional(),
   lastUpdated: z.string(),
