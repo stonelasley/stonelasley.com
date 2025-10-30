@@ -107,6 +107,59 @@ export default async function RecipePage({ params }: RecipePageProps) {
                 )}
               </header>
 
+              {/* Ingredients Section */}
+              {recipe.ingredients && recipe.ingredients.length > 0 && (
+                <div className="border-border bg-card mb-8 rounded-lg border p-6">
+                  <h2 className="mb-4 text-2xl font-semibold">Ingredients</h2>
+                  <ul className="space-y-3">
+                    {recipe.ingredients.map((ingredient) => (
+                      <li key={ingredient.id} className="flex items-start gap-3">
+                        <span className="text-muted-foreground mt-1 text-xl leading-none">•</span>
+                        <div className="flex-1">
+                          <div className="flex items-baseline gap-2">
+                            {ingredient.display ? (
+                              <span className="font-medium">{ingredient.display}</span>
+                            ) : (
+                              <>
+                                {ingredient.quantity && (
+                                  <span className="font-medium">
+                                    {ingredient.quantity}
+                                    {ingredient.unit && ` ${ingredient.unit}`}
+                                  </span>
+                                )}
+                                <span className={ingredient.quantity ? "" : "font-medium"}>
+                                  {ingredient.name}
+                                </span>
+                                {ingredient.brand && (
+                                  <span className="text-muted-foreground text-sm">
+                                    ({ingredient.brand})
+                                  </span>
+                                )}
+                              </>
+                            )}
+                            {ingredient.optional && (
+                              <span className="text-muted-foreground text-xs italic">
+                                (optional)
+                              </span>
+                            )}
+                          </div>
+                          {ingredient.purpose && (
+                            <p className="text-muted-foreground mt-1 text-sm">
+                              {ingredient.purpose}
+                            </p>
+                          )}
+                          {ingredient.instructions && (
+                            <p className="text-muted-foreground mt-1 text-sm italic">
+                              {ingredient.instructions}
+                            </p>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {/* Recipe Content */}
               {htmlContent && (
                 <Prose>
