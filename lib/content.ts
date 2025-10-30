@@ -37,13 +37,14 @@ export function getAllBlogPosts(): BlogPost[] {
 
         if (error instanceof ZodError) {
           error.issues.forEach((issue) => {
-            const field = issue.path.join('.');
+            const field = issue.path.join(".");
             console.error(`   - Missing or invalid field: "${field}"`);
-            console.error(`     Expected: ${issue.expected || 'a value'}`);
-            console.error(`     Received: ${issue.received || 'undefined'}`);
+            console.error(`     ${issue.message}`);
           });
           console.error(`\n   Please ensure the blog post has all required fields.`);
-          console.error(`   You may need to run "npm run fetch-content" to update posts from Notion.\n`);
+          console.error(
+            `   You may need to run "npm run fetch-content" to update posts from Notion.\n`
+          );
         }
 
         throw error;
@@ -110,13 +111,16 @@ export function getAllRecipes(): Recipe[] {
 
         if (error instanceof ZodError) {
           error.issues.forEach((issue) => {
-            const field = issue.path.join('.');
+            const field = issue.path.join(".");
             console.error(`   - Missing or invalid field: "${field}"`);
-            console.error(`     Expected: ${issue.expected || 'a value'}`);
-            console.error(`     Received: ${issue.received || 'undefined'}`);
+            console.error(`     ${issue.message}`);
           });
-          console.error(`\n   Please ensure the recipe has all required fields, including "content".`);
-          console.error(`   You may need to run "npm run fetch-content" to update recipes from Notion.\n`);
+          console.error(
+            `\n   Please ensure the recipe has all required fields, including "content".`
+          );
+          console.error(
+            `   You may need to run "npm run fetch-content" to update recipes from Notion.\n`
+          );
         }
 
         throw error;
