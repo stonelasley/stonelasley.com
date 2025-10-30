@@ -80,9 +80,9 @@ export function getAllRecipes(): Recipe[] {
       return recipeSchema.parse(data);
     });
 
-  // Sort by name alphabetically (since recipes don't have dates)
+  // Sort by date, newest first (using lastUpdated)
   return recipes.sort((a, b) => {
-    return a.name.localeCompare(b.name);
+    return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
   });
 }
 
