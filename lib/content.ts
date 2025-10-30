@@ -7,6 +7,7 @@ import {
   type Recipe,
   type SearchIndexItem,
 } from "./schemas";
+import { ZodError } from "zod";
 
 const contentDirectory = path.join(process.cwd(), "content");
 const blogDirectory = path.join(contentDirectory, "blog");
@@ -34,9 +35,8 @@ export function getAllBlogPosts(): BlogPost[] {
         console.error(`\n❌ Blog post validation failed for: ${postTitle} (${fileName})`);
         console.error(`   File path: ${filePath}`);
 
-        if (error instanceof Error && 'issues' in error) {
-          const issues = (error as any).issues;
-          issues.forEach((issue: any) => {
+        if (error instanceof ZodError) {
+          error.issues.forEach((issue) => {
             const field = issue.path.join('.');
             console.error(`   - Missing or invalid field: "${field}"`);
             console.error(`     Expected: ${issue.expected || 'a value'}`);
@@ -108,9 +108,8 @@ export function getAllRecipes(): Recipe[] {
         console.error(`\n❌ Recipe validation failed for: ${recipeName} (${fileName})`);
         console.error(`   File path: ${filePath}`);
 
-        if (error instanceof Error && 'issues' in error) {
-          const issues = (error as any).issues;
-          issues.forEach((issue: any) => {
+        if (error instanceof ZodError) {
+          error.issues.forEach((issue) => {
             const field = issue.path.join('.');
             console.error(`   - Missing or invalid field: "${field}"`);
             console.error(`     Expected: ${issue.expected || 'a value'}`);
