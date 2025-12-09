@@ -31,3 +31,7 @@ public/images/notion/
 
 # Spec-Kit (managed separately)
 .specify/
+
+# Claude Code and GitHub workflows
+.claude/
+.github/
