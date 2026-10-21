@@ -33,6 +33,14 @@ _Avoid_: Model (when meaning the number), SKU
 A coaching client of Stone's who has been granted access to private Training content.
 _Avoid_: User, member, customer
 
+**Audience**:
+Who may read a Post: Public (anyone), Clients (every Client), or one named Client.
+_Avoid_: Visibility, permission, role
+
+**Private Post**:
+A Post whose Audience is anything other than Public. Never appears in search.
+_Avoid_: Protected content, members-only
+
 **Access Code**:
-A secret Stone issues to a Client that unlocks the private content meant for that Client.
+A secret Stone issues to a Client that unlocks the Posts whose Audience includes that Client. A Client holds at most one active Access Code at a time.
 _Avoid_: Password, login
