@@ -20,8 +20,12 @@ _Avoid_: Unpublished post, WIP
 A Post in the Recipes area that also carries structured cooking details such as times, servings, and ingredients.
 
 **Watch**:
-A Post in the Watches area that also carries structured specs for the watch it covers.
+A Post in the Watches area about one Reference, carrying structured specs for it. Whether Stone owns an example is irrelevant to the Post.
 _Avoid_: Watch catalog entry (no catalog exists yet)
+
+**Reference**:
+A manufacturer's model number identifying one watch design, such as Rolex 16610. Close variants of it may be covered by the same Watch.
+_Avoid_: Model (when meaning the number), SKU
 
 ## Access
 
