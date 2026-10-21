@@ -12,6 +12,10 @@ _Avoid_: Category, section, blog (when meaning one area)
 A single published piece of content in one Content Area, with a title, slug, date, tags, and body.
 _Avoid_: Article, entry, page
 
+**Draft**:
+A Post that is written but not yet published, so readers cannot see it.
+_Avoid_: Unpublished post, WIP
+
 **Recipe**:
 A Post in the Recipes area that also carries structured cooking details such as times, servings, and ingredients.
 
