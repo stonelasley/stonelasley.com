@@ -7,6 +7,8 @@ import { ThemeToggle } from "./ThemeToggle";
 import { SocialNav } from "./SocialNav";
 import { siteConfig } from "@/site.config";
 import { cn } from "@/lib/utils";
+import { Suspense } from "react";
+import { HeaderSearch } from "./prototype-search/HeaderSearch";
 
 export function Header() {
   const pathname = usePathname();
@@ -49,6 +51,10 @@ export function Header() {
             </nav>
           </div>
           <div className="flex items-center gap-4">
+            {/* PROTOTYPE (#29) — remove with the search prototype */}
+            <Suspense>
+              <HeaderSearch />
+            </Suspense>
             <div className="hidden md:block">
               <SocialNav />
             </div>
