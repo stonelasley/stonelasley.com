@@ -11,7 +11,7 @@ namespace StoneLasley.Cli;
 /// </summary>
 internal static partial class IngestCommand
 {
-    public static async Task<int> RunAsync(Uri apiUrl, string token, string directory)
+    public static async Task<int> RunAsync(Uri apiUrl, string token, string directory, bool dryRun, bool includeDrafts)
     {
         var posts = new Dictionary<string, string>();
         foreach (var path in Directory.EnumerateFiles(directory, "*.md", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
@@ -30,11 +30,18 @@ internal static partial class IngestCommand
             }
         }
 
+        // The API deletes every Post missing from the manifest, so an empty one would wipe the site.
+        if (posts.Count == 0)
+        {
+            await Console.Error.WriteLineAsync($"No Markdown Posts found under {directory}.");
+            return 1;
+        }
+
         using var client = new HttpClient { BaseAddress = apiUrl };
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var manifestResponse = await client.PostAsJsonAsync(
-            "ingest/manifest",
+            $"ingest/manifest?dryRun={dryRun}&includeDrafts={includeDrafts}",
             new { posts = posts.ToDictionary(p => p.Key, p => Hash(p.Value)) });
         if (!await SucceededAsync(manifestResponse, "manifest"))
         {
@@ -42,21 +49,35 @@ internal static partial class IngestCommand
         }
         var manifest = (await manifestResponse.Content.ReadFromJsonAsync<Manifest>())!;
 
+        // Upload everything before giving up, so one run reports every invalid Post.
+        var failed = 0;
         foreach (var id in manifest.Requested)
         {
             var upload = await client.PutAsJsonAsync($"ingest/runs/{manifest.RunId}/posts/{id}", new { markdown = posts[id] });
             if (!await SucceededAsync(upload, $"upload {id}"))
             {
-                return 1;
+                failed++;
             }
         }
-
-        if (!await SucceededAsync(await client.PostAsync($"ingest/runs/{manifest.RunId}/commit", null), "commit"))
+        if (failed > 0)
         {
+            await Console.Error.WriteLineAsync($"{failed} Post(s) failed validation; nothing was committed.");
             return 1;
         }
 
-        Console.WriteLine($"Ingested {manifest.Requested.Count} of {posts.Count} Posts ({posts.Count - manifest.Requested.Count} unchanged).");
+        var commitResponse = await client.PostAsync($"ingest/runs/{manifest.RunId}/commit", null);
+        if (!await SucceededAsync(commitResponse, "commit"))
+        {
+            return 1;
+        }
+        var commit = (await commitResponse.Content.ReadFromJsonAsync<Commit>())!;
+
+        var verb = commit.DryRun ? "Would upsert" : "Upserted";
+        Console.WriteLine($"{verb} {commit.Upserted.Count} and {(commit.DryRun ? "delete" : "deleted")} {commit.Deleted.Count} of {posts.Count} Posts ({posts.Count - manifest.Requested.Count} unchanged).");
+        foreach (var id in commit.Deleted)
+        {
+            Console.WriteLine($"  - {id}");
+        }
         return 0;
     }
 
@@ -77,4 +98,6 @@ internal static partial class IngestCommand
     private static partial Regex IdPattern();
 
     private sealed record Manifest(string RunId, IReadOnlyList<string> Requested);
+
+    private sealed record Commit(bool DryRun, IReadOnlyList<string> Upserted, IReadOnlyList<string> Deleted);
 }

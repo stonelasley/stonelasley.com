@@ -5,6 +5,7 @@ Cloudflare Worker data proxy and D1 migrations. The .NET API is the only caller 
 ## Endpoints
 
 - `POST /d1/query` with `{ "sql": string, "params"?: unknown[] }` returns `{ "results": object[] }`.
+- `POST /d1/batch` with `{ "statements": [{ "sql": string, "params"?: unknown[] }] }` runs them as one transaction and returns `{ "results": object[][] }`.
 
 Every request must carry `Authorization: Bearer <WORKER_SECRET>`, or it gets `401`.
 

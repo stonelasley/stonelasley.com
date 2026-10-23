@@ -4,15 +4,21 @@ namespace StoneLasley.Api.FunctionalTests;
 
 public sealed record ManifestResponse(string RunId, IReadOnlyList<string> Requested);
 
+public sealed record CommitResponse(bool DryRun, IReadOnlyList<string> Upserted, IReadOnlyList<string> Deleted);
+
 /// <summary>
 /// Drives the three-step ingest protocol the way the content repo's CI does.
 /// </summary>
 public static class Ingest
 {
-    public static async Task<ManifestResponse> ManifestAsync(HttpClient client, IReadOnlyDictionary<string, string> markdownById)
+    public static async Task<ManifestResponse> ManifestAsync(
+        HttpClient client,
+        IReadOnlyDictionary<string, string> markdownById,
+        bool dryRun = false,
+        bool includeDrafts = false)
     {
         var response = await client.PostAsJsonAsync(
-            "/ingest/manifest",
+            $"/ingest/manifest?dryRun={dryRun}&includeDrafts={includeDrafts}",
             new { posts = markdownById.ToDictionary(p => p.Key, p => TestPosts.Hash(p.Value)) });
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<ManifestResponse>())!;
@@ -25,16 +31,23 @@ public static class Ingest
         client.PostAsync($"/ingest/runs/{runId}/commit", null);
 
     /// <summary>Runs manifest, uploads whatever is requested, then commits.</summary>
-    public static async Task RunAsync(HttpClient client, params string[] markdowns)
+    public static async Task<CommitResponse> RunAsync(HttpClient client, params string[] markdowns) =>
+        await RunAsync(client, dryRun: false, includeDrafts: false, markdowns);
+
+    public static async Task<CommitResponse> RunAsync(HttpClient client, bool dryRun, bool includeDrafts, params string[] markdowns)
     {
-        var byId = markdowns.ToDictionary(IdOf);
-        var manifest = await ManifestAsync(client, byId);
+        var byId = ById(markdowns);
+        var manifest = await ManifestAsync(client, byId, dryRun, includeDrafts);
         foreach (var id in manifest.Requested)
         {
             (await UploadAsync(client, manifest.RunId, id, byId[id])).EnsureSuccessStatusCode();
         }
-        (await CommitAsync(client, manifest.RunId)).EnsureSuccessStatusCode();
+        var commit = await CommitAsync(client, manifest.RunId);
+        commit.EnsureSuccessStatusCode();
+        return (await commit.Content.ReadFromJsonAsync<CommitResponse>())!;
     }
+
+    public static Dictionary<string, string> ById(params string[] markdowns) => markdowns.ToDictionary(IdOf);
 
     private static string IdOf(string markdown) =>
         markdown.Split('\n').First(line => line.StartsWith("id: ", StringComparison.Ordinal))["id: ".Length..].Trim();

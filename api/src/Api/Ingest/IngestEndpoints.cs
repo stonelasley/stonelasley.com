@@ -12,8 +12,8 @@ public static class IngestEndpoints
     {
         var ingest = app.MapGroup("/ingest").AddEndpointFilter<RequireIngestToken>();
 
-        ingest.MapPost("/manifest", async (ManifestRequest request, IngestService service, CancellationToken cancellationToken) =>
-            Results.Ok(await service.StartAsync(request.Posts, cancellationToken)));
+        ingest.MapPost("/manifest", async (ManifestRequest request, IngestService service, CancellationToken cancellationToken, bool dryRun = false, bool includeDrafts = false) =>
+            Results.Ok(await service.StartAsync(request.Posts, dryRun, includeDrafts, cancellationToken)));
 
         ingest.MapPut("/runs/{runId}/posts/{postId}", async (string runId, string postId, UploadRequest request, IngestService service, CancellationToken cancellationToken) =>
             ToResult(await service.UploadAsync(runId, postId, request.Markdown, cancellationToken)));
@@ -26,7 +26,8 @@ public static class IngestEndpoints
 
     private static IResult ToResult(IngestOutcome outcome) => outcome switch
     {
-        IngestOutcome.Done => Results.NoContent(),
+        IngestOutcome.Uploaded => Results.NoContent(),
+        IngestOutcome.Committed committed => Results.Ok(committed.Summary),
         IngestOutcome.RunNotFound => Results.NotFound(),
         IngestOutcome.RunAlreadyCommitted => Results.Conflict(),
         IngestOutcome.Invalid invalid => Results.ValidationProblem(new Dictionary<string, string[]> { ["post"] = [.. invalid.Errors] }),

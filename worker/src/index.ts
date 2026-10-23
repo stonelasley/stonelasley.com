@@ -8,6 +8,10 @@ interface QueryRequest {
   params?: unknown[];
 }
 
+interface BatchRequest {
+  statements: QueryRequest[];
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (!(await isAuthorized(request, env))) {
@@ -17,6 +21,9 @@ export default {
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === "/d1/query") {
       return query(request, env);
+    }
+    if (request.method === "POST" && url.pathname === "/d1/batch") {
+      return batch(request, env);
     }
 
     return Response.json({ error: "not found" }, { status: 404 });
@@ -39,6 +46,35 @@ async function query(request: Request, env: Env): Promise<Response> {
       .bind(...(body.params ?? []))
       .all();
     return Response.json({ results });
+  } catch (error) {
+    return Response.json({ error: String(error) }, { status: 500 });
+  }
+}
+
+// D1 runs a batch as one transaction: every statement applies, or none does.
+async function batch(request: Request, env: Env): Promise<Response> {
+  let body: BatchRequest;
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: "invalid json" }, { status: 400 });
+  }
+  if (
+    !Array.isArray(body.statements) ||
+    body.statements.length === 0 ||
+    body.statements.some((s) => typeof s?.sql !== "string" || s.sql.length === 0)
+  ) {
+    return Response.json(
+      { error: "statements must be a non-empty array of { sql, params? }" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const results = await env.DB.batch(
+      body.statements.map((s) => env.DB.prepare(s.sql).bind(...(s.params ?? [])))
+    );
+    return Response.json({ results: results.map((r) => r.results) });
   } catch (error) {
     return Response.json({ error: String(error) }, { status: 500 });
   }
