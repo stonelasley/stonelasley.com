@@ -11,4 +11,9 @@ public interface ID1Database
         string sql,
         IReadOnlyList<object?>? parameters = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Runs the statements as one transaction: all of them apply, or none do.</summary>
+    Task BatchAsync(IReadOnlyList<D1Statement> statements, CancellationToken cancellationToken = default);
 }
+
+public sealed record D1Statement(string Sql, IReadOnlyList<object?> Params);
