@@ -1,17 +1,17 @@
 # dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.js
 
 # testing
-/coverage
+coverage/
 
 # next.js
-/.next/
-/out/
+/web/.next/
+/web/out/
 
 # production
-/build
+/web/build/
 
 # misc
 .DS_Store
@@ -34,5 +34,9 @@ yarn-error.log*
 next-env.d.ts
 
 # build time content
-content/*
-public/images/*
+web/content/*
+web/public/images/*
+
+# playwright
+playwright-report/
+test-results/

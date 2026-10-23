@@ -27,8 +27,9 @@ yarn.lock
 
 # Generated content
 content/
-public/images/notion/
+web/public/images/notion/
 
 # Claude Code and GitHub workflows
 .claude/
 .github/
+.agents/
