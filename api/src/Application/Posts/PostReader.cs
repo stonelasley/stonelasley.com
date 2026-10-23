@@ -13,12 +13,12 @@ public sealed record PostDetail(string Id, string Title, string Slug, string Are
 /// </summary>
 public sealed class PostReader(ID1Database database)
 {
-    private const string Readable = $"audience = '{PostColumns.PublicAudience}' AND status = '{PostColumns.PublishedStatus}'";
+    private const string PublicAndPublished = $"audience = '{PostColumns.PublicAudience}' AND status = '{PostColumns.PublishedStatus}'";
 
     public async Task<IReadOnlyList<PostSummary>> ListAsync(ContentArea area, CancellationToken cancellationToken)
     {
         var rows = await database.QueryAsync(
-            $"SELECT id, title, slug, area, date, tags FROM posts WHERE area = ? AND {Readable} ORDER BY date DESC, id DESC",
+            $"SELECT id, title, slug, area, date, tags FROM posts WHERE area = ? AND {PublicAndPublished} ORDER BY date DESC, id DESC",
             [area.Slug()],
             cancellationToken);
         return [.. rows.Select(row => new PostSummary(
@@ -28,7 +28,7 @@ public sealed class PostReader(ID1Database database)
     public async Task<PostDetail?> FindAsync(ContentArea area, string slug, CancellationToken cancellationToken)
     {
         var rows = await database.QueryAsync(
-            $"SELECT id, title, slug, area, date, tags, body FROM posts WHERE area = ? AND slug = ? AND {Readable}",
+            $"SELECT id, title, slug, area, date, tags, body FROM posts WHERE area = ? AND slug = ? AND {PublicAndPublished}",
             [area.Slug(), slug],
             cancellationToken);
         if (rows.Count == 0)

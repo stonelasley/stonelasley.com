@@ -39,6 +39,7 @@ public class MarkdownPostTests
     }
 
     [TestCase("id: 01JBX5Q7Z9K3M8N2P4R6T0V1W2", "id: not-a-ulid", "'id' must be a ULID.")]
+    [TestCase("id: 01JBX5Q7Z9K3M8N2P4R6T0V1W2", "id: 01jbx5q7z9k3m8n2p4r6t0v1w2", "'id' must be a ULID.")]
     [TestCase("title: Learning with mind maps", "title: ''", "'title' is required.")]
     [TestCase("slug: learning-with-mind-maps", "slug: Learning With Spaces", "'slug' must be lowercase letters, digits and single hyphens.")]
     [TestCase("area: ai-development", "area: blog", "'area' must be one of: recipes, watches, ai-development, training.")]

@@ -40,6 +40,11 @@ export async function warmApi({
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  // On Vercel there's no local API to fall back to, so a missing API_URL is a broken deploy.
+  if (process.env.VERCEL && !process.env.API_URL) {
+    console.error("warm-api: API_URL is not set");
+    process.exit(1);
+  }
   const url = process.env.API_URL ?? "http://localhost:5180";
   warmApi({ url }).then(
     () => console.log(`warm-api: ${url} is healthy`),

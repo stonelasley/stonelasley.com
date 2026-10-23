@@ -20,6 +20,9 @@ export type PostSummary = z.infer<typeof postSummarySchema>;
 export type Post = z.infer<typeof postSchema>;
 
 function apiUrl(): string {
+  if (process.env.VERCEL && !process.env.API_URL) {
+    throw new Error("API_URL is not set.");
+  }
   return (process.env.API_URL ?? "http://localhost:5180").replace(/\/$/, "");
 }
 

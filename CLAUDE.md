@@ -17,7 +17,7 @@ Personal website for Stone C. Lasley built with **Next.js 16**, **TypeScript**, 
 ## Architecture Principles
 
 1. **Static Generation**: All pages pre-rendered at build time
-2. **Type Safety**: Zod validation for all JSON content
+2. **Type Safety**: Zod validation of every API response
 3. **Performance**: Minimal client-side JS, server components by default
 4. **Accessibility**: Semantic HTML, WCAG compliance
 
@@ -82,6 +82,7 @@ All content comes from the API via `web/lib/api.ts`:
 getPostsByArea(area); // Public Posts in one Content Area, newest first
 getAllPosts(); // Across all areas, newest first
 getPost(area, slug); // One Post with its Markdown body, or null
+findArea(slug); // A Content Area from lib/areas.ts, or undefined
 ```
 
 ### Routing
@@ -114,7 +115,7 @@ Central configuration for:
 - Author information
 - Navigation structure
 - Social links
-- Pagination settings (postsPerPage, recipesPerPage)
+- Home page settings (number of recent Posts)
 - Analytics (GTM container ID)
 
 ### Environment Variables

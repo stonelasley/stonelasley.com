@@ -40,7 +40,7 @@ public static partial class MarkdownPost
 
         var errors = new List<string>();
 
-        var id = frontmatter.Id?.Trim().ToUpperInvariant();
+        var id = frontmatter.Id?.Trim();
         if (id is null || !UlidPattern().IsMatch(id))
         {
             errors.Add("'id' must be a ULID.");
@@ -108,7 +108,8 @@ public static partial class MarkdownPost
     [GeneratedRegex(@"\A---\n(?<yaml>.*?)\n---(?:\n(?<body>.*))?\z", RegexOptions.Singleline)]
     private static partial Regex FrontmatterPattern();
 
-    // Crockford base32, 26 characters; a leading digit above 7 would overflow 128 bits.
+    // Canonical (uppercase) Crockford base32, 26 characters; a leading digit above 7 would overflow 128 bits.
+    // Uppercase only, so the id in the file is byte-for-byte the id ingest matches on.
     [GeneratedRegex("^[0-7][0-9A-HJKMNP-TV-Z]{25}$")]
     private static partial Regex UlidPattern();
 

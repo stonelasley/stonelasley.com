@@ -9,6 +9,7 @@ internal static class PostColumns
 {
     public const string PublicAudience = "public";
     public const string PublishedStatus = "published";
+    public const string DraftStatus = "draft";
 
     public static string Audience(Audience audience) => audience switch
     {
@@ -19,7 +20,7 @@ internal static class PostColumns
     public static string Status(PostStatus status) => status switch
     {
         PostStatus.Published => PublishedStatus,
-        PostStatus.Draft => "draft",
+        PostStatus.Draft => DraftStatus,
         _ => throw new ArgumentOutOfRangeException(nameof(status), status, null),
     };
 }
