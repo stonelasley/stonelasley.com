@@ -46,7 +46,8 @@ web/                     # Next.js site (Vercel Root Directory)
     └── fetch-notion-content.js  # Notion content fetching script
   site.config.ts         # Central site configuration
   .env.local             # Notion credentials (read from web/, not the repo root)
-worker/                  # Cloudflare Worker data proxy + D1 migrations (placeholder)
+worker/                  # Cloudflare Worker data proxy + D1 migrations (see worker/README.md)
+api/                     # .NET API solution + Aspire AppHost (see api/README.md; not an npm workspace)
 e2e/                     # Playwright tests (tests/) and config
 ```
 

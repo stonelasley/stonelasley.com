@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>StoneLasley.Domain</RootNamespace>
+    <AssemblyName>StoneLasley.Domain</AssemblyName>
+  </PropertyGroup>
+
+</Project>

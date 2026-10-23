@@ -1,0 +1,2 @@
+# Copy to .dev.vars for `wrangler dev`. Must match the API's Worker:Secret.
+WORKER_SECRET=local-dev-secret

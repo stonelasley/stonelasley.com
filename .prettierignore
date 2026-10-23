@@ -33,3 +33,7 @@ web/public/images/notion/
 .claude/
 .github/
 .agents/
+
+# .NET build output and wrangler local state
+api/artifacts
+.wrangler

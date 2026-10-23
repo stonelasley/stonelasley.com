@@ -40,3 +40,10 @@ web/public/images/*
 # playwright
 playwright-report/
 test-results/
+
+# .NET
+/api/artifacts/
+
+# wrangler
+.wrangler/
+.dev.vars
