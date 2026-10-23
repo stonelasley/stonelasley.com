@@ -1,10 +1,8 @@
 name: PR Gate
 
 on:
+  # Every PR, including ones stacked on another feature branch.
   pull_request:
-    branches:
-      - master
-      - main
   # Allow manual triggering from GitHub Actions tab
   workflow_dispatch:
 
