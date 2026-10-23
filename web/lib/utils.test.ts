@@ -28,6 +28,10 @@ describe("utils", () => {
       expect(formatDate("2024-06-01T12:00:00Z")).toBe("June 1, 2024");
     });
 
+    it("should show a date-only string as that calendar day in any timezone", () => {
+      expect(formatDate("2026-10-01")).toBe("October 1, 2026");
+    });
+
     it("should accept custom format strings", () => {
       expect(formatDate("2024-01-15T12:00:00Z", "MMM d, yyyy")).toBe("Jan 15, 2024");
       expect(formatDate("2024-01-15T12:00:00Z", "yyyy-MM-dd")).toBe("2024-01-15");

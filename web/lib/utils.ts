@@ -1,12 +1,13 @@
 import { type ClassValue, clsx } from "clsx";
-import { format, formatDistance } from "date-fns";
+import { format, formatDistance, parseISO } from "date-fns";
 
 export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
 }
 
 export function formatDate(date: string | Date, formatStr: string = "MMMM d, yyyy"): string {
-  return format(new Date(date), formatStr);
+  // parseISO reads a date-only string as local midnight, so "2026-10-01" stays October 1 everywhere.
+  return format(typeof date === "string" ? parseISO(date) : date, formatStr);
 }
 
 export function formatRelativeDate(date: string | Date): string {

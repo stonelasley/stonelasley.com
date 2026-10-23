@@ -2,15 +2,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { Container } from "@/components/Container";
 import { PostCard } from "@/components/PostCard";
-import { RecipeCard } from "@/components/RecipeCard";
-import { getRecentBlogPosts, getLatestRecipe } from "@/lib/content";
+import { getAllPosts } from "@/lib/api";
+import { contentAreas } from "@/lib/areas";
 import { siteConfig } from "@/site.config";
 
 export const revalidate = false; // Static generation
 
-export default function Home() {
-  const recentPosts = getRecentBlogPosts(siteConfig.pagination.homeRecentPosts);
-  const latestRecipe = getLatestRecipe();
+export default async function Home() {
+  const recentPosts = (await getAllPosts()).slice(0, siteConfig.home.recentPosts);
 
   return (
     <>
@@ -20,19 +19,16 @@ export default function Home() {
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">{siteConfig.name}</h1>
             <p className="text-muted-foreground mt-6 text-lg leading-8">{siteConfig.description}</p>
-            <div className="mt-10 flex items-center justify-center gap-4">
-              <Link
-                href="/blog"
-                className="bg-foreground text-background hover:bg-foreground/90 rounded-md px-6 py-3 text-sm font-semibold shadow-sm transition-colors"
-              >
-                Read the Blog
-              </Link>
-              <Link
-                href="/recipes"
-                className="border-border bg-background hover:bg-accent rounded-md border px-6 py-3 text-sm font-semibold transition-colors"
-              >
-                View Recipes
-              </Link>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+              {contentAreas.map((area) => (
+                <Link
+                  key={area.slug}
+                  href={`/${area.slug}`}
+                  className="border-border bg-background hover:bg-accent rounded-md border px-6 py-3 text-sm font-semibold transition-colors"
+                >
+                  {area.name}
+                </Link>
+              ))}
             </div>
           </div>
         </Container>
@@ -76,43 +72,17 @@ export default function Home() {
         </Container>
       </section>
 
-      {/* Recent Blog Posts */}
+      {/* Recent Posts */}
       {recentPosts.length > 0 && (
         <section className="border-border border-b py-16 md:py-24">
           <Container>
             <div className="mb-12 flex items-center justify-between">
               <h2 className="text-3xl font-bold tracking-tight">Recent Posts</h2>
-              <Link
-                href="/blog"
-                className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
-              >
-                View all posts →
-              </Link>
             </div>
             <div className="grid gap-8 md:gap-12">
               {recentPosts.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard key={post.id} post={post} headingLevel="h3" />
               ))}
-            </div>
-          </Container>
-        </section>
-      )}
-
-      {/* Latest Recipe */}
-      {latestRecipe && (
-        <section className="py-16 md:py-24">
-          <Container>
-            <div className="mb-12 flex items-center justify-between">
-              <h2 className="text-3xl font-bold tracking-tight">Latest Recipe</h2>
-              <Link
-                href="/recipes"
-                className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
-              >
-                View all recipes →
-              </Link>
-            </div>
-            <div className="mx-auto max-w-2xl">
-              <RecipeCard recipe={latestRecipe} />
             </div>
           </Container>
         </section>
