@@ -23,26 +23,34 @@ Personal website for Stone C. Lasley built with **Next.js 16**, **TypeScript**, 
 
 ## Directory Structure
 
+npm workspaces monorepo. Root scripts (`npm run dev`, `build`, `test`, …) delegate to the workspaces.
+
 ```
-app/                    # Next.js App Router pages
-components/             # React components (Header, Footer, Cards, etc.)
-content/               # Static JSON files (blog/, recipes/)
-  └── blog/            # Blog post JSON files (generated from Notion)
-  └── recipes/         # Recipe JSON files (generated from Notion)
-  └── metadata.json    # Build metadata (generated from Notion)
-lib/                   # Utilities & business logic
-  ├── content.ts       # Content loaders, pagination
-  ├── schemas.ts       # Zod validation schemas
-  ├── metadata.ts      # SEO helpers
-  ├── types.ts         # TypeScript types for Notion content
-  └── utils.ts         # Date formatting, URL helpers
-public/
-  └── images/
-    └── notion/        # Downloaded images from Notion (URLs expire after 1hr)
-scripts/
-  └── fetch-notion-content.js  # Notion content fetching script
-site.config.ts         # Central site configuration
+web/                     # Next.js site (Vercel Root Directory)
+  app/                   # Next.js App Router pages
+  components/            # React components (Header, Footer, Cards, etc.)
+  content/               # Static JSON files (blog/, recipes/)
+    └── blog/            # Blog post JSON files (generated from Notion)
+    └── recipes/         # Recipe JSON files (generated from Notion)
+    └── metadata.json    # Build metadata (generated from Notion)
+  lib/                   # Utilities & business logic
+    ├── content.ts       # Content loaders, pagination
+    ├── schemas.ts       # Zod validation schemas
+    ├── metadata.ts      # SEO helpers
+    ├── types.ts         # TypeScript types for Notion content
+    └── utils.ts         # Date formatting, URL helpers
+  public/
+    └── images/
+      └── notion/        # Downloaded images from Notion (URLs expire after 1hr)
+  scripts/
+    └── fetch-notion-content.js  # Notion content fetching script
+  site.config.ts         # Central site configuration
+  .env.local             # Notion credentials (read from web/, not the repo root)
+worker/                  # Cloudflare Worker data proxy + D1 migrations (placeholder)
+e2e/                     # Playwright tests (tests/) and config
 ```
+
+Unless stated otherwise, file paths elsewhere in this document (`content/`, `lib/`, `app/`, `.env.local`, `scripts/`) are relative to `web/`.
 
 ## Content Management
 

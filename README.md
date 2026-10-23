@@ -26,7 +26,7 @@ A modern, minimal, and fast personal website built with Next.js 16, featuring a 
 ## Project Structure
 
 ```
-/
+web/                       # Next.js site (npm workspace; worker/ and e2e/ sit beside it)
 ├── app/                    # Next.js App Router pages
 │   ├── blog/              # Blog pages
 │   ├── recipes/           # Recipe pages
@@ -78,7 +78,7 @@ A modern, minimal, and fast personal website built with Next.js 16, featuring a 
 3. Create environment file (optional):
 
    ```bash
-   cp .env.example .env.local
+   cp web/.env.example web/.env.local
    ```
 
 4. Run the development server:
@@ -93,7 +93,7 @@ A modern, minimal, and fast personal website built with Next.js 16, featuring a 
 
 ### Adding Blog Posts
 
-Create a new JSON file in `/content/blog/`:
+Create a new JSON file in `web/content/blog/`:
 
 ```json
 {
@@ -114,7 +114,7 @@ Create a new JSON file in `/content/blog/`:
 
 ### Adding Recipes
 
-Create a new JSON file in `/content/recipes/`:
+Create a new JSON file in `web/content/recipes/`:
 
 ```json
 {
