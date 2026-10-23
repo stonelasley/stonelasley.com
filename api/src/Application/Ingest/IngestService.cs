@@ -23,11 +23,19 @@ public sealed class IngestService(ID1Database database)
         bool includeDrafts,
         CancellationToken cancellationToken)
     {
-        var stored = (await database.QueryAsync("SELECT id, content_hash FROM posts", cancellationToken: cancellationToken))
-            .ToDictionary(row => Text(row, "id"), row => Text(row, "content_hash"));
+        // Staged uploads of runs that never committed are dead weight after a day.
+        await database.QueryAsync(
+            "DELETE FROM ingest_staged_posts WHERE run_id IN (SELECT id FROM ingest_runs WHERE committed_at IS NULL AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 day'))",
+            cancellationToken: cancellationToken);
+
+        var known = includeDrafts
+            ? "SELECT id, content_hash FROM posts"
+            : "SELECT id, content_hash FROM posts UNION ALL SELECT id, content_hash FROM skipped_drafts";
+        var stored = (await database.QueryAsync(known, cancellationToken: cancellationToken))
+            .ToLookup(row => Text(row, "id"), row => Text(row, "content_hash"));
 
         var requested = hashes
-            .Where(post => !stored.TryGetValue(post.Key, out var hash) || hash != post.Value)
+            .Where(post => !stored[post.Key].Contains(post.Value))
             .Select(post => post.Key)
             .Order(StringComparer.Ordinal)
             .ToList();
@@ -105,9 +113,12 @@ public sealed class IngestService(ID1Database database)
             return new IngestOutcome.Invalid([.. missing.Select(id => $"Post {id} was requested but not uploaded.")]);
         }
 
-        var kept = staged.Where(post => run.IncludeDrafts || post.Status == PostColumns.PublishedStatus).ToList();
+        bool Keeps(StoredAddress post) => run.IncludeDrafts || post.Status == PostColumns.PublishedStatus;
+        var kept = staged.Where(Keeps).ToList();
         var stored = await AddressesAsync("SELECT id, area, slug, status FROM posts", [], cancellationToken);
-        var untouched = stored.Where(post => run.Hashes.ContainsKey(post.Address.Id) && !stagedIds.Contains(post.Address.Id));
+        var untouched = stored
+            .Where(post => run.Hashes.ContainsKey(post.Address.Id) && !stagedIds.Contains(post.Address.Id) && Keeps(post))
+            .ToList();
 
         var conflicts = SlugConflicts.Find(untouched.Concat(kept).Select(post => post.Address));
         if (conflicts.Count > 0)
@@ -115,20 +126,31 @@ public sealed class IngestService(ID1Database database)
             return new IngestOutcome.Invalid(conflicts);
         }
 
-        // Gone from the manifest, or turned into a Draft while Drafts are excluded.
-        var keptIds = kept.Select(post => post.Address.Id).ToHashSet();
+        // Whatever survives is either untouched or freshly staged; everything else stored goes, including
+        // Posts gone from the manifest and Drafts while Drafts are excluded.
+        var keptIds = kept.Concat(untouched).Select(post => post.Address.Id).ToHashSet();
         var deleted = stored
             .Select(post => post.Address.Id)
-            .Where(id => !run.Hashes.ContainsKey(id) || (stagedIds.Contains(id) && !keptIds.Contains(id)))
+            .Where(id => !keptIds.Contains(id))
             .Order(StringComparer.Ordinal)
             .ToList();
-        var upserted = keptIds.Order(StringComparer.Ordinal).ToList();
+        var upserted = kept.Select(post => post.Address.Id).Order(StringComparer.Ordinal).ToList();
+
+        // Every manifest Post that isn't kept is a Draft left out by this run. Remember it by hash, so the next
+        // manifest doesn't ask for it again.
+        var skippedDrafts = run.Hashes
+            .Where(post => !keptIds.Contains(post.Key))
+            .ToDictionary(post => post.Key, post => post.Value);
 
         List<D1Statement> statements = [];
         if (!run.DryRun)
         {
             statements.Add(new D1Statement(
                 "DELETE FROM posts WHERE id IN (SELECT value FROM json_each(?))", [JsonSerializer.Serialize(deleted)]));
+            // Park the slugs of Posts being rewritten, so two Posts can swap slugs without tripping UNIQUE (area, slug)
+            // part-way through the upsert. Validation has already proved the final set is conflict-free.
+            statements.Add(new D1Statement(
+                "UPDATE posts SET slug = '~' || id WHERE id IN (SELECT value FROM json_each(?))", [JsonSerializer.Serialize(upserted)]));
             statements.Add(new D1Statement(
                 $"""
                 INSERT INTO posts (id, area, slug, title, date, tags, audience, status, body, content_hash, updated_at)
@@ -148,6 +170,15 @@ public sealed class IngestService(ID1Database database)
                   updated_at = excluded.updated_at
                 """,
                 [runId, JsonSerializer.Serialize(upserted)]));
+            statements.Add(new D1Statement(
+                "DELETE FROM skipped_drafts WHERE id NOT IN (SELECT key FROM json_each(?))", [JsonSerializer.Serialize(skippedDrafts)]));
+            statements.Add(new D1Statement(
+                """
+                INSERT INTO skipped_drafts (id, content_hash)
+                SELECT key, value FROM json_each(?) WHERE true
+                ON CONFLICT (id) DO UPDATE SET content_hash = excluded.content_hash
+                """,
+                [JsonSerializer.Serialize(skippedDrafts)]));
         }
         statements.Add(new D1Statement($"UPDATE ingest_runs SET committed_at = {Now} WHERE id = ?", [runId]));
         statements.Add(new D1Statement("DELETE FROM ingest_staged_posts WHERE run_id = ?", [runId]));

@@ -159,13 +159,29 @@ public class IngestHardeningTests
     {
         await using var api = new ApiFactory();
         using var client = api.CreateIngestClient();
-        var id = TestPosts.NewUlid();
-        var draft = TestPosts.Markdown(id, TestPosts.NewSlug(), status: "draft");
+        var (id, slug) = (TestPosts.NewUlid(), TestPosts.NewSlug());
+        var draft = TestPosts.Markdown(id, slug, status: "draft");
 
         var commit = await Ingest.RunAsync(client, dryRun: false, includeDrafts: false, draft);
 
         commit.Upserted.ShouldBeEmpty();
-        (await Ingest.ManifestAsync(client, Ingest.ById(draft))).Requested.ShouldBe([id]);
+        (await client.GetAsync($"/areas/ai-development/posts/{slug}")).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    public async Task An_unchanged_excluded_draft_is_not_requested_again()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var id = TestPosts.NewUlid();
+        var slug = TestPosts.NewSlug();
+        var draft = TestPosts.Markdown(id, slug, status: "draft");
+        await Ingest.RunAsync(client, draft);
+        await Ingest.RunAsync(client, draft);
+
+        (await Ingest.ManifestAsync(client, Ingest.ById(draft))).Requested.ShouldBeEmpty();
+        (await Ingest.ManifestAsync(client, Ingest.ById(TestPosts.Markdown(id, slug)))).Requested.ShouldBe([id]);
+        (await Ingest.ManifestAsync(client, Ingest.ById(draft), includeDrafts: true)).Requested.ShouldBe([id]);
     }
 
     [Test]
@@ -224,5 +240,48 @@ public class IngestHardeningTests
         var again = await Ingest.CommitAsync(client, manifest.RunId);
 
         again.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+    }
+
+    [Test]
+    public async Task Two_posts_can_swap_slugs_in_one_run()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var (first, second) = (TestPosts.NewUlid(), TestPosts.NewUlid());
+        var (slugA, slugB) = (TestPosts.NewSlug(), TestPosts.NewSlug());
+        await Ingest.RunAsync(client, TestPosts.Markdown(first, slugA, title: "First"), TestPosts.Markdown(second, slugB, title: "Second"));
+
+        await Ingest.RunAsync(client, TestPosts.Markdown(first, slugB, title: "First"), TestPosts.Markdown(second, slugA, title: "Second"));
+
+        (await client.GetFromJsonAsync<PostResponse>($"/areas/ai-development/posts/{slugA}")).ShouldNotBeNull().Id.ShouldBe(second);
+        (await client.GetFromJsonAsync<PostResponse>($"/areas/ai-development/posts/{slugB}")).ShouldNotBeNull().Id.ShouldBe(first);
+    }
+
+    [Test]
+    public async Task A_stored_draft_is_removed_by_a_run_that_excludes_drafts()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var id = TestPosts.NewUlid();
+        var draft = TestPosts.Markdown(id, TestPosts.NewSlug(), status: "draft");
+        await Ingest.RunAsync(client, dryRun: false, includeDrafts: true, draft);
+
+        var commit = await Ingest.RunAsync(client, dryRun: false, includeDrafts: false, draft);
+
+        commit.Deleted.ShouldBe([id]);
+    }
+
+    [Test]
+    public async Task A_stored_draft_does_not_block_a_slug_when_drafts_are_excluded()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var slug = TestPosts.NewSlug();
+        var draft = TestPosts.Markdown(TestPosts.NewUlid(), slug, status: "draft");
+        await Ingest.RunAsync(client, dryRun: false, includeDrafts: true, draft);
+
+        await Ingest.RunAsync(client, dryRun: false, includeDrafts: false, draft, TestPosts.Markdown(TestPosts.NewUlid(), slug, title: "Published"));
+
+        (await client.GetFromJsonAsync<PostResponse>($"/areas/ai-development/posts/{slug}")).ShouldNotBeNull().Title.ShouldBe("Published");
     }
 }
