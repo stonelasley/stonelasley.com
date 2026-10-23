@@ -47,4 +47,32 @@ test.describe("Theme", () => {
     await expect(html(page)).toHaveClass(/\bdark\b/);
     await expect(page.locator("body")).toHaveCSS("background-color", "rgb(23, 23, 23)");
   });
+
+  test("is one tab stop, moved with the arrow keys", async ({ page }) => {
+    await page.goto("/");
+    const system = theme(page).getByRole("radio", { name: "System" });
+    await system.focus();
+
+    await page.keyboard.press("ArrowRight");
+    const light = theme(page).getByRole("radio", { name: "Light" });
+    await expect(light).toBeFocused();
+    await expect(light).toBeChecked();
+    await expect(html(page)).not.toHaveClass(/\bdark\b/);
+
+    await page.keyboard.press("ArrowLeft");
+    await expect(system).toBeChecked();
+    await expect(theme(page).locator('[tabindex="0"]')).toHaveCount(1);
+  });
+
+  test("follows a choice made in another tab", async ({ page, context }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.goto("/");
+    const other = await context.newPage();
+    await other.goto("/");
+
+    await theme(other).getByRole("radio", { name: "Dark" }).click();
+
+    await expect(html(page)).toHaveClass(/\bdark\b/);
+    await expect(theme(page).getByRole("radio", { name: "Dark" })).toBeChecked();
+  });
 });

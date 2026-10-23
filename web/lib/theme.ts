@@ -5,7 +5,8 @@ export const themeStorageKey = "theme";
 
 /**
  * Runs inline in <head>, before first paint, so the page never flashes the wrong theme.
- * Kept dependency-free and wrapped in try: localStorage can throw in private modes.
+ * Kept dependency-free and wrapped in try: localStorage can throw in private modes. It repeats the rule
+ * in applyTheme because it runs before any bundle loads; change both together.
  */
 export const themeScript = `(function(){try{var t=localStorage.getItem("${themeStorageKey}");var d=t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);var e=document.documentElement;e.classList.toggle("dark",d);e.style.colorScheme=d?"dark":"light"}catch(_){}})()`;
 
@@ -36,4 +37,28 @@ export function saveTheme(theme: Theme) {
   } catch {
     // Not persisted; the choice still applies to this page.
   }
+}
+
+// A tiny store for useSyncExternalStore: this tab's choices, plus choices made in other tabs.
+const listeners = new Set<() => void>();
+
+export function subscribeToTheme(listener: () => void) {
+  listeners.add(listener);
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === themeStorageKey || event.key === null) {
+      applyTheme(readTheme());
+      listener();
+    }
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+export function chooseTheme(theme: Theme) {
+  saveTheme(theme);
+  applyTheme(theme);
+  listeners.forEach((listener) => listener());
 }

@@ -93,10 +93,10 @@ findArea(slug); // A Content Area from lib/areas.ts, or undefined
 
 ### Theme System
 
-- Client component: `ThemeToggle.tsx`
-- CSS variables in `app/globals.css`
-- Dark mode class on document root
-- Persists to localStorage
+- Client component: `ThemeToggle.tsx`, a Light / Dark / System radiogroup
+- Inline `<head>` script (`lib/theme.ts`) sets the class before first paint
+- CSS variables in `app/globals.css`; `dark:` follows the `.dark` class on the root
+- Persists to localStorage (System = no stored value)
 
 ### Component Conventions
 
@@ -210,7 +210,7 @@ Content lives in the private content repo, not here. For local testing, add a Ma
 
 ## Gotchas
 
-- **Theme Toggle**: Must be client component, requires mounted check
+- **Theme Toggle**: client component reading localStorage through `useSyncExternalStore` (server snapshot is "system"); the inline script in `lib/theme.ts` paints the right theme first, and repeats `applyTheme`'s rule, so change both together
 - **Content Validation**: the API validates on ingest; `web/lib/api.ts` parses responses with Zod
 - **Path Aliases**: Use `@/` prefix, configured in `tsconfig.json`
 - **Build Time**: public content is loaded from the API at build, so the build needs the API running
