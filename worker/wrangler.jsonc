@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "stonelasley-data-proxy",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  // Served from a custom route only (ADR 0003).
+  "workers_dev": false,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "stonelasley",
+      // Placeholder until the preview and production databases are provisioned.
+      // `--local` runs ignore it.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

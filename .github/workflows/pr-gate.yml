@@ -38,6 +38,30 @@ jobs:
       - name: Run unit tests
         run: npm run test -- --run
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: api/global.json
+
+      - name: Restore .NET solution
+        run: dotnet restore api/StoneLasley.slnx
+
+      - name: Run .NET format check
+        run: dotnet format whitespace api/StoneLasley.slnx --no-restore --verify-no-changes
+
+      - name: Run .NET lint
+        run: |
+          dotnet format style api/StoneLasley.slnx --no-restore --verify-no-changes --severity warn
+          dotnet format analyzers api/StoneLasley.slnx --no-restore --verify-no-changes --severity warn
+          dotnet build api/StoneLasley.slnx --no-restore
+
+      - name: Run .NET unit tests
+        run: dotnet test api/tests/Domain.UnitTests --no-build
+
+      # Starts the real Worker under `wrangler dev` with a throwaway local D1.
+      - name: Run .NET functional tests
+        run: dotnet test api/tests/Api.FunctionalTests --no-build
+
       - name: Build application
         run: npm run build
         env:

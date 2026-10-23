@@ -1,5 +1,15 @@
 {
   "name": "worker",
   "version": "0.1.0",
-  "private": true
+  "private": true,
+  "scripts": {
+    "dev": "npm run migrate:local && wrangler dev",
+    "migrate:local": "wrangler d1 migrations apply DB --local",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "4.20260702.1",
+    "typescript": "^5",
+    "wrangler": "4.147.0"
+  }
 }
