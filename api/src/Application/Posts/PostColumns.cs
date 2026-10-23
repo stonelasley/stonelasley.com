@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using StoneLasley.Domain.Posts;
 
 namespace StoneLasley.Application.Posts;
@@ -10,6 +12,18 @@ internal static class PostColumns
     public const string PublicAudience = "public";
     public const string PublishedStatus = "published";
     public const string DraftStatus = "draft";
+
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() },
+    };
+
+    public static string? Recipe(Recipe? recipe) => recipe is null ? null : JsonSerializer.Serialize(recipe, Json);
+
+    public static Recipe? Recipe(JsonElement row) =>
+        row.TryGetProperty("recipe", out var column) && column.ValueKind == JsonValueKind.String
+            ? JsonSerializer.Deserialize<Recipe>(column.GetString()!, Json)
+            : null;
 
     public static string Audience(Audience audience) => audience switch
     {

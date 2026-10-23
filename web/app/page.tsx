@@ -6,8 +6,6 @@ import { getAllPosts } from "@/lib/api";
 import { contentAreas } from "@/lib/areas";
 import { siteConfig } from "@/site.config";
 
-export const revalidate = false; // Static generation
-
 export default async function Home() {
   const recentPosts = (await getAllPosts()).slice(0, siteConfig.home.recentPosts);
 

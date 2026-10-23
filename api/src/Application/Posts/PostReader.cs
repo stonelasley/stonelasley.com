@@ -6,7 +6,10 @@ namespace StoneLasley.Application.Posts;
 
 public sealed record PostSummary(string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags);
 
-public sealed record PostDetail(string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, string Body);
+public sealed record PostDetail(
+    string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, string Body, Recipe? Recipe);
+
+public sealed record AreaDetail(string Slug, string? Intro);
 
 /// <summary>
 /// Public reads: published Posts whose Audience is Public.
@@ -28,7 +31,7 @@ public sealed class PostReader(ID1Database database)
     public async Task<PostDetail?> FindAsync(ContentArea area, string slug, CancellationToken cancellationToken)
     {
         var rows = await database.QueryAsync(
-            $"SELECT id, title, slug, area, date, tags, body FROM posts WHERE area = ? AND slug = ? AND {PublicAndPublished}",
+            $"SELECT id, title, slug, area, date, tags, body, recipe FROM posts WHERE area = ? AND slug = ? AND {PublicAndPublished}",
             [area.Slug(), slug],
             cancellationToken);
         if (rows.Count == 0)
@@ -38,7 +41,13 @@ public sealed class PostReader(ID1Database database)
 
         var row = rows[0];
         return new PostDetail(
-            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "body"));
+            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "body"), PostColumns.Recipe(row));
+    }
+
+    public async Task<AreaDetail> AreaAsync(ContentArea area, CancellationToken cancellationToken)
+    {
+        var rows = await database.QueryAsync("SELECT intro FROM area_intros WHERE area = ?", [area.Slug()], cancellationToken);
+        return new AreaDetail(area.Slug(), rows.Count == 0 ? null : Text(rows[0], "intro"));
     }
 
     private static string Text(JsonElement row, string column) => row.GetProperty(column).GetString()!;

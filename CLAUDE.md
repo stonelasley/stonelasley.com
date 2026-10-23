@@ -81,7 +81,8 @@ All content comes from the API via `web/lib/api.ts`:
 ```typescript
 getPostsByArea(area); // Public Posts in one Content Area, newest first
 getAllPosts(); // Across all areas, newest first
-getPost(area, slug); // One Post with its Markdown body, or null
+getPost(area, slug); // One Post with its Markdown body (and `recipe` in Recipes), or null
+getAreaIntro(area); // The area's intro Markdown from the content repo, or null
 findArea(slug); // A Content Area from lib/areas.ts, or undefined
 ```
 
@@ -214,6 +215,7 @@ Content lives in the private content repo, not here. For local testing, add a Ma
 - **Content Validation**: the API validates on ingest; `web/lib/api.ts` parses responses with Zod
 - **Path Aliases**: Use `@/` prefix, configured in `tsconfig.json`
 - **Build Time**: public content is loaded from the API at build, so the build needs the API running
+- **No `fetch` for API reads**: `lib/api.ts` uses `node:http` because Next caches every `fetch` made while prerendering and reuses it in later builds (Vercel keeps it across deployments), which rendered stale content. Keep API reads in `lib/api.ts`; don't add `revalidate = false` to pages
 - **Tailwind CSS 4**: Uses new CSS-based config, check syntax
 
 ## Git Workflow

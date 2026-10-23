@@ -1,10 +1,13 @@
 using StoneLasley.Application.Ingest;
+using StoneLasley.Domain.Posts;
 
 namespace StoneLasley.Api.Ingest;
 
 public static class IngestEndpoints
 {
-    public sealed record ManifestRequest(Dictionary<string, string> Posts);
+    /// <param name="Posts">ULID → content hash for every Post in the content repo.</param>
+    /// <param name="Intros">Content Area slug → intro Markdown. Areas left out lose their intro.</param>
+    public sealed record ManifestRequest(Dictionary<string, string> Posts, Dictionary<string, string>? Intros);
 
     public sealed record UploadRequest(string Markdown);
 
@@ -13,7 +16,18 @@ public static class IngestEndpoints
         var ingest = app.MapGroup("/ingest").AddEndpointFilter<RequireIngestToken>();
 
         ingest.MapPost("/manifest", async (ManifestRequest request, IngestService service, CancellationToken cancellationToken, bool dryRun = false, bool includeDrafts = false) =>
-            Results.Ok(await service.StartAsync(request.Posts, dryRun, includeDrafts, cancellationToken)));
+        {
+            var intros = new Dictionary<ContentArea, string>();
+            foreach (var (slug, intro) in request.Intros ?? [])
+            {
+                if (!ContentAreas.TryParse(slug, out var area))
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["intros"] = [$"'{slug}' is not a Content Area."] });
+                }
+                intros[area] = intro;
+            }
+            return Results.Ok(await service.StartAsync(request.Posts, intros, dryRun, includeDrafts, cancellationToken));
+        });
 
         ingest.MapPut("/runs/{runId}/posts/{postId}", async (string runId, string postId, UploadRequest request, IngestService service, CancellationToken cancellationToken) =>
             ToResult(await service.UploadAsync(runId, postId, request.Markdown, cancellationToken)));

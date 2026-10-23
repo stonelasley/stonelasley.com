@@ -93,13 +93,15 @@ public static partial class MarkdownPost
                 break;
         }
 
+        var recipe = area == ContentArea.Recipes && errors.Count == 0 ? ReadRecipe(frontmatter, errors) : null;
+
         if (errors.Count > 0)
         {
             return new MarkdownPostResult(null, errors);
         }
 
         var body = match.Groups["body"].Value.Trim('\n');
-        var post = new Post(id!, title!, slug!, area, date, tags, Audience.Public, status, body);
+        var post = new Post(id!, title!, slug!, area, date, tags, Audience.Public, status, body, recipe);
         return new MarkdownPostResult(post, []);
     }
 
@@ -126,5 +128,13 @@ public static partial class MarkdownPost
         public List<string?>? Tags { get; set; }
         public string? Audience { get; set; }
         public string? Status { get; set; }
+
+        // Recipe typed core
+        public string? PrepTimeMin { get; set; }
+        public string? CookTimeMin { get; set; }
+        public string? Servings { get; set; }
+        public string? Difficulty { get; set; }
+        public string? OvenTempC { get; set; }
+        public List<IngredientFrontmatter?>? Ingredients { get; set; }
     }
 }

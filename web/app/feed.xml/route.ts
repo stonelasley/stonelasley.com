@@ -1,6 +1,6 @@
 import { buildFeed } from "@/lib/feed";
 
-export const revalidate = false; // Static generation
+export const dynamic = "force-static"; // Built once from API data; revalidation rebuilds it
 
 export async function GET() {
   const feed = await buildFeed();
