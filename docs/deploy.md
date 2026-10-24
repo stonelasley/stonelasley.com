@@ -36,3 +36,7 @@ Everything preview serves sends `X-Robots-Tag: noindex`: the API through `Site__
 ## Vercel Git integration
 
 Git auto-deploy is off (`web/vercel.json`). Only this workflow deploys, after the API it builds against is healthy.
+
+## Cold start
+
+Measured 2026-10-24 on preview (0.25 vCPU / 0.5 GiB, West US 3). The app had scaled to zero, with no replicas running. Cold `GET /health` took 26.5 s, which includes the API's `SELECT 1` through the Worker to D1. Warm requests that followed took 0.28 to 0.31 s. The build's warm-up allows 6 attempts of up to 30 s each, so a cold API doesn't fail a deploy.
