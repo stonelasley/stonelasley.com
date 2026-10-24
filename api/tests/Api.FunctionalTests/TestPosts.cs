@@ -21,6 +21,7 @@ public static class TestPosts
         string area = "ai-development",
         string date = "2026-10-01",
         string status = "published",
+        string audience = "public",
         string body = "## Section\n\nSome **bold** text.",
         string extra = "") => $"""
         ---
@@ -30,7 +31,7 @@ public static class TestPosts
         area: {area}
         date: {date}
         tags: [fixture, testing]
-        audience: public
+        audience: {audience}
         status: {status}
         {extra}
         ---

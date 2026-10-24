@@ -16,10 +16,22 @@ public sealed class ApiFactory(Uri workerUrl, string workerSecret) : WebApplicat
 
     public const string IngestToken = "functional-test-ingest-token";
     public const string ImagesBaseUrl = "https://img.test";
+    public const string AdminToken = "functional-test-admin-token";
 
     public ApiFactory()
         : this(Testing.Worker.BaseUrl, WranglerDev.Secret)
     {
+    }
+
+    /// <summary>Stands in for Cloudflare Turnstile's siteverify (an external port).</summary>
+    public FakeTurnstile Turnstile { get; } = new();
+
+    /// <summary>A client that carries the admin token.</summary>
+    public HttpClient CreateAdminClient()
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AdminToken);
+        return client;
     }
 
     /// <summary>Stands in for the site's revalidate webhook (an external port).</summary>
@@ -62,6 +74,8 @@ public sealed class ApiFactory(Uri workerUrl, string workerSecret) : WebApplicat
         builder.UseSetting("Worker:Secret", workerSecret);
         builder.UseSetting("Ingest:Token", IngestToken);
         builder.UseSetting("Images:BaseUrl", ImagesBaseUrl);
+        builder.UseSetting("Admin:Token", AdminToken);
+        builder.UseSetting("Access:SessionKey", "functional-test-session-key-0123456789abcdef");
         builder.UseSetting("Search:Vector:Namespace", Testing.VectorNamespace);
         // Only the vector tests pay for real embeddings; everything else uses the in-process fake.
         builder.UseSetting("Search:Vector:Fake", WranglerDev.FakeVectors || !_realVectors ? "true" : "false");
@@ -72,6 +86,7 @@ public sealed class ApiFactory(Uri workerUrl, string workerSecret) : WebApplicat
         builder.ConfigureTestServices(services =>
         {
             services.AddSingleton<ISiteRevalidator>(Revalidator);
+            services.AddSingleton<ITurnstile>(Turnstile);
             _services?.Invoke(services);
         });
     }

@@ -47,11 +47,25 @@ public sealed class PostReader(ID1Database database, TimeProvider clock)
             Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), WatchSummary.Of(PostColumns.WatchFromRow(row), clock.GetUtcNow().Year)))];
     }
 
-    public async Task<PostDetail?> FindAsync(ContentArea area, string slug, CancellationToken cancellationToken)
+    /// <summary>
+    /// A published Post the reader may see: Public, or, for an unlocked Client, the Clients library and that
+    /// Client's own Posts.
+    /// </summary>
+    public async Task<PostDetail?> FindAsync(ContentArea area, string slug, string? clientId, CancellationToken cancellationToken)
     {
         var rows = await database.QueryAsync(
-            $"SELECT id, title, slug, area, date, tags, excerpt, body, recipe, watch FROM posts WHERE area = ? AND slug = ? AND {PublicAndPublished}",
-            [area.Slug(), slug],
+            $"""
+            SELECT id, title, slug, area, date, tags, excerpt, body, recipe, watch FROM posts
+            WHERE area = ? AND slug = ? AND status = '{PostColumns.PublishedStatus}'
+              AND audience IN (?, ?, ?)
+            """,
+            [
+                area.Slug(),
+                slug,
+                Audience.Public.Stored,
+                clientId is null ? Audience.Public.Stored : Audience.Clients.Stored,
+                clientId is null ? Audience.Public.Stored : Audience.ForClient(clientId).Stored,
+            ],
             cancellationToken);
         if (rows.Count == 0)
         {

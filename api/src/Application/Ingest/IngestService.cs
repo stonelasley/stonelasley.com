@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using StoneLasley.Application.Common.Interfaces;
 using StoneLasley.Application.Posts;
+using StoneLasley.Domain.Access;
 using StoneLasley.Domain.Posts;
 
 namespace StoneLasley.Application.Ingest;
@@ -23,6 +24,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
     public async Task<Manifest> StartAsync(
         IReadOnlyDictionary<string, string> hashes,
         IReadOnlyDictionary<ContentArea, string>? intros,
+        IReadOnlyList<Client>? clients,
         bool dryRun,
         bool includeDrafts,
         CancellationToken cancellationToken)
@@ -53,12 +55,13 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
 
         var runId = Guid.CreateVersion7().ToString("N");
         await database.QueryAsync(
-            "INSERT INTO ingest_runs (id, hashes, requested, intros, dry_run, include_drafts) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO ingest_runs (id, hashes, requested, intros, clients, dry_run, include_drafts) VALUES (?, ?, ?, ?, ?, ?, ?)",
             [
                 runId,
                 JsonSerializer.Serialize(hashes),
                 JsonSerializer.Serialize(requested),
                 intros is null ? null : JsonSerializer.Serialize(intros.ToDictionary(intro => intro.Key.Slug(), intro => intro.Value)),
+                clients is null ? null : JsonSerializer.Serialize(clients),
                 dryRun ? 1 : 0,
                 includeDrafts ? 1 : 0,
             ],
@@ -88,6 +91,11 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
         if (post.Id != postId)
         {
             return new IngestOutcome.Invalid([$"The frontmatter id {post.Id} does not match the uploaded Post {postId}."]);
+        }
+
+        if (post.Audience.ClientId is { } clientId && !(await ClientIdsAsync(run, cancellationToken)).Contains(clientId))
+        {
+            return new IngestOutcome.Invalid([$"'audience' {clientId} is not a declared Client."]);
         }
 
         var stored = await StoreImagesAsync(post.Body, uploadedImages, cancellationToken);
@@ -256,6 +264,15 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
                 ON CONFLICT (id) DO UPDATE SET content_hash = excluded.content_hash
                 """,
                 [JsonSerializer.Serialize(skippedDrafts)]));
+            // Like intros: a manifest with a clients file replaces every Client; one without leaves them alone.
+            if (run.Clients is not null)
+            {
+                statements.Add(new D1Statement("DELETE FROM clients", []));
+                statements.Add(new D1Statement(
+                    "INSERT INTO clients (id, name) SELECT json_extract(value, '$.Id'), json_extract(value, '$.Name') FROM json_each(?)",
+                    [run.Clients]));
+            }
+
             // A manifest without intros leaves them as they are; one with intros replaces them all.
             if (run.Intros is not null)
             {
@@ -339,10 +356,16 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
         return (urls, []);
     }
 
+    // The Clients a Post may name: the run's clients file if it sent one, otherwise the stored Clients.
+    private async Task<HashSet<string>> ClientIdsAsync(Run run, CancellationToken cancellationToken) =>
+        run.Clients is not null
+            ? [.. JsonSerializer.Deserialize<List<Client>>(run.Clients)!.Select(client => client.Id)]
+            : [.. (await database.QueryAsync("SELECT id FROM clients", cancellationToken: cancellationToken)).Select(row => Text(row, "id"))];
+
     private async Task<(Run? Run, IngestOutcome? Refusal)> OpenRunAsync(string runId, CancellationToken cancellationToken)
     {
         var rows = await database.QueryAsync(
-            "SELECT hashes, requested, intros, dry_run, include_drafts, committed_at FROM ingest_runs WHERE id = ?",
+            "SELECT hashes, requested, intros, clients, dry_run, include_drafts, committed_at FROM ingest_runs WHERE id = ?",
             [runId],
             cancellationToken);
         if (rows.Count == 0)
@@ -360,6 +383,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
             JsonSerializer.Deserialize<Dictionary<string, string>>(Text(row, "hashes"))!,
             JsonSerializer.Deserialize<List<string>>(Text(row, "requested"))!.ToHashSet(),
             row.GetProperty("intros").GetString(),
+            row.GetProperty("clients").GetString(),
             row.GetProperty("dry_run").GetInt32() == 1,
             row.GetProperty("include_drafts").GetInt32() == 1);
         return (run, null);
@@ -381,7 +405,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
     private static string Text(JsonElement row, string column) => row.GetProperty(column).GetString()!;
 
     private sealed record Run(
-        IReadOnlyDictionary<string, string> Hashes, IReadOnlySet<string> Requested, string? Intros, bool DryRun, bool IncludeDrafts);
+        IReadOnlyDictionary<string, string> Hashes, IReadOnlySet<string> Requested, string? Intros, string? Clients, bool DryRun, bool IncludeDrafts);
 
     private sealed record StoredAddress(PostAddress Address, string Status);
 }

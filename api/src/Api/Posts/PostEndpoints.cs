@@ -1,3 +1,5 @@
+using StoneLasley.Api.Access;
+using StoneLasley.Application.Access;
 using StoneLasley.Application.Posts;
 using StoneLasley.Application.Search;
 using StoneLasley.Domain.Posts;
@@ -65,10 +67,18 @@ public static class PostEndpoints
                 ? Results.Ok(await reader.ListAsync(contentArea, cancellationToken))
                 : Results.NotFound());
 
-        posts.MapGet("/{slug}", async (string area, string slug, PostReader reader, CancellationToken cancellationToken) =>
-            ContentAreas.TryParse(area, out var contentArea) && await reader.FindAsync(contentArea, slug, cancellationToken) is { } post
+        // A Private Post is served only with a live session (the site forwards it from the Client's cookie).
+        posts.MapGet("/{slug}", async (string area, string slug, HttpRequest request, PostReader reader, AccessService access, CancellationToken cancellationToken) =>
+        {
+            if (!ContentAreas.TryParse(area, out var contentArea))
+            {
+                return Results.NotFound();
+            }
+            var session = await access.ResolveAsync(request.Headers[AccessEndpoints.SessionHeader].ToString(), cancellationToken);
+            return await reader.FindAsync(contentArea, slug, session?.ClientId, cancellationToken) is { } post
                 ? Results.Ok(post)
-                : Results.NotFound());
+                : Results.NotFound();
+        });
 
         return app;
     }
