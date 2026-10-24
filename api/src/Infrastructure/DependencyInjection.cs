@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using StoneLasley.Application.Common.Interfaces;
 using StoneLasley.Application.Search;
 using StoneLasley.Infrastructure.Fakes;
+using StoneLasley.Infrastructure.Instagram;
 using StoneLasley.Infrastructure.Site;
 using StoneLasley.Infrastructure.Turnstile;
 using StoneLasley.Infrastructure.Worker;
@@ -54,6 +55,19 @@ public static class DependencyInjection
 
         services.AddOptions<TurnstileOptions>().BindConfiguration(TurnstileOptions.SectionName);
         services.AddHttpClient<ITurnstile, CloudflareTurnstile>(http => http.Timeout = TimeSpan.FromSeconds(10));
+
+        if (configuration.GetValue<bool>("Instagram:Fake"))
+        {
+            services.AddSingleton<IInstagram, FakeInstagram>();
+        }
+        else
+        {
+            services.AddHttpClient<IInstagram, InstagramGraph>(http =>
+            {
+                http.BaseAddress = new Uri("https://graph.instagram.com/");
+                http.Timeout = TimeSpan.FromSeconds(30);
+            });
+        }
 
         services.AddHealthChecks().AddCheck<D1HealthCheck>("d1");
 
