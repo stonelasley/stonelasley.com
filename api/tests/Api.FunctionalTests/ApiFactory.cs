@@ -15,6 +15,7 @@ public sealed class ApiFactory(Uri workerUrl, string workerSecret) : WebApplicat
     private readonly Dictionary<string, string?> _settings = [];
 
     public const string IngestToken = "functional-test-ingest-token";
+    public const string ImagesBaseUrl = "https://img.test";
 
     public ApiFactory()
         : this(Testing.Worker.BaseUrl, WranglerDev.Secret)
@@ -43,6 +44,7 @@ public sealed class ApiFactory(Uri workerUrl, string workerSecret) : WebApplicat
         builder.UseSetting("Worker:BaseUrl", workerUrl.ToString());
         builder.UseSetting("Worker:Secret", workerSecret);
         builder.UseSetting("Ingest:Token", IngestToken);
+        builder.UseSetting("Images:BaseUrl", ImagesBaseUrl);
         foreach (var (key, value) in _settings)
         {
             builder.UseSetting(key, value);

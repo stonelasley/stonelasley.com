@@ -15,6 +15,8 @@ A fixture Post for the end-to-end suite.
 
 Tests that drive the public interface survive refactors.
 
+![A single dot](./seams-dot.png)
+
 ```ts
 const answer = 42;
 ```

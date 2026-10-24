@@ -8,12 +8,15 @@ namespace StoneLasley.Application.Ingest;
 
 public sealed record Manifest(string RunId, IReadOnlyList<string> Requested);
 
+/// <summary>An image uploaded with its Post, keyed by the path the Markdown references it by.</summary>
+public sealed record UploadedImage(string Path, byte[] Content);
+
 /// <summary>
 /// The ingest protocol: a manifest of every Post's content hash, an upload of each Post the API asked for,
 /// then a commit that validates the whole set and applies it in one transaction. Posts missing from the
 /// manifest are deleted, because the content repo is the source of truth (ADR 0002).
 /// </summary>
-public sealed class IngestService(ID1Database database, ISiteRevalidator site)
+public sealed class IngestService(ID1Database database, IImageStore images, ISiteRevalidator site)
 {
     private const string Now = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
 
@@ -57,7 +60,8 @@ public sealed class IngestService(ID1Database database, ISiteRevalidator site)
         return new Manifest(runId, requested);
     }
 
-    public async Task<IngestOutcome> UploadAsync(string runId, string postId, string markdown, CancellationToken cancellationToken)
+    public async Task<IngestOutcome> UploadAsync(
+        string runId, string postId, string markdown, IReadOnlyList<UploadedImage> uploadedImages, CancellationToken cancellationToken)
     {
         var (run, refusal) = await OpenRunAsync(runId, cancellationToken);
         if (run is null)
@@ -78,6 +82,13 @@ public sealed class IngestService(ID1Database database, ISiteRevalidator site)
         {
             return new IngestOutcome.Invalid([$"The frontmatter id {post.Id} does not match the uploaded Post {postId}."]);
         }
+
+        var stored = await StoreImagesAsync(post.Body, uploadedImages, cancellationToken);
+        if (stored.Errors.Count > 0)
+        {
+            return new IngestOutcome.Invalid(stored.Errors);
+        }
+        post = post with { Body = PostImages.Rewrite(post.Body, stored.Urls) };
 
         await database.QueryAsync(
             """
@@ -211,6 +222,48 @@ public sealed class IngestService(ID1Database database, ISiteRevalidator site)
         }
 
         return new IngestOutcome.Committed(new CommitSummary(run.DryRun, upserted, deleted));
+    }
+
+    /// <summary>
+    /// Every image the body references must be uploaded with it. Each goes to the image store under its content
+    /// hash, skipped when already there, so re-ingesting an unchanged image costs one existence check.
+    /// Images go up before commit; an abandoned run leaves only harmless, content-addressed objects.
+    /// </summary>
+    private async Task<(IReadOnlyDictionary<string, string> Urls, IReadOnlyList<string> Errors)> StoreImagesAsync(
+        string body, IReadOnlyList<UploadedImage> uploadedImages, CancellationToken cancellationToken)
+    {
+        var byPath = uploadedImages.ToDictionary(image => image.Path.StartsWith("./", StringComparison.Ordinal) ? image.Path[2..] : image.Path);
+        var references = PostImages.References(body);
+
+        var errors = new List<string>();
+        foreach (var path in references)
+        {
+            if (!byPath.ContainsKey(path))
+            {
+                errors.Add($"Image '{path}' is referenced but was not uploaded.");
+            }
+            else if (PostImages.ContentType(path) is null)
+            {
+                errors.Add($"'{path}' is not a supported image type (jpg, png, gif, webp, avif, svg).");
+            }
+        }
+        if (errors.Count > 0)
+        {
+            return (new Dictionary<string, string>(), errors);
+        }
+
+        var urls = new Dictionary<string, string>();
+        foreach (var path in references)
+        {
+            var content = byPath[path].Content;
+            var key = PostImages.Key(path, content);
+            if (!await images.ExistsAsync(key, cancellationToken))
+            {
+                await images.PutAsync(key, content, PostImages.ContentType(path)!, cancellationToken);
+            }
+            urls[path] = images.PublicUrl(key).ToString();
+        }
+        return (urls, []);
     }
 
     private async Task<(Run? Run, IngestOutcome? Refusal)> OpenRunAsync(string runId, CancellationToken cancellationToken)

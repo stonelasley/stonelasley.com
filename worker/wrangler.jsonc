@@ -15,6 +15,8 @@
       "migrations_dir": "migrations",
     },
   ],
+  // Post images under content-hash keys; readers load them from the bucket's custom domain.
+  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "stonelasley-images-local" }],
   // Deployed environments. Each has its own D1 database and a custom domain the API reaches it on.
   "env": {
     "preview": {
@@ -28,7 +30,8 @@
           "database_id": "0fad15fd-6140-43be-bbcb-e8574fc0ebd9",
           "migrations_dir": "migrations"
         }
-      ]
+      ],
+      "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "stonelasley-images-preview" }]
     },
     "production": {
       "name": "stonelasley-data-proxy",
@@ -41,7 +44,8 @@
           "database_id": "4721e4ee-b6c5-4dcc-8df7-d6c05c699e6a",
           "migrations_dir": "migrations"
         }
-      ]
+      ],
+      "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "stonelasley-images-prod" }]
     }
   }
 }
