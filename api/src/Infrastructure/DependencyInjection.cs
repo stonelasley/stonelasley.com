@@ -6,6 +6,7 @@ using StoneLasley.Application.Common.Interfaces;
 using StoneLasley.Application.Search;
 using StoneLasley.Infrastructure.Fakes;
 using StoneLasley.Infrastructure.Site;
+using StoneLasley.Infrastructure.Turnstile;
 using StoneLasley.Infrastructure.Worker;
 
 namespace StoneLasley.Infrastructure;
@@ -50,6 +51,9 @@ public static class DependencyInjection
             services.AddHttpClient<IEmbedder, WorkerEmbedder>(WorkerClient);
             services.AddHttpClient<IVectorIndex, WorkerVectorIndex>(WorkerClient);
         }
+
+        services.AddOptions<TurnstileOptions>().BindConfiguration(TurnstileOptions.SectionName);
+        services.AddHttpClient<ITurnstile, CloudflareTurnstile>(http => http.Timeout = TimeSpan.FromSeconds(10));
 
         services.AddHealthChecks().AddCheck<D1HealthCheck>("d1");
 

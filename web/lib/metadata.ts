@@ -10,6 +10,7 @@ export function constructMetadata({
   type = "website",
   noIndex = false,
   path,
+  privatePost = false,
 }: {
   title?: string;
   description?: string;
@@ -18,7 +19,17 @@ export function constructMetadata({
   noIndex?: boolean;
   /** The page's own path, such as "/recipes/oats"; sets the canonical URL and og:url. */
   path?: string;
+  /** A Private Post: noindex and no description anywhere, so nothing leaks to crawlers or link previews. */
+  privatePost?: boolean;
 } = {}): Metadata {
+  if (privatePost) {
+    return {
+      title,
+      openGraph: { type, title, siteName: siteConfig.name },
+      twitter: { card: "summary", title },
+      robots: { index: false, follow: false },
+    };
+  }
   const url = path ? `${siteConfig.url}${path}` : siteConfig.url;
   return {
     ...(path && { alternates: { canonical: url } }),

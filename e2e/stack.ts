@@ -10,3 +10,5 @@ export const revalidateSecret = "e2e-revalidate-secret";
 export const apiUrl = `http://127.0.0.1:${apiPort}`;
 export const repoRoot = path.join(__dirname, "..");
 export const fixtures = path.join(__dirname, "fixtures", "content");
+export const adminToken = "e2e-admin-token";
+export const clientAlex = "01JBX5Q7Z9K3M8N2P4R6T0V1WA";

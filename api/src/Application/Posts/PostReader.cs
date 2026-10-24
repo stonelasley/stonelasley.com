@@ -17,7 +17,8 @@ public sealed record WatchSummary(WatchMake Make, string Reference, string Model
 public sealed record WatchFacets(IReadOnlyList<string> Makes, IReadOnlyList<string> ModelNames, IReadOnlyList<int> Decades);
 
 public sealed record PostDetail(
-    string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, string Excerpt, string Body, Recipe? Recipe, Watch? Watch);
+    string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, string Excerpt, string Body, Recipe? Recipe, Watch? Watch,
+    bool AudiencePublic);
 
 public sealed record AreaDetail(string Slug, string? Intro);
 
@@ -30,6 +31,13 @@ public sealed class PostReader(ID1Database database, TimeProvider clock)
 
     public Task<IReadOnlyList<PostSummary>> ListAsync(ContentArea area, CancellationToken cancellationToken) =>
         SummariesAsync($"WHERE area = ? AND {PublicAndPublished} ORDER BY date DESC, id DESC", [area.Slug()], cancellationToken);
+
+    /// <summary>A Client's Private Posts: the shared Clients library and their own, newest first. No Public filler.</summary>
+    public Task<IReadOnlyList<PostSummary>> PrivateForClientAsync(string clientId, CancellationToken cancellationToken) =>
+        SummariesAsync(
+            $"WHERE status = '{PostColumns.PublishedStatus}' AND audience IN (?, ?) ORDER BY date DESC, id DESC",
+            [Audience.Clients.Stored, Audience.ForClient(clientId).Stored],
+            cancellationToken);
 
     /// <summary>The newest public, published Posts, across every area or within one.</summary>
     public Task<IReadOnlyList<PostSummary>> LatestAsync(ContentArea? area, int limit, CancellationToken cancellationToken) =>
@@ -47,11 +55,25 @@ public sealed class PostReader(ID1Database database, TimeProvider clock)
             Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), WatchSummary.Of(PostColumns.WatchFromRow(row), clock.GetUtcNow().Year)))];
     }
 
-    public async Task<PostDetail?> FindAsync(ContentArea area, string slug, CancellationToken cancellationToken)
+    /// <summary>
+    /// A published Post the reader may see: Public, or, for an unlocked Client, the Clients library and that
+    /// Client's own Posts.
+    /// </summary>
+    public async Task<PostDetail?> FindAsync(ContentArea area, string slug, string? clientId, CancellationToken cancellationToken)
     {
         var rows = await database.QueryAsync(
-            $"SELECT id, title, slug, area, date, tags, excerpt, body, recipe, watch FROM posts WHERE area = ? AND slug = ? AND {PublicAndPublished}",
-            [area.Slug(), slug],
+            $"""
+            SELECT id, title, slug, area, date, tags, excerpt, body, recipe, watch, audience FROM posts
+            WHERE area = ? AND slug = ? AND status = '{PostColumns.PublishedStatus}'
+              AND audience IN (?, ?, ?)
+            """,
+            [
+                area.Slug(),
+                slug,
+                Audience.Public.Stored,
+                clientId is null ? Audience.Public.Stored : Audience.Clients.Stored,
+                clientId is null ? Audience.Public.Stored : Audience.ForClient(clientId).Stored,
+            ],
             cancellationToken);
         if (rows.Count == 0)
         {
@@ -60,7 +82,8 @@ public sealed class PostReader(ID1Database database, TimeProvider clock)
 
         var row = rows[0];
         return new PostDetail(
-            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), Text(row, "body"), PostColumns.RecipeFromRow(row), PostColumns.WatchFromRow(row));
+            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), Text(row, "body"), PostColumns.RecipeFromRow(row), PostColumns.WatchFromRow(row),
+            Text(row, "audience") == Audience.Public.Stored);
     }
 
     /// <summary>The Watches index filters: every make, model name and production decade in use.</summary>

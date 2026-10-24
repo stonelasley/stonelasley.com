@@ -9,7 +9,8 @@ namespace StoneLasley.Cli;
 /// <summary>
 /// Sends every Markdown Post under a directory through the API's manifest → upload → commit protocol.
 /// The API parses and validates; this only finds each Post's id and hashes its file.
-/// <c>_areas/{area}.md</c> holds a Content Area's intro; nothing under a <c>_</c> folder is a Post.
+/// <c>_areas/{area}.md</c> holds a Content Area's intro and <c>_clients.yaml</c> the Clients; nothing under a
+/// <c>_</c> folder is a Post.
 /// </summary>
 internal static partial class IngestCommand
 {
@@ -49,12 +50,16 @@ internal static partial class IngestCommand
             ? Directory.EnumerateFiles(introDirectory, "*.md").ToDictionary(path => Path.GetFileNameWithoutExtension(path), File.ReadAllText)
             : [];
 
+        // The Clients (ULID and display name) Posts may name in 'audience'. Never committed to this public repo.
+        var clientsFile = Path.Combine(directory, "_clients.yaml");
+        var clients = File.Exists(clientsFile) ? await File.ReadAllTextAsync(clientsFile) : null;
+
         using var client = new HttpClient { BaseAddress = apiUrl };
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var manifestResponse = await client.PostAsJsonAsync(
             $"ingest/manifest?dryRun={dryRun}&includeDrafts={includeDrafts}",
-            new { posts = posts.ToDictionary(p => p.Key, p => Hash(p.Value, ImagesOf(directory, postFiles[p.Key], p.Value))), intros });
+            new { posts = posts.ToDictionary(p => p.Key, p => Hash(p.Value, ImagesOf(directory, postFiles[p.Key], p.Value))), intros, clients });
         if (!await SucceededAsync(manifestResponse, "manifest"))
         {
             return 1;

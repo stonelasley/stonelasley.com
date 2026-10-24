@@ -74,9 +74,17 @@ public static partial class MarkdownPost
             errors.Add("'tags' must not contain empty values.");
         }
 
-        if (frontmatter.Audience?.Trim() != "public")
+        var audienceText = frontmatter.Audience?.Trim();
+        Audience? audience = audienceText switch
         {
-            errors.Add("'audience' must be 'public'.");
+            "public" => Audience.Public,
+            "clients" => Audience.Clients,
+            { } ulid when UlidPattern().IsMatch(ulid) => Audience.ForClient(ulid),
+            _ => null,
+        };
+        if (audience is null)
+        {
+            errors.Add("'audience' must be public, clients, or a Client's ULID.");
         }
 
         PostStatus status = default;
@@ -104,7 +112,7 @@ public static partial class MarkdownPost
         }
 
         var body = match.Groups["body"].Value.Trim('\n');
-        var post = new Post(id!, title!, slug!, area, date, tags, Audience.Public, status, body, recipe, watch);
+        var post = new Post(id!, title!, slug!, area, date, tags, audience!, status, body, recipe, watch);
         return new MarkdownPostResult(post, []);
     }
 
