@@ -32,9 +32,16 @@ public sealed class IngestService(ID1Database database, IImageStore images, ISit
             "DELETE FROM ingest_staged_posts WHERE run_id IN (SELECT id FROM ingest_runs WHERE committed_at IS NULL AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 day'))",
             cancellationToken: cancellationToken);
 
+        // A public, published Post missing from the keyword index counts as changed, so the next full ingest
+        // indexes Posts stored before the index existed (or left out by a failure).
+        var storedPosts = $"""
+            SELECT id, content_hash FROM posts
+            WHERE NOT (audience = '{PostColumns.PublicAudience}' AND status = '{PostColumns.PublishedStatus}')
+               OR id IN (SELECT post_id FROM posts_fts)
+            """;
         var known = includeDrafts
-            ? "SELECT id, content_hash FROM posts"
-            : "SELECT id, content_hash FROM posts UNION ALL SELECT id, content_hash FROM skipped_drafts";
+            ? storedPosts
+            : $"{storedPosts} UNION ALL SELECT id, content_hash FROM skipped_drafts";
         var stored = (await database.QueryAsync(known, cancellationToken: cancellationToken))
             .ToLookup(row => Text(row, "id"), row => Text(row, "content_hash"));
 
