@@ -42,6 +42,26 @@ public class ExcerptTests
         Excerpt.From("```\nfirst\n\nsecond\n```\n\nAfter the code.").ShouldBe("After the code.");
     }
 
+    [TestCase("Multiply 2 * 3 * 4 here.", "Multiply 2 * 3 * 4 here.")]
+    [TestCase("Call snake_case_names freely.", "Call snake_case_names freely.")]
+    [TestCase("See [Foo](https://en.wikipedia.org/wiki/Foo_(bar)) now.", "See Foo now.")]
+    [TestCase("Nested **bold *and* italic** text.", "Nested bold and italic text.")]
+    [TestCase("1986. The year it began.", "1986. The year it began.")]
+    [TestCase("An _italic_ and __strong__ word.", "An italic and strong word.")]
+    [TestCase("# Title\nThe paragraph under it.", "The paragraph under it.")]
+    public void Keeps_real_world_prose_intact(string markdown, string excerpt)
+    {
+        Excerpt.From(markdown).ShouldBe(excerpt);
+    }
+
+    [Test]
+    public void Never_cuts_through_an_emoji()
+    {
+        var excerpt = Excerpt.From(new string('a', 158) + "😀😀");
+
+        char.IsHighSurrogate(excerpt[^2]).ShouldBeFalse();
+    }
+
     [Test]
     public void Joins_a_wrapped_paragraph_into_one_line()
     {

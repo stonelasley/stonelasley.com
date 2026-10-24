@@ -5,6 +5,9 @@ import { PostCard } from "@/components/PostCard";
 import { getAllPosts } from "@/lib/api";
 import { contentAreas } from "@/lib/areas";
 import { siteConfig } from "@/site.config";
+import { constructMetadata } from "@/lib/metadata";
+
+export const metadata = constructMetadata({ path: "/" });
 
 export default async function Home() {
   const recentPosts = (await getAllPosts()).slice(0, siteConfig.home.recentPosts);
