@@ -9,8 +9,6 @@ import { Prose } from "@/components/Prose";
 import { contentAreas, findArea } from "@/lib/areas";
 import { constructMetadata } from "@/lib/metadata";
 
-export const dynamicParams = false; // The four Content Areas are a closed set
-
 interface AreaPageProps {
   params: Promise<{ area: string }>;
 }

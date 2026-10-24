@@ -13,7 +13,7 @@ public sealed record Manifest(string RunId, IReadOnlyList<string> Requested);
 /// then a commit that validates the whole set and applies it in one transaction. Posts missing from the
 /// manifest are deleted, because the content repo is the source of truth (ADR 0002).
 /// </summary>
-public sealed class IngestService(ID1Database database)
+public sealed class IngestService(ID1Database database, ISiteRevalidator site)
 {
     private const string Now = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
 
@@ -202,6 +202,11 @@ public sealed class IngestService(ID1Database database)
         statements.Add(new D1Statement($"UPDATE ingest_runs SET committed_at = {Now} WHERE id = ?", [runId]));
         statements.Add(new D1Statement("DELETE FROM ingest_staged_posts WHERE run_id = ?", [runId]));
         await database.BatchAsync(statements, cancellationToken);
+
+        if (!run.DryRun && (upserted.Count > 0 || deleted.Count > 0 || run.Intros is not null))
+        {
+            await site.RevalidateAsync(cancellationToken);
+        }
 
         return new IngestOutcome.Committed(new CommitSummary(run.DryRun, upserted, deleted));
     }

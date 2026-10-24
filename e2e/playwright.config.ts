@@ -6,12 +6,16 @@ import { defineConfig, devices } from "@playwright/test";
  * and `next start` built from API data after the fixture Posts are ingested.
  * See https://playwright.dev/docs/test-configuration.
  */
-const workerPort = 8788;
-const apiPort = 5181;
-const webPort = 3000;
-const workerSecret = "e2e-worker-secret";
-const ingestToken = "e2e-ingest-token";
-const apiUrl = `http://127.0.0.1:${apiPort}`;
+import {
+  apiPort,
+  apiUrl,
+  ingestToken,
+  revalidateSecret,
+  webPort,
+  workerPort,
+  workerSecret,
+} from "./stack";
+
 const d1State = path.join(__dirname, ".wrangler-state");
 
 export default defineConfig({
@@ -57,6 +61,9 @@ export default defineConfig({
         Worker__BaseUrl: `http://127.0.0.1:${workerPort}`,
         Worker__Secret: workerSecret,
         Ingest__Token: ingestToken,
+        // The site isn't up yet during the seeding ingest; that revalidation just logs a warning.
+        Revalidation__Url: `http://localhost:${webPort}/api/revalidate`,
+        Revalidation__Secret: revalidateSecret,
       },
       url: `${apiUrl}/health`,
       reuseExistingServer: false,
@@ -75,6 +82,9 @@ export default defineConfig({
         SL_INGEST_TOKEN: ingestToken,
         API_URL: apiUrl,
         PORT: String(webPort),
+        REVALIDATE_SECRET: revalidateSecret,
+        // Stands in for VERCEL_ENV=preview, so E2E can check the noindex header.
+        SITE_NOINDEX: "true",
       },
       url: `http://localhost:${webPort}`,
       reuseExistingServer: !process.env.CI,

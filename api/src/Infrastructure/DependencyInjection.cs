@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using StoneLasley.Application.Common.Interfaces;
+using StoneLasley.Infrastructure.Site;
 using StoneLasley.Infrastructure.Worker;
 
 namespace StoneLasley.Infrastructure;
@@ -24,6 +25,9 @@ public static class DependencyInjection
         });
 
         services.AddHealthChecks().AddCheck<D1HealthCheck>("d1");
+
+        services.AddOptions<RevalidationOptions>().BindConfiguration(RevalidationOptions.SectionName);
+        services.AddHttpClient<ISiteRevalidator, WebhookSiteRevalidator>(http => http.Timeout = TimeSpan.FromSeconds(10));
 
         return services;
     }

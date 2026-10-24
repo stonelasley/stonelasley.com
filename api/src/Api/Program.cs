@@ -23,6 +23,16 @@ builder.Services.AddOptions<IngestOptions>()
 
 var app = builder.Build();
 
+// Preview must never be indexed: everything it serves says so (Site:NoIndex).
+if (app.Configuration.GetValue<bool>("Site:NoIndex"))
+{
+    app.Use((context, next) =>
+    {
+        context.Response.Headers["X-Robots-Tag"] = "noindex";
+        return next(context);
+    });
+}
+
 app.MapHealthChecks("/health");
 app.MapIngest();
 app.MapPosts();
