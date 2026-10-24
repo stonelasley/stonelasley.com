@@ -17,7 +17,8 @@ public sealed record WatchSummary(WatchMake Make, string Reference, string Model
 public sealed record WatchFacets(IReadOnlyList<string> Makes, IReadOnlyList<string> ModelNames, IReadOnlyList<int> Decades);
 
 public sealed record PostDetail(
-    string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, string Excerpt, string Body, Recipe? Recipe, Watch? Watch);
+    string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, string Excerpt, string Body, Recipe? Recipe, Watch? Watch,
+    bool AudiencePublic);
 
 public sealed record AreaDetail(string Slug, string? Intro);
 
@@ -62,7 +63,7 @@ public sealed class PostReader(ID1Database database, TimeProvider clock)
     {
         var rows = await database.QueryAsync(
             $"""
-            SELECT id, title, slug, area, date, tags, excerpt, body, recipe, watch FROM posts
+            SELECT id, title, slug, area, date, tags, excerpt, body, recipe, watch, audience FROM posts
             WHERE area = ? AND slug = ? AND status = '{PostColumns.PublishedStatus}'
               AND audience IN (?, ?, ?)
             """,
@@ -81,7 +82,8 @@ public sealed class PostReader(ID1Database database, TimeProvider clock)
 
         var row = rows[0];
         return new PostDetail(
-            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), Text(row, "body"), PostColumns.RecipeFromRow(row), PostColumns.WatchFromRow(row));
+            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), Text(row, "body"), PostColumns.RecipeFromRow(row), PostColumns.WatchFromRow(row),
+            Text(row, "audience") == Audience.Public.Stored);
     }
 
     /// <summary>The Watches index filters: every make, model name and production decade in use.</summary>

@@ -12,7 +12,16 @@ import { highlightCode } from "@/lib/syntax-highlighting";
 import { markdownToHtml } from "@/lib/markdown";
 
 /** One Post's page body: shared by the static route and the unlocked (Private Post) route. */
-export async function PostView({ area, post }: { area: ContentArea; post: Post }) {
+export async function PostView({
+  area,
+  post,
+  structuredData = true,
+}: {
+  area: ContentArea;
+  post: Post;
+  /** JSON-LD for crawlers; off for Private Posts, so their description never leaks. */
+  structuredData?: boolean;
+}) {
   // Convert Markdown to HTML, then highlight code blocks
   const html = await highlightCode(await markdownToHtml(post.body));
 
@@ -20,14 +29,16 @@ export async function PostView({ area, post }: { area: ContentArea; post: Post }
 
   return (
     <article>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(
-            recipe ? generateRecipeJsonLd(post, recipe) : generateBlogPostingJsonLd(post)
-          ),
-        }}
-      />
+      {structuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(
+              recipe ? generateRecipeJsonLd(post, recipe) : generateBlogPostingJsonLd(post)
+            ),
+          }}
+        />
+      )}
       <Container className="py-16 md:py-24 print:py-0">
         <Link
           href={`/${area.slug}`}

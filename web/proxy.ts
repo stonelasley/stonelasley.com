@@ -15,6 +15,7 @@ export function proxy(request: NextRequest) {
   url.pathname = `/unlocked/${area}/${slug}`;
   const response = NextResponse.rewrite(url);
   response.headers.set("Cache-Control", "private, no-store");
+  response.headers.set("X-Robots-Tag", "noindex");
   return response;
 }
 

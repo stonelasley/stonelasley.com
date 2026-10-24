@@ -24,12 +24,14 @@ async function load(params: UnlockedPostPageProps["params"]) {
 export async function generateMetadata({ params }: UnlockedPostPageProps) {
   const found = await load(params);
   return found
-    ? constructMetadata({
-        title: found.post.title,
-        type: "article",
-        path: `/${found.area.slug}/${found.post.slug}`,
-        noIndex: true,
-      })
+    ? found.post.audiencePublic
+      ? constructMetadata({
+          title: found.post.title,
+          description: found.post.excerpt || undefined,
+          type: "article",
+          path: `/${found.area.slug}/${found.post.slug}`,
+        })
+      : constructMetadata({ title: found.post.title, type: "article", privatePost: true })
     : {};
 }
 
@@ -38,5 +40,7 @@ export default async function UnlockedPostPage({ params }: UnlockedPostPageProps
   if (!found) {
     notFound();
   }
-  return <PostView area={found.area} post={found.post} />;
+  return (
+    <PostView area={found.area} post={found.post} structuredData={found.post.audiencePublic} />
+  );
 }
