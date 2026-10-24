@@ -90,4 +90,59 @@ public class ImageTests
 
         (await HeadObjectAsync(KeyOf(image))).Headers.GetValues("x-uploaded").Single().ShouldBe(firstUpload);
     }
+
+    private static async Task<HttpResponseMessage> UploadAsync(HttpClient client, string body, Dictionary<string, byte[]> images)
+    {
+        var (id, slug) = (TestPosts.NewUlid(), TestPosts.NewSlug());
+        var markdown = TestPosts.Markdown(id, slug, body: body);
+        var manifest = await Ingest.ManifestAsync(client, Ingest.ById(markdown));
+        return await Ingest.UploadAsync(client, manifest.RunId, id, markdown, images);
+    }
+
+    [Test]
+    public async Task An_image_outside_the_posts_folder_fails_validation()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+
+        var upload = await UploadAsync(client, "![Escape](../secret.png)", new() { ["../secret.png"] = Png });
+
+        upload.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await upload.Content.ReadAsStringAsync()).ShouldContain("Image '../secret.png' must be inside the Post's folder.");
+    }
+
+    [Test]
+    public async Task A_reference_style_image_fails_validation()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+
+        var upload = await UploadAsync(client, "![Hero][hero]\n\n[hero]: hero.png", new() { ["hero.png"] = Png });
+
+        upload.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await upload.Content.ReadAsStringAsync()).ShouldContain("Image [hero] is reference-style; write it inline");
+    }
+
+    [Test]
+    public async Task An_image_over_the_size_limit_fails_validation()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+
+        var upload = await UploadAsync(client, "![Big](big.png)", new() { ["big.png"] = new byte[(10 * 1024 * 1024) + 1] });
+
+        upload.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await upload.Content.ReadAsStringAsync()).ShouldContain("Image 'big.png' is over the 10 MB limit.");
+    }
+
+    [Test]
+    public async Task The_same_image_sent_under_two_spellings_is_stored_once()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+
+        var upload = await UploadAsync(client, "![Dot](dot.png)", new() { ["./dot.png"] = Png, ["dot.png"] = Png });
+
+        upload.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+    }
 }

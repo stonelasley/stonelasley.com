@@ -232,19 +232,36 @@ public sealed class IngestService(ID1Database database, IImageStore images, ISit
     private async Task<(IReadOnlyDictionary<string, string> Urls, IReadOnlyList<string> Errors)> StoreImagesAsync(
         string body, IReadOnlyList<UploadedImage> uploadedImages, CancellationToken cancellationToken)
     {
-        var byPath = uploadedImages.ToDictionary(image => image.Path.StartsWith("./", StringComparison.Ordinal) ? image.Path[2..] : image.Path);
+        // Two spellings of one path ("./a.png", "a.png") are one image.
+        var byPath = uploadedImages
+            .Select(image => (Path: PostImages.Normalise(image.Path), image.Content))
+            .Where(image => image.Path is not null)
+            .GroupBy(image => image.Path!)
+            .ToDictionary(group => group.Key, group => group.First().Content);
         var references = PostImages.References(body);
 
         var errors = new List<string>();
+        foreach (var label in PostImages.ReferenceStyle(body))
+        {
+            errors.Add($"Image [{label}] is reference-style; write it inline as ![alt](path) so ingest can store it.");
+        }
         foreach (var path in references)
         {
-            if (!byPath.ContainsKey(path))
+            if (PostImages.Normalise(path) is null)
+            {
+                errors.Add($"Image '{path}' must be inside the Post's folder.");
+            }
+            else if (!byPath.TryGetValue(path, out var content))
             {
                 errors.Add($"Image '{path}' is referenced but was not uploaded.");
             }
             else if (PostImages.ContentType(path) is null)
             {
-                errors.Add($"'{path}' is not a supported image type (jpg, png, gif, webp, avif, svg).");
+                errors.Add($"'{path}' is not a supported image type (jpg, png, gif, webp, avif).");
+            }
+            else if (content.Length > PostImages.MaxBytes)
+            {
+                errors.Add($"Image '{path}' is over the {PostImages.MaxBytes / (1024 * 1024)} MB limit.");
             }
         }
         if (errors.Count > 0)
@@ -255,7 +272,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, ISit
         var urls = new Dictionary<string, string>();
         foreach (var path in references)
         {
-            var content = byPath[path].Content;
+            var content = byPath[path];
             var key = PostImages.Key(path, content);
             if (!await images.ExistsAsync(key, cancellationToken))
             {

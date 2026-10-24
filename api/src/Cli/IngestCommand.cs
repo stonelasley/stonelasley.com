@@ -54,7 +54,7 @@ internal static partial class IngestCommand
 
         var manifestResponse = await client.PostAsJsonAsync(
             $"ingest/manifest?dryRun={dryRun}&includeDrafts={includeDrafts}",
-            new { posts = posts.ToDictionary(p => p.Key, p => Hash(p.Value, ImagesOf(postFiles[p.Key], p.Value))), intros });
+            new { posts = posts.ToDictionary(p => p.Key, p => Hash(p.Value, ImagesOf(directory, postFiles[p.Key], p.Value))), intros });
         if (!await SucceededAsync(manifestResponse, "manifest"))
         {
             return 1;
@@ -65,7 +65,7 @@ internal static partial class IngestCommand
         var failed = 0;
         foreach (var id in manifest.Requested)
         {
-            var images = ImagesOf(postFiles[id], posts[id]).Select(i => new { path = i.Path, content = Convert.ToBase64String(i.Content) });
+            var images = ImagesOf(directory, postFiles[id], posts[id]).Select(i => new { path = i.Path, content = Convert.ToBase64String(i.Content) });
             var upload = await client.PutAsJsonAsync($"ingest/runs/{manifest.RunId}/posts/{id}", new { markdown = posts[id], images });
             if (!await SucceededAsync(upload, $"upload {id}"))
             {
@@ -107,16 +107,22 @@ internal static partial class IngestCommand
         return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
-    // Images next to the Post that its Markdown references. A missing file is left for the API to report.
-    private static IEnumerable<(string Path, byte[] Content)> ImagesOf(string postFile, string markdown)
+    // Images next to the Post that its Markdown references. Only regular files inside the content directory
+    // are read, never a symlink or a path that climbs out; anything else is left for the API to report.
+    private static IEnumerable<(string Path, byte[] Content)> ImagesOf(string contentRoot, string postFile, string markdown)
     {
-        var directory = Path.GetDirectoryName(postFile)!;
+        var root = Path.GetFullPath(contentRoot) + Path.DirectorySeparatorChar;
+        var folder = Path.GetDirectoryName(Path.GetFullPath(postFile))!;
         foreach (var reference in PostImages.References(markdown))
         {
-            var file = Path.Combine(directory, reference);
-            if (File.Exists(file))
+            if (PostImages.Normalise(reference) is null)
             {
-                yield return (reference, File.ReadAllBytes(file));
+                continue;
+            }
+            var file = new FileInfo(Path.GetFullPath(Path.Combine(folder, reference)));
+            if (file.FullName.StartsWith(root, StringComparison.Ordinal) && file.Exists && file.LinkTarget is null)
+            {
+                yield return (reference, File.ReadAllBytes(file.FullName));
             }
         }
     }

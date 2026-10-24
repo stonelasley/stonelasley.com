@@ -44,16 +44,50 @@ public class PostImagesTests
     [TestCase("a.webp", "image/webp")]
     [TestCase("a.avif", "image/avif")]
     [TestCase("a.gif", "image/gif")]
-    [TestCase("a.svg", "image/svg+xml")]
     public void Knows_the_content_type_of_supported_images(string path, string contentType)
     {
         PostImages.ContentType(path).ShouldBe(contentType);
     }
 
-    [Test]
-    public void Has_no_content_type_for_other_files()
+    [TestCase("notes.pdf")]
+    [TestCase("drawing.svg")] // SVG can carry script; never serve it from our own domain
+    public void Has_no_content_type_for_other_files(string path)
     {
-        PostImages.ContentType("notes.pdf").ShouldBeNull();
+        PostImages.ContentType(path).ShouldBeNull();
+    }
+
+    [TestCase("./a/./b.png", "a/b.png")]
+    [TestCase("a/../b.png", "b.png")]
+    [TestCase("steps\\one.png", "steps/one.png")]
+    public void Normalises_paths(string path, string normalised)
+    {
+        PostImages.Normalise(path).ShouldBe(normalised);
+    }
+
+    [TestCase("../secret.png")]
+    [TestCase("a/../../secret.png")]
+    public void Has_no_path_for_one_that_leaves_the_post(string path)
+    {
+        PostImages.Normalise(path).ShouldBeNull();
+    }
+
+    [Test]
+    public void Finds_angle_bracket_references_with_spaces_and_single_quoted_titles()
+    {
+        PostImages.References("![A](<my photo.jpg> 'Title') and ![B](b.png 'T')").ShouldBe(["my photo.jpg", "b.png"]);
+    }
+
+    [Test]
+    public void Rewrites_angle_bracket_references()
+    {
+        PostImages.Rewrite("![A](<my photo.jpg>)", new Dictionary<string, string> { ["my photo.jpg"] = "https://img.test/x.jpg" })
+            .ShouldBe("![A](https://img.test/x.jpg)");
+    }
+
+    [Test]
+    public void Reports_reference_style_images_with_relative_targets()
+    {
+        PostImages.ReferenceStyle("![Hero][hero]\n\n[hero]: hero.jpg\n[site]: https://example.com").ShouldBe(["hero"]);
     }
 
     [Test]
