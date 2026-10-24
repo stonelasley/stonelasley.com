@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using StoneLasley.Api.Ingest;
 using StoneLasley.Api.Posts;
 using StoneLasley.Application;
+using StoneLasley.Application.Search;
 using StoneLasley.Domain.Posts;
 using StoneLasley.Infrastructure;
 
@@ -16,6 +17,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
+builder.Services.AddOptions<SearchOptions>().BindConfiguration(SearchOptions.SectionName);
 builder.Services.AddOptions<IngestOptions>()
     .BindConfiguration(IngestOptions.SectionName)
     .ValidateDataAnnotations()

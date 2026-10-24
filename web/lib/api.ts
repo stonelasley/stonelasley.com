@@ -160,3 +160,34 @@ export async function getWatchFacets(): Promise<WatchFacets> {
   }
   return facets;
 }
+
+const searchResultSchema = z.object({
+  query: z.string(),
+  area: z.string().nullable(),
+  results: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      slug: z.string(),
+      area: z.enum(contentAreas.map((area) => area.slug)),
+      date: z.string(),
+      // Matched words are flagged, so the page can highlight them without rendering HTML from the API.
+      excerpt: z.array(z.object({ text: z.string(), match: z.boolean() })),
+    })
+  ),
+  counts: z.record(z.string(), z.number()),
+});
+
+export type SearchResult = z.infer<typeof searchResultSchema>;
+export type SearchHit = SearchResult["results"][number];
+
+/** Keyword search over public Posts, optionally within one Content Area. */
+export async function searchPosts(query: string, area?: AreaSlug): Promise<SearchResult> {
+  const params = new URLSearchParams({ q: query });
+  if (area) params.set("area", area);
+  const result = await get(`/search?${params}`, searchResultSchema);
+  if (result === null) {
+    throw new Error(`The API does not know the Content Area '${area}'.`);
+  }
+  return result;
+}
