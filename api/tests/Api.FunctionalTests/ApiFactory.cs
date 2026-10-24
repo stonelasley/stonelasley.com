@@ -26,6 +26,14 @@ public sealed class ApiFactory(Uri workerUrl, string workerSecret) : WebApplicat
     public FakeSiteRevalidator Revalidator { get; } = new();
 
     private bool _realVectors;
+    private Action<IServiceCollection>? _services;
+
+    /// <summary>Replace services at external ports, such as the embedder.</summary>
+    public ApiFactory WithServices(Action<IServiceCollection> configure)
+    {
+        _services = configure;
+        return this;
+    }
 
     /// <summary>Use Workers AI and the ci Vectorize index instead of the fake (unless SL_FAKE_VECTORS=1).</summary>
     public ApiFactory WithRealVectors()
@@ -61,6 +69,10 @@ public sealed class ApiFactory(Uri workerUrl, string workerSecret) : WebApplicat
         {
             builder.UseSetting(key, value);
         }
-        builder.ConfigureTestServices(services => services.AddSingleton<ISiteRevalidator>(Revalidator));
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddSingleton<ISiteRevalidator>(Revalidator);
+            _services?.Invoke(services);
+        });
     }
 }

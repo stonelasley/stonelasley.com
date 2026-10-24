@@ -7,6 +7,18 @@ public sealed class SearchOptions
 {
     public const string SectionName = "Search";
 
+    /// <summary>Which leg answers searches: hybrid (fused), keyword or vector. v1 ships with whichever the eval picks.</summary>
+    public SearchMode Mode { get; set; } = SearchMode.Hybrid;
+
+    public RrfOptions Rrf { get; set; } = new();
+
+    public sealed class RrfOptions
+    {
+        public int K { get; set; } = 60;
+        public double KeywordWeight { get; set; } = 1;
+        public double VectorWeight { get; set; } = 1;
+    }
+
     /// <summary>bm25 column weights for the keyword leg. Higher means a match there counts for more.</summary>
     public Bm25Weights Bm25 { get; set; } = new();
 
@@ -36,4 +48,11 @@ public sealed class SearchOptions
         public double Tags { get; set; } = 3;
         public double Body { get; set; } = 1;
     }
+}
+
+public enum SearchMode
+{
+    Hybrid,
+    Keyword,
+    Vector,
 }

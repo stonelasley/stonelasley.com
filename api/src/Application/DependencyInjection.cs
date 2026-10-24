@@ -14,6 +14,7 @@ public static class DependencyInjection
         services.AddScoped<PostReader>();
         services.AddScoped<KeywordSearch>();
         services.AddScoped<VectorSearch>();
+        services.AddScoped<Searcher>();
         services.AddScoped<VectorIndexer>();
         services.TryAddSingleton(TimeProvider.System);
         return services;
