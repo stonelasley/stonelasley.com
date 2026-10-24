@@ -37,8 +37,11 @@ public sealed class SearchOptions
         /// <summary>Chunks fetched per query before they're rolled up into Posts.</summary>
         public int TopK { get; set; } = 50;
 
-        /// <summary>Chunks scoring below this cosine similarity are dropped, so off-topic queries return nothing.</summary>
-        public double CosineFloor { get; set; } = 0.6;
+        /// <summary>
+        /// Chunks scoring below this cosine similarity are dropped, so off-topic queries return nothing. 0.7 is the
+        /// search eval's pick (ADR 0004): at 0.6 the leg adds enough weak matches to drag hybrid below keyword.
+        /// </summary>
+        public double CosineFloor { get; set; } = 0.7;
 
         /// <summary>Partition of the index this environment writes and reads. Tests use one per run.</summary>
         public string? Namespace { get; set; }

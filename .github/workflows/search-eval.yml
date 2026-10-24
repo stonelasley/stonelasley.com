@@ -1,0 +1,109 @@
+name: Search Eval
+
+# Search quality is measured, not guessed (#43): a frozen corpus is ingested into this run's slice of the ci
+# Vectorize index and the graded queries in api/tests/Api.FunctionalTests/SearchEval run through /search in every
+# mode. Required on PRs; it exits green early when nothing that affects ranking changed. Nightly on master it opens
+# an issue when scores fall below the committed baseline.
+on:
+  pull_request:
+  schedule:
+    - cron: '23 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  search-eval:
+    name: Search eval
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decide whether to run
+        id: scope
+        env:
+          FORK: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$FORK" = "true" ]; then
+            echo "Fork PRs get no Cloudflare secrets; skipping." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "pull_request" ] && ! git diff --name-only "$BASE"...HEAD | grep -qE \
+              '^(api/src/Domain/(Search|Posts)/|api/src/Application/(Search|Ingest)/|api/src/Infrastructure/Worker/|api/src/Api/Posts/|worker/src/|worker/migrations/|worker/wrangler\.jsonc|api/tests/Api\.FunctionalTests/SearchEval/|\.github/workflows/search-eval\.yml)'; then
+            echo "No search, ranking, ingest or eval paths changed; skipping." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js
+        if: steps.scope.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        if: steps.scope.outputs.run == 'true'
+        run: npm ci
+
+      - name: Setup .NET
+        if: steps.scope.outputs.run == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: api/global.json
+
+      - name: Build
+        if: steps.scope.outputs.run == 'true'
+        run: dotnet build api/tests/Api.FunctionalTests
+
+      - name: Run the search eval
+        id: eval
+        if: steps.scope.outputs.run == 'true'
+        run: dotnet test api/tests/Api.FunctionalTests --no-build --filter TestCategory=SearchEval
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          SL_EVAL_REPORT_DIR: ${{ runner.temp }}
+
+      # A seeding timeout is Vectorize being slow, not search getting worse; say which it was.
+      - name: Report
+        if: always() && steps.scope.outputs.run == 'true'
+        run: |
+          status=$(head -1 "$RUNNER_TEMP/search-eval-status" 2>/dev/null || echo "infra")
+          detail=$(tail -n +2 "$RUNNER_TEMP/search-eval-status" 2>/dev/null || echo "the eval did not report")
+          [ -f "$RUNNER_TEMP/search-eval-report.md" ] && cat "$RUNNER_TEMP/search-eval-report.md" >> "$GITHUB_STEP_SUMMARY"
+          case "$status" in
+            infra) echo "::error title=Search eval infra failure::$detail" ;;
+            quality) echo "::error title=Search quality below the gate::$detail" ;;
+          esac
+
+      - name: Upload scores
+        if: always() && steps.scope.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: search-eval
+          path: |
+            ${{ runner.temp }}/search-eval-report.md
+            ${{ runner.temp }}/search-eval-scores.json
+          if-no-files-found: ignore
+
+      - name: Open an issue when the nightly eval falls below baseline
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          status=$(head -1 "$RUNNER_TEMP/search-eval-status" 2>/dev/null || echo "infra")
+          [ "$status" = "quality" ] || exit 0
+          title="Nightly search eval fell below baseline"
+          if [ -z "$(gh issue list --state open --search "in:title \"$title\"" --json number -q '.[].number')" ]; then
+            { echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"; echo; cat "$RUNNER_TEMP/search-eval-report.md"; } > body.md
+            gh issue create --title "$title" --body-file body.md
+          fi

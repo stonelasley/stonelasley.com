@@ -22,8 +22,8 @@ public class FakeVectorSearchTests
             TestPosts.Markdown(training, TestPosts.NewSlug(), title: "Squat depth", area: "training", body: "## Depth\n\nSquat below parallel with knees tracking the toes."),
             TestPosts.Markdown(watches, TestPosts.NewSlug("watch"), title: "Bezel", area: "watches", body: "Unidirectional bezel insert with lume pip.", extra: TestPosts.WatchCore()));
 
-        var squat = await SearchAsync(client, "squat below parallel knees toes");
-        var inWatches = await SearchAsync(client, "squat below parallel knees toes", area: "watches");
+        var squat = await SearchAsync(client, "squat depth below parallel knees toes");
+        var inWatches = await SearchAsync(client, "squat depth below parallel knees toes", area: "watches");
 
         squat.ShouldNotBeNull().Results.First().Id.ShouldBe(training);
         string.Concat(squat.Results.First().Excerpt.Select(p => p.Text)).ShouldBe("Squat below parallel with knees tracking the toes.");
