@@ -8,12 +8,14 @@ var ingestToken = builder.AddParameter("ingest-token", secret: true);
 var worker = builder.AddJavaScriptApp("worker", "../../../worker", "dev")
     .WithHttpEndpoint(port: 8787, isProxied: false)
     .WithEnvironment("CLOUDFLARE_INCLUDE_PROCESS_ENV", "true")
-    .WithEnvironment("WORKER_SECRET", workerSecret);
+    .WithEnvironment("WORKER_SECRET", workerSecret)
+    .WithEnvironment("SERVE_IMAGES", "true");
 
 var api = builder.AddProject<Projects.Api>("api")
     .WithEnvironment("Worker__BaseUrl", worker.GetEndpoint("http"))
     .WithEnvironment("Worker__Secret", workerSecret)
     .WithEnvironment("Ingest__Token", ingestToken)
+    .WithEnvironment("Images__BaseUrl", ReferenceExpression.Create($"{worker.GetEndpoint("http")}/public/"))
     .WithHttpHealthCheck("/health")
     .WaitFor(worker);
 

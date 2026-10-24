@@ -122,6 +122,7 @@ jobs:
             "Ingest__Token=secretref:ingest-token"
             "Revalidation__Secret=secretref:revalidate-secret"
             "Revalidation__ProtectionBypass=secretref:vercel-bypass"
+            "Images__BaseUrl=https://img-preview.stonelasley.com/"
             "Site__NoIndex=true"
           )
           if az containerapp show -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --only-show-errors >/dev/null 2>&1; then

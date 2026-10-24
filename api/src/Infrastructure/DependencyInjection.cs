@@ -24,6 +24,19 @@ public static class DependencyInjection
             http.Timeout = TimeSpan.FromSeconds(10);
         });
 
+        services.AddOptions<ImageOptions>()
+            .BindConfiguration(ImageOptions.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddHttpClient<IImageStore, WorkerImageStore>((provider, http) =>
+        {
+            var options = provider.GetRequiredService<IOptions<WorkerOptions>>().Value;
+            http.BaseAddress = options.BaseUrl;
+            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.Secret);
+            http.Timeout = TimeSpan.FromSeconds(60);
+        });
+
         services.AddHealthChecks().AddCheck<D1HealthCheck>("d1");
 
         services.AddOptions<RevalidationOptions>().BindConfiguration(RevalidationOptions.SectionName);

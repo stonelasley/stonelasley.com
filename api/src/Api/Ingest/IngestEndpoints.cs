@@ -10,7 +10,11 @@ public static class IngestEndpoints
     /// left out loses its intro; when absent, intros are left alone.</param>
     public sealed record ManifestRequest(Dictionary<string, string> Posts, Dictionary<string, string>? Intros);
 
-    public sealed record UploadRequest(string Markdown);
+    /// <param name="Markdown">The Post file, frontmatter and body.</param>
+    /// <param name="Images">Each image the Markdown references relatively, by that path, as base64.</param>
+    public sealed record UploadRequest(string Markdown, IReadOnlyList<ImageUpload>? Images);
+
+    public sealed record ImageUpload(string Path, string Content);
 
     public static IEndpointRouteBuilder MapIngest(this IEndpointRouteBuilder app)
     {
@@ -31,7 +35,21 @@ public static class IngestEndpoints
         });
 
         ingest.MapPut("/runs/{runId}/posts/{postId}", async (string runId, string postId, UploadRequest request, IngestService service, CancellationToken cancellationToken) =>
-            ToResult(await service.UploadAsync(runId, postId, request.Markdown, cancellationToken)));
+        {
+            List<UploadedImage> images = [];
+            foreach (var image in request.Images ?? [])
+            {
+                try
+                {
+                    images.Add(new UploadedImage(image.Path, Convert.FromBase64String(image.Content)));
+                }
+                catch (FormatException)
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["images"] = [$"Image '{image.Path}' is not valid base64."] });
+                }
+            }
+            return ToResult(await service.UploadAsync(runId, postId, request.Markdown, images, cancellationToken));
+        });
 
         ingest.MapPost("/runs/{runId}/commit", async (string runId, IngestService service, CancellationToken cancellationToken) =>
             ToResult(await service.CommitAsync(runId, cancellationToken)));

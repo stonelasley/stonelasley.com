@@ -18,5 +18,5 @@ public sealed record Post(
     Watch? Watch = null)
 {
     /// <summary>The opening prose as plain text; see <see cref="Posts.Excerpt"/>.</summary>
-    public string Excerpt { get; } = Posts.Excerpt.From(Body);
+    public string Excerpt => Posts.Excerpt.From(Body);
 }

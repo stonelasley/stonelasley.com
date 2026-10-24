@@ -37,6 +37,19 @@ Everything preview serves sends `X-Robots-Tag: noindex`: the API through `Site__
 
 Git auto-deploy is off (`web/vercel.json`). Only this workflow deploys, after the API it builds against is healthy.
 
+## Images
+
+Post images live in R2 under `images/{sha256}{ext}`. Readers load them straight from the bucket's custom domain, not through the API or the Worker (ADR 0001's one exception).
+
+| Environment | Bucket                       | Custom domain                                     |
+| ----------- | ---------------------------- | ------------------------------------------------- |
+| preview     | `stonelasley-images-preview` | `img-preview.stonelasley.com`                     |
+| production  | `stonelasley-images-prod`    | `img.stonelasley.com` (connected at cutover, #55) |
+
+The spec flagged one assumption as unverified: that R2 custom domains need the zone on Cloudflare (#23). It's now **verified**. On 2026-10-24 `wrangler r2 bucket domain add stonelasley-images-preview --domain img-preview.stonelasley.com --zone-id <stonelasley.com>` connected the domain (ownership active, SSL pending). An object put with `wrangler r2 object put --remote` was then served at `https://img-preview.stonelasley.com/checks/custom-domain.txt` with `200`, `content-type: text/plain`, `server: cloudflare`, about 30 s after SSL finished provisioning. Before that it answered `403` with Cloudflare error 1014. The check object was deleted afterwards.
+
+Locally, and in E2E, the Worker serves `/public/images/*` when `SERVE_IMAGES=true`, standing in for the custom domain.
+
 ## Cold start
 
 Measured 2026-10-24 on preview (0.25 vCPU / 0.5 GiB, West US 3). The app had scaled to zero, with no replicas running. Cold `GET /health` took 26.5 s, which includes the API's `SELECT 1` through the Worker to D1. Warm requests that followed took 0.28 to 0.31 s. The build's warm-up allows 6 attempts of up to 30 s each, so a cold API doesn't fail a deploy.

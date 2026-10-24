@@ -44,7 +44,7 @@ export default defineConfig({
       command: [
         `rm -rf "${d1State}"`,
         `npx wrangler d1 migrations apply DB --local --persist-to "${d1State}"`,
-        `npx wrangler dev --ip 127.0.0.1 --port ${workerPort} --persist-to "${d1State}" --var WORKER_SECRET:${workerSecret} --show-interactive-dev-session=false`,
+        `npx wrangler dev --ip 127.0.0.1 --port ${workerPort} --persist-to "${d1State}" --var WORKER_SECRET:${workerSecret} --var SERVE_IMAGES:true --show-interactive-dev-session=false`,
       ].join(" && "),
       cwd: "../worker",
       // The Worker answers 401 without the secret, which Playwright counts as up.
@@ -61,6 +61,8 @@ export default defineConfig({
         Worker__BaseUrl: `http://127.0.0.1:${workerPort}`,
         Worker__Secret: workerSecret,
         Ingest__Token: ingestToken,
+        // The Worker serves images locally, standing in for the R2 custom domain.
+        Images__BaseUrl: `http://127.0.0.1:${workerPort}/public/`,
         // The site isn't up yet during the seeding ingest; that revalidation just logs a warning.
         Revalidation__Url: `http://localhost:${webPort}/api/revalidate`,
         Revalidation__Secret: revalidateSecret,
