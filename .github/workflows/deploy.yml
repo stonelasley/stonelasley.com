@@ -30,7 +30,6 @@ jobs:
     # Fork PRs get no secrets, so they can't deploy.
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    environment: preview
     env:
       CONTAINER_APP: ca-stonelasley-api-preview
       CONTAINER_ENV: cae-stonelasley-preview
