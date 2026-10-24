@@ -58,7 +58,7 @@ Each environment's Worker binds its own Vectorize index (`posts-v1-preview`, `po
 
 ## Instagram
 
-The API keeps the Creator account's 60-day long-lived token and a media cache in D1's `meta` table. `.github/workflows/instagram-refresh.yml` runs daily and calls `POST /admin/instagram/refresh` (admin token). That renews the token, re-fetches the media and revalidates the site. Seed the first token once per environment:
+The API keeps the Creator account's 60-day long-lived token and a media cache in D1's `meta` table. `.github/workflows/instagram-refresh.yml` calls `POST /admin/instagram/refresh` (admin token). That renews the token, re-fetches the media and revalidates the site. Its daily schedule is off until a token is stored (#79), so for now it only runs by hand. Seed the first token once per environment, then restore the schedule:
 
 ```bash
 curl -X PUT "$API/admin/instagram/token" -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" -d '{"token":"<long-lived token>"}'
