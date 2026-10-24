@@ -13,6 +13,24 @@ public static class PostEndpoints
                 ? Results.Ok(await reader.AreaAsync(contentArea, cancellationToken))
                 : Results.NotFound());
 
+        app.MapGet("/posts/latest", async (string? area, int? limit, PostReader reader, CancellationToken cancellationToken) =>
+        {
+            if (limit is < 1 or > 50)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["limit"] = ["'limit' must be 1 to 50."] });
+            }
+            ContentArea? contentArea = null;
+            if (!string.IsNullOrEmpty(area))
+            {
+                if (!ContentAreas.TryParse(area, out var parsed))
+                {
+                    return Results.NotFound();
+                }
+                contentArea = parsed;
+            }
+            return Results.Ok(await reader.LatestAsync(contentArea, limit ?? 5, cancellationToken));
+        });
+
         app.MapGet("/search", async (string? q, string? area, KeywordSearch search, CancellationToken cancellationToken) =>
         {
             ContentArea? contentArea = null;

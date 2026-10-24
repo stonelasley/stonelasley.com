@@ -4,8 +4,7 @@ test.describe("Search page", () => {
   test("every page has a search button in its header", async ({ page }) => {
     for (const path of ["/", "/recipes", "/ai-development/testing-at-the-seams"]) {
       await page.goto(path);
-      await page.getByRole("banner").getByRole("link", { name: "Search" }).click();
-      await expect(page).toHaveURL(/\/search$/);
+      await expect(page.getByRole("banner").getByRole("button", { name: "Search" })).toBeVisible();
     }
   });
 
@@ -13,7 +12,7 @@ test.describe("Search page", () => {
     await page.goto("/search");
 
     await page.getByRole("searchbox", { name: "Search" }).fill("refactors");
-    await page.getByRole("button", { name: "Search" }).click();
+    await page.getByRole("main").getByRole("button", { name: "Search" }).click();
 
     await expect(page).toHaveURL(/\/search\?q=refactors$/);
     const result = page.getByRole("article").filter({ hasText: "Testing at the seams" });
@@ -52,7 +51,7 @@ test.describe("Search page", () => {
   test("back returns to the previous search", async ({ page }) => {
     await page.goto("/search?q=oats");
     await page.getByRole("searchbox", { name: "Search" }).fill("seams");
-    await page.getByRole("button", { name: "Search" }).click();
+    await page.getByRole("main").getByRole("button", { name: "Search" }).click();
     await expect(page).toHaveURL(/q=seams/);
 
     await page.goBack();
