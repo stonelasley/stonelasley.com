@@ -26,6 +26,9 @@ public sealed class ApiFactory(Uri workerUrl, string workerSecret) : WebApplicat
     /// <summary>Stands in for Cloudflare Turnstile's siteverify (an external port).</summary>
     public FakeTurnstile Turnstile { get; } = new();
 
+    /// <summary>Stands in for the Instagram API (an external port).</summary>
+    public FakeInstagram Instagram { get; } = new();
+
     /// <summary>A client that carries the admin token.</summary>
     public HttpClient CreateAdminClient()
     {
@@ -87,6 +90,7 @@ public sealed class ApiFactory(Uri workerUrl, string workerSecret) : WebApplicat
         {
             services.AddSingleton<ISiteRevalidator>(Revalidator);
             services.AddSingleton<ITurnstile>(Turnstile);
+            services.AddSingleton<IInstagram>(Instagram);
             _services?.Invoke(services);
         });
     }
