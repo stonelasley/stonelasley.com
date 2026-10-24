@@ -56,6 +56,24 @@ Locally, and in E2E, the Worker serves `/public/images/*` when `SERVE_IMAGES=tru
 
 Each environment's Worker binds its own Vectorize index (`posts-v1-preview`, `posts-v1-prod`; `posts-v1-ci` for local dev and tests) and Workers AI (`@cf/baai/bge-base-en-v1.5`, 768 dimensions). Every index already has a metadata index on `area`. Vector ids are `{postUlid}:{chunkIndex}`, and D1 keeps each Post's chunk count (`posts.vector_chunks`) so updates and deletes remove old vectors by id. Vectorize writes took 90 to 110 s to become queryable when measured on 2026-10-24.
 
+## Instagram
+
+The API keeps the Creator account's 60-day long-lived token and a media cache in D1's `meta` table. `.github/workflows/instagram-refresh.yml` runs daily and calls `POST /admin/instagram/refresh` (admin token). That renews the token, re-fetches the media and revalidates the site. Seed the first token once per environment:
+
+```bash
+curl -X PUT "$API/admin/instagram/token" -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" -d '{"token":"<long-lived token>"}'
+```
+
+Until a token is seeded, the home page shows no feed, and the cron reports 409.
+
+## Re-indexing
+
+The index version (embedding model + chunker, currently `v1`) names each Vectorize index: `posts-{version}-{env}`. To change the model or the chunker without taking search down:
+
+1. Run **Re-index** (`reindex.yml`) with the new version, e.g. `v2`. It creates `posts-v2-preview` with its `area` metadata index and deploys the Worker with the build index bound alongside the active one. It then re-embeds every public Post into it (`POST /admin/vectors/rebuild?version=v2`) and waits until Vectorize holds every vector. Search keeps reading `v1` throughout, and a failure changes nothing live.
+2. Open a PR that sets `ACTIVE_INDEX_VERSION` and the `VECTORS` `index_name` to `v2` in `worker/wrangler.jsonc`. Its deploy rebinds the Worker and runs the API on `v2`, then calls `POST /admin/vectors/promote?version=v2`. Promotion adopts the build's chunk counts. A Post that changed during the build gets re-indexed by the next ingest.
+3. Delete the old index: `npx wrangler vectorize delete posts-v1-preview`.
+
 ## Cold start
 
 Measured 2026-10-24 on preview (0.25 vCPU / 0.5 GiB, West US 3). The app had scaled to zero, with no replicas running. Cold `GET /health` took 26.5 s, which includes the API's `SELECT 1` through the Worker to D1. Warm requests that followed took 0.28 to 0.31 s. The build's warm-up allows 6 attempts of up to 30 s each, so a cold API doesn't fail a deploy.

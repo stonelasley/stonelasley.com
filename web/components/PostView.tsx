@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Container } from "@/components/Container";
+import { DraftBadge } from "@/components/DraftBadge";
 import { Prose } from "@/components/Prose";
 import { Tag } from "@/components/Tag";
 import { IngredientList, RecipeFacts } from "@/components/RecipeDetails";
@@ -61,6 +62,11 @@ export async function PostView({
 
         <header className="mb-12 max-w-3xl">
           <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">{post.title}</h1>
+          {post.draft && (
+            <p className="mb-4">
+              <DraftBadge />
+            </p>
+          )}
           <div className="text-muted-foreground text-sm">
             <time dateTime={post.date}>{formatDate(post.date)}</time>
           </div>

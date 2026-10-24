@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using StoneLasley.Application.Access;
 using StoneLasley.Application.Ingest;
+using StoneLasley.Application.Instagram;
 using StoneLasley.Application.Posts;
 using StoneLasley.Application.Search;
 
@@ -14,6 +15,7 @@ public static class DependencyInjection
         services.AddScoped<IngestService>();
         services.AddScoped<PostReader>();
         services.AddScoped<AccessService>();
+        services.AddScoped<InstagramFeed>();
         services.AddScoped<KeywordSearch>();
         services.AddScoped<VectorSearch>();
         services.AddScoped<Searcher>();

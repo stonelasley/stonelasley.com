@@ -22,6 +22,7 @@ const postSummarySchema = z.object({
   tags: z.array(z.string()),
   excerpt: z.string(), // opening prose as plain text
   watch: watchSummarySchema.nullable(),
+  draft: z.boolean().default(false), // only on preview, which shows Drafts
 });
 
 const ingredientSchema = z.object({
@@ -270,4 +271,19 @@ export async function getYourContent(
     throw new Error(`GET /access/posts failed: ${response.status} ${response.body}`);
   }
   return yourContentSchema.parse(JSON.parse(response.body));
+}
+
+const instagramSchema = z.array(
+  z.object({
+    id: z.string(),
+    imageUrl: z.string(),
+    permalink: z.string(),
+    caption: z.string().nullable(),
+    timestamp: z.string(),
+  })
+);
+
+/** Stone's recent Instagram posts, as the API last cached them (newest first). */
+export async function getInstagramMedia(): Promise<z.infer<typeof instagramSchema>> {
+  return (await get("/instagram/media", instagramSchema)) ?? [];
 }

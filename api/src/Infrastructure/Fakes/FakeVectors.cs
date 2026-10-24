@@ -41,33 +41,35 @@ internal sealed partial class FakeEmbedder : IEmbedder
     private static partial Regex Word();
 }
 
-/// <summary>An in-process cosine index, shared for the life of the API.</summary>
+/// <summary>An in-process cosine index per index version, shared for the life of the API.</summary>
 internal sealed class InMemoryVectorIndex : IVectorIndex
 {
-    private readonly ConcurrentDictionary<string, ChunkVector> _vectors = new();
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, ChunkVector>> _indexes = new();
 
-    public Task UpsertAsync(IReadOnlyList<ChunkVector> vectors, CancellationToken cancellationToken)
+    private ConcurrentDictionary<string, ChunkVector> Index(string version) => _indexes.GetOrAdd(version, _ => new());
+
+    public Task UpsertAsync(string version, IReadOnlyList<ChunkVector> vectors, CancellationToken cancellationToken)
     {
         foreach (var vector in vectors)
         {
-            _vectors[vector.Id] = vector;
+            Index(version)[vector.Id] = vector;
         }
         return Task.CompletedTask;
     }
 
-    public Task DeleteAsync(IReadOnlyList<string> ids, CancellationToken cancellationToken)
+    public Task DeleteAsync(string version, IReadOnlyList<string> ids, CancellationToken cancellationToken)
     {
         foreach (var id in ids)
         {
-            _vectors.TryRemove(id, out _);
+            Index(version).TryRemove(id, out _);
         }
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyList<VectorMatch>> QueryAsync(float[] vector, int topK, string? area, CancellationToken cancellationToken) =>
+    public Task<IReadOnlyList<VectorMatch>> QueryAsync(string version, float[] vector, int topK, string? area, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<VectorMatch>>(
         [
-            .. _vectors.Values
+            .. Index(version).Values
                 .Where(v => area is null || v.Area == area)
                 .Select(v => new VectorMatch(v.Id, Cosine(vector, v.Values), v.PostId))
                 .OrderByDescending(m => m.Score)

@@ -4,7 +4,7 @@ import { contentAreas } from "@/lib/areas";
 import { siteConfig } from "@/site.config";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const posts = await getAllPosts();
+  const posts = (await getAllPosts()).filter((post) => !post.draft); // Drafts never go in the sitemap
 
   return [
     {
