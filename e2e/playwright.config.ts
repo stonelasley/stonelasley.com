@@ -70,6 +70,8 @@ export default defineConfig({
         Access__SessionKey: "e2e-session-key-0123456789abcdef0123",
         // No Turnstile widget is rendered without a site key, so the API accepts any token here.
         Turnstile__Fake: "true",
+        // E2E runs the stack as preview: Drafts are ingested and shown with a badge.
+        Site__ShowDrafts: "true",
         // The site isn't up yet during the seeding ingest; that revalidation just logs a warning.
         Revalidation__Url: `http://localhost:${webPort}/api/revalidate`,
         Revalidation__Secret: revalidateSecret,
@@ -81,7 +83,7 @@ export default defineConfig({
     {
       name: "web",
       command: [
-        "dotnet run --project api/src/Cli -- ingest e2e/fixtures/content",
+        "dotnet run --project api/src/Cli -- ingest e2e/fixtures/content --include-drafts",
         "npm run build",
         "npm run start",
       ].join(" && "),

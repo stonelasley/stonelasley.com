@@ -20,7 +20,8 @@ export async function buildFeed(): Promise<Feed> {
     },
   });
 
-  for (const post of await getAllPosts()) {
+  // Drafts show on preview pages, never in feeds.
+  for (const post of (await getAllPosts()).filter((post) => !post.draft)) {
     const url = `${siteConfig.url}/${post.area}/${post.slug}`;
     feed.addItem({
       title: post.title,

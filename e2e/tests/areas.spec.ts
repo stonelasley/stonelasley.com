@@ -7,7 +7,6 @@ test.describe("Content Areas", () => {
     await page.goto("/ai-development");
 
     await expect(page.getByRole("heading", { level: 1, name: "AI & Development" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "An unpublished idea" })).toHaveCount(0);
 
     await page.getByRole("link", { name: "Testing at the seams" }).click();
 
@@ -51,5 +50,24 @@ test.describe("Content Areas", () => {
     const response = await page.goto("/not-an-area");
 
     expect(response?.status()).toBe(404);
+  });
+
+  test("on preview a Draft is listed and shown with a Draft badge", async ({ page }) => {
+    await page.goto("/ai-development");
+    const card = page.getByRole("article").filter({ hasText: "An unpublished idea" });
+    await expect(card.getByText("Draft", { exact: true })).toBeVisible();
+
+    await card.getByRole("link", { name: "An unpublished idea" }).click();
+
+    await expect(
+      page.getByRole("heading", { level: 1, name: "An unpublished idea" })
+    ).toBeVisible();
+    await expect(page.getByRole("main").getByText("Draft", { exact: true })).toBeVisible();
+  });
+
+  test("a published Post has no Draft badge", async ({ page }) => {
+    await page.goto("/ai-development/testing-at-the-seams");
+
+    await expect(page.getByRole("main").getByText("Draft", { exact: true })).toHaveCount(0);
   });
 });

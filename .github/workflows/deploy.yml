@@ -133,6 +133,7 @@ jobs:
             "Turnstile__SecretKey=secretref:turnstile-secret"
             "Images__BaseUrl=https://img-preview.stonelasley.com/"
             "Site__NoIndex=true"
+            "Site__ShowDrafts=true"
           )
           if az containerapp show -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --only-show-errors >/dev/null 2>&1; then
             az containerapp secret set -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --secrets "${secrets[@]}" --only-show-errors >/dev/null

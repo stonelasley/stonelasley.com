@@ -1,11 +1,21 @@
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 using StoneLasley.Application.Common.Interfaces;
 using StoneLasley.Domain.Posts;
 
 namespace StoneLasley.Application.Posts;
 
 public sealed record PostSummary(
-    string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, string Excerpt, WatchSummary? Watch);
+    string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, string Excerpt, WatchSummary? Watch,
+    bool Draft);
+
+/// <summary>Site:ShowDrafts is on for preview only, where Drafts are reviewed in place with a badge.</summary>
+public sealed class SiteOptions
+{
+    public const string SectionName = "Site";
+
+    public bool ShowDrafts { get; set; }
+}
 
 /// <summary>What the Watches index shows and filters on.</summary>
 public sealed record WatchSummary(WatchMake Make, string Reference, string ModelName, IReadOnlyList<int> Decades)
@@ -18,16 +28,22 @@ public sealed record WatchFacets(IReadOnlyList<string> Makes, IReadOnlyList<stri
 
 public sealed record PostDetail(
     string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, string Excerpt, string Body, Recipe? Recipe, Watch? Watch,
-    bool AudiencePublic);
+    bool AudiencePublic,
+    bool Draft);
 
 public sealed record AreaDetail(string Slug, string? Intro);
 
 /// <summary>
 /// Public reads: published Posts whose Audience is Public.
 /// </summary>
-public sealed class PostReader(ID1Database database, TimeProvider clock)
+public sealed class PostReader(ID1Database database, TimeProvider clock, IOptions<SiteOptions> site)
 {
-    private const string PublicAndPublished = $"audience = '{PostColumns.PublicAudience}' AND status = '{PostColumns.PublishedStatus}'";
+    // Published Posts, and Drafts too where the site shows them (preview).
+    private string Visible => site.Value.ShowDrafts
+        ? $"status IN ('{PostColumns.PublishedStatus}', '{PostColumns.DraftStatus}')"
+        : $"status = '{PostColumns.PublishedStatus}'";
+
+    private string PublicAndPublished => $"audience = '{PostColumns.PublicAudience}' AND {Visible}";
 
     public Task<IReadOnlyList<PostSummary>> ListAsync(ContentArea area, CancellationToken cancellationToken) =>
         SummariesAsync($"WHERE area = ? AND {PublicAndPublished} ORDER BY date DESC, id DESC", [area.Slug()], cancellationToken);
@@ -35,24 +51,28 @@ public sealed class PostReader(ID1Database database, TimeProvider clock)
     /// <summary>A Client's Private Posts: the shared Clients library and their own, newest first. No Public filler.</summary>
     public Task<IReadOnlyList<PostSummary>> PrivateForClientAsync(string clientId, CancellationToken cancellationToken) =>
         SummariesAsync(
-            $"WHERE status = '{PostColumns.PublishedStatus}' AND audience IN (?, ?) ORDER BY date DESC, id DESC",
+            $"WHERE {Visible} AND audience IN (?, ?) ORDER BY date DESC, id DESC",
             [Audience.Clients.Stored, Audience.ForClient(clientId).Stored],
             cancellationToken);
 
-    /// <summary>The newest public, published Posts, across every area or within one.</summary>
-    public Task<IReadOnlyList<PostSummary>> LatestAsync(ContentArea? area, int limit, CancellationToken cancellationToken) =>
-        area is { } only
-            ? SummariesAsync($"WHERE area = ? AND {PublicAndPublished} ORDER BY date DESC, id DESC LIMIT ?", [only.Slug(), limit], cancellationToken)
-            : SummariesAsync($"WHERE {PublicAndPublished} ORDER BY date DESC, id DESC LIMIT ?", [limit], cancellationToken);
+    /// <summary>The newest public, published Posts, across every area or within one. Never Drafts, even on preview.</summary>
+    public Task<IReadOnlyList<PostSummary>> LatestAsync(ContentArea? area, int limit, CancellationToken cancellationToken)
+    {
+        const string publicPublished = $"audience = '{PostColumns.PublicAudience}' AND status = '{PostColumns.PublishedStatus}'";
+        return area is { } only
+            ? SummariesAsync($"WHERE area = ? AND {publicPublished} ORDER BY date DESC, id DESC LIMIT ?", [only.Slug(), limit], cancellationToken)
+            : SummariesAsync($"WHERE {publicPublished} ORDER BY date DESC, id DESC LIMIT ?", [limit], cancellationToken);
+    }
 
     private async Task<IReadOnlyList<PostSummary>> SummariesAsync(string where, IReadOnlyList<object?> parameters, CancellationToken cancellationToken)
     {
         var rows = await database.QueryAsync(
-            $"SELECT id, title, slug, area, date, tags, excerpt, watch FROM posts {where}",
+            $"SELECT id, title, slug, area, date, tags, excerpt, watch, status FROM posts {where}",
             parameters,
             cancellationToken);
         return [.. rows.Select(row => new PostSummary(
-            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), WatchSummary.Of(PostColumns.WatchFromRow(row), clock.GetUtcNow().Year)))];
+            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), WatchSummary.Of(PostColumns.WatchFromRow(row), clock.GetUtcNow().Year),
+            Text(row, "status") == PostColumns.DraftStatus))];
     }
 
     /// <summary>
@@ -63,8 +83,8 @@ public sealed class PostReader(ID1Database database, TimeProvider clock)
     {
         var rows = await database.QueryAsync(
             $"""
-            SELECT id, title, slug, area, date, tags, excerpt, body, recipe, watch, audience FROM posts
-            WHERE area = ? AND slug = ? AND status = '{PostColumns.PublishedStatus}'
+            SELECT id, title, slug, area, date, tags, excerpt, body, recipe, watch, audience, status FROM posts
+            WHERE area = ? AND slug = ? AND {Visible}
               AND audience IN (?, ?, ?)
             """,
             [
@@ -83,7 +103,8 @@ public sealed class PostReader(ID1Database database, TimeProvider clock)
         var row = rows[0];
         return new PostDetail(
             Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), Text(row, "body"), PostColumns.RecipeFromRow(row), PostColumns.WatchFromRow(row),
-            Text(row, "audience") == Audience.Public.Stored);
+            Text(row, "audience") == Audience.Public.Stored,
+            Text(row, "status") == PostColumns.DraftStatus);
     }
 
     /// <summary>The Watches index filters: every make, model name and production decade in use.</summary>
