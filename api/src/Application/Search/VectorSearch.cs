@@ -42,7 +42,7 @@ public sealed class VectorSearch(ID1Database database, IEmbedder embedder, IVect
     public async Task<IReadOnlyList<RankedPost>> RankAsync(float[] vector, string? area, CancellationToken cancellationToken)
     {
         var settings = options.Value.Vector;
-        var matches = await index.QueryAsync(vector, settings.TopK, area, cancellationToken);
+        var matches = await index.QueryAsync(settings.IndexVersion, vector, settings.TopK, area, cancellationToken);
         var best = ChunkRollup.BestPerPost(
             matches.Select(match => new ChunkScore(match.PostId, int.Parse(match.Id[(match.Id.LastIndexOf(':') + 1)..], CultureInfo.InvariantCulture), match.Score)),
             settings.CosineFloor);

@@ -26,6 +26,9 @@ public sealed class ApiFactory(Uri workerUrl, string workerSecret) : WebApplicat
     /// <summary>Stands in for Cloudflare Turnstile's siteverify (an external port).</summary>
     public FakeTurnstile Turnstile { get; } = new();
 
+    /// <summary>Stands in for the Instagram API (an external port).</summary>
+    public FakeInstagram Instagram { get; } = new();
+
     /// <summary>A client that carries the admin token.</summary>
     public HttpClient CreateAdminClient()
     {
@@ -52,6 +55,23 @@ public sealed class ApiFactory(Uri workerUrl, string workerSecret) : WebApplicat
     {
         _realVectors = true;
         return this;
+    }
+
+    /// <summary>
+    /// A second API host sharing this one's in-process vector index (so a test can switch versions the way a
+    /// redeploy would), with one setting changed.
+    /// </summary>
+    public ApiFactory WithSettingOnNewHost(string key, string value)
+    {
+        var next = new ApiFactory();
+        foreach (var (k, v) in _settings)
+        {
+            next._settings[k] = v;
+        }
+        next._settings[key] = value;
+        var index = Services.GetRequiredService<IVectorIndex>();
+        next._services = services => services.AddSingleton(index);
+        return next;
     }
 
     public ApiFactory WithSetting(string key, string? value)
@@ -87,6 +107,7 @@ public sealed class ApiFactory(Uri workerUrl, string workerSecret) : WebApplicat
         {
             services.AddSingleton<ISiteRevalidator>(Revalidator);
             services.AddSingleton<ITurnstile>(Turnstile);
+            services.AddSingleton<IInstagram>(Instagram);
             _services?.Invoke(services);
         });
     }
