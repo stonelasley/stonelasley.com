@@ -27,7 +27,7 @@ public class SearchTextTests
             Body.
             """);
 
-        SearchText.Structured(post).ShouldBe("Patek Philippe 5711 Nautilus 5711/1A 26-330");
+        SearchText.Structured(post).ShouldBe("Patek Philippe 5711 Nautilus 5711/1A 26-330 1 A");
     }
 
     [Test]
@@ -54,6 +54,42 @@ public class SearchTextTests
             """);
 
         SearchText.Structured(post).ShouldBe("rolled oats cinnamon Ceylon");
+    }
+
+    [Test]
+    public void Splits_references_into_their_number_and_suffix_so_either_finds_the_watch()
+    {
+        var post = Parse("""
+            ---
+            id: 01JBX5Q7Z9K3M8N2P4R6T0V1W5
+            title: Submariner
+            slug: sub
+            area: watches
+            date: 2026-08-01
+            audience: public
+            status: published
+            make: Rolex
+            reference: "16610LV"
+            modelName: Submariner Date
+            ---
+            Body.
+            """);
+
+        SearchText.Structured(post).ShouldBe("Rolex 16610LV Submariner Date 16610 LV");
+    }
+
+    [Test]
+    public void Strips_control_characters_from_indexed_text()
+    {
+        SearchText.Body("a\u0002b\u0003c").ShouldBe("a b c");
+    }
+
+    [Test]
+    public void Caps_a_query_at_twenty_terms()
+    {
+        var match = SearchText.MatchExpression(string.Join(' ', Enumerable.Range(1, 40).Select(i => $"w{i}")))!;
+
+        match.Split(" OR ").Length.ShouldBe(20);
     }
 
     [Test]

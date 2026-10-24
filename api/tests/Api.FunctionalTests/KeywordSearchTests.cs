@@ -155,4 +155,33 @@ public class KeywordSearchTests
 
         (await client.GetAsync("/search?q=x&area=blog")).StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
+
+    [Test]
+    public async Task A_reference_number_finds_a_watch_whose_reference_has_a_suffix()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var number = "16" + Random.Shared.Next(100000, 999999);
+        var watch = TestPosts.NewUlid();
+        await Ingest.RunAsync(client, TestPosts.Markdown(watch, TestPosts.NewSlug("watch"), title: "Submariner", area: "watches", extra: TestPosts.WatchCore(reference: number + "LV")));
+
+        (await SearchAsync(client, number)).Results.ShouldHaveSingleItem().Id.ShouldBe(watch);
+    }
+
+    [Test]
+    public async Task A_public_post_missing_from_the_index_is_requested_again()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var id = TestPosts.NewUlid();
+        var markdown = TestPosts.Markdown(id, TestPosts.NewSlug());
+        await Ingest.RunAsync(client, markdown);
+        using (var worker = new HttpClient { BaseAddress = Testing.Worker.BaseUrl })
+        {
+            worker.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", WranglerDev.Secret);
+            (await worker.PostAsJsonAsync("/d1/query", new { sql = "DELETE FROM posts_fts WHERE post_id = ?", @params = new[] { id } })).EnsureSuccessStatusCode();
+        }
+
+        (await Ingest.ManifestAsync(client, Ingest.ById(markdown))).Requested.ShouldBe([id]);
+    }
 }
