@@ -169,18 +169,26 @@ export async function getPost(
 
 const exchangedSchema = z.object({ session: z.string(), clientName: z.string() });
 
+/** The unlocked Client's name for a session, or null if it isn't live. */
+export async function getAccessClientName(session: string): Promise<string | null> {
+  const response = await request(`${apiUrl()}/access/me`, {
+    headers: { "x-access-session": session },
+  });
+  if (response.status === 401) return null;
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`GET /access/me failed: ${response.status} ${response.body}`);
+  }
+  return z.object({ clientName: z.string() }).parse(JSON.parse(response.body)).clientName;
+}
+
 /** Trades an Access Code (plus a Turnstile token) for a session value, or null if the code didn't work. */
 export async function exchangeAccessCode(
   code: string,
-  turnstileToken: string,
-  visitorIp: string | null
+  turnstileToken: string
 ): Promise<z.infer<typeof exchangedSchema> | null> {
   const response = await request(`${apiUrl()}/access/exchange`, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      ...(visitorIp ? { "x-forwarded-for": visitorIp } : {}),
-    },
+    headers: { "content-type": "application/json" },
     body: JSON.stringify({ code, turnstileToken }),
   });
   if (response.status === 401 || response.status === 429) return null;

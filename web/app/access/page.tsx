@@ -1,15 +1,22 @@
 import Script from "next/script";
+import { cookies } from "next/headers";
 import { Container } from "@/components/Container";
+import { getAccessClientName } from "@/lib/api";
+import { accessCookie } from "@/lib/access";
 import { constructMetadata } from "@/lib/metadata";
 
 export const metadata = constructMetadata({ title: "Access", path: "/access", noIndex: true });
 
 interface AccessPageProps {
-  searchParams: Promise<{ error?: string; unlocked?: string }>;
+  searchParams: Promise<{ error?: string; unlocked?: string }>; // unlocked=1 after a successful exchange
 }
+
+export const dynamic = "force-dynamic";
 
 export default async function AccessPage({ searchParams }: AccessPageProps) {
   const { error, unlocked } = await searchParams;
+  const session = (await cookies()).get(accessCookie)?.value;
+  const clientName = unlocked && session ? await getAccessClientName(session) : null;
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   return (
@@ -20,9 +27,9 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
         each device.
       </p>
 
-      {unlocked && (
+      {clientName && (
         <p role="status" className="border-border bg-card mb-6 rounded-md border p-4">
-          Unlocked for {unlocked}.
+          Unlocked for {clientName}.
         </p>
       )}
       {error && (

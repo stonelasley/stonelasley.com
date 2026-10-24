@@ -15,11 +15,11 @@ public static class AccessEndpoints
     private static readonly object Refused = new { error = "That code didn't work." };
 
     /// <summary>
-    /// The caller's IP: the left-most X-Forwarded-For (set by the site for its visitor, or by the Container Apps
-    /// ingress), else the connection. It only partitions the rate limit; Turnstile is the real gate.
+    /// The caller's IP as our own ingress saw it: the right-most X-Forwarded-For hop (Container Apps appends it,
+    /// so a caller can't choose it), else the connection. Left-most entries are whatever the caller sent.
     /// </summary>
     public static string ClientIp(HttpContext context) =>
-        context.Request.Headers["X-Forwarded-For"].ToString().Split(',')[0].Trim() is { Length: > 0 } forwarded
+        context.Request.Headers["X-Forwarded-For"].ToString().Split(',')[^1].Trim() is { Length: > 0 } forwarded
             ? forwarded
             : context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
@@ -45,6 +45,11 @@ public static class AccessEndpoints
             }
             return Results.Ok(exchanged);
         }).RequireRateLimiting(ExchangePolicy);
+
+        app.MapGet("/access/me", async (HttpRequest request, AccessService access, CancellationToken cancellationToken) =>
+            await access.ResolveAsync(request.Headers[SessionHeader].ToString(), cancellationToken) is { } session
+                ? Results.Ok(new { session.ClientName })
+                : Results.Unauthorized());
 
         var admin = app.MapGroup("/admin").AddEndpointFilter(RequireBearerToken.For<AdminOptions>(options => options.Token));
 

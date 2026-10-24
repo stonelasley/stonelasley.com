@@ -247,4 +247,35 @@ public class AccessTests
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await response.Content.ReadAsStringAsync()).ShouldContain("'id' must be a ULID");
     }
+
+    [Test]
+    public async Task A_client_removed_from_the_clients_file_loses_their_code_for_good()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateClient();
+        var corpus = await IngestCorpusAsync(api);
+        var code = await IssueAsync(api, corpus.Alex);
+        using var ingest = api.CreateIngestClient();
+        await Ingest.RunWithClientsAsync(ingest, Clients((corpus.Sam, "Sam Sample")));
+
+        await Ingest.RunWithClientsAsync(ingest, Clients((corpus.Alex, "Alex Example"), (corpus.Sam, "Sam Sample")));
+
+        (await ExchangeAsync(client, code)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Test]
+    public async Task The_rate_limit_keys_on_the_hop_our_ingress_added_not_what_the_caller_sent()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateClient();
+
+        var statuses = new List<HttpStatusCode>();
+        for (var i = 0; i < 12; i++)
+        {
+            // A spoofed left-most entry changes every time; the right-most (ours) doesn't.
+            statuses.Add((await ExchangeAsync(client, "AAAA-AAAA-AAAA-AAAA-AAAA-AAAA", ip: $"10.0.0.{i}, 198.51.100.9")).StatusCode);
+        }
+
+        statuses.ShouldContain(HttpStatusCode.TooManyRequests);
+    }
 }
