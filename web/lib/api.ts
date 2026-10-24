@@ -20,6 +20,7 @@ const postSummarySchema = z.object({
   area: z.enum(contentAreas.map((area) => area.slug)),
   date: z.string(), // YYYY-MM-DD
   tags: z.array(z.string()),
+  excerpt: z.string(), // opening prose as plain text
   watch: watchSummarySchema.nullable(),
 });
 

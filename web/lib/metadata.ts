@@ -9,14 +9,19 @@ export function constructMetadata({
   image = "/og-image.jpg",
   type = "website",
   noIndex = false,
+  path,
 }: {
   title?: string;
   description?: string;
   image?: string;
   type?: "website" | "article";
   noIndex?: boolean;
+  /** The page's own path, such as "/recipes/oats"; sets the canonical URL and og:url. */
+  path?: string;
 } = {}): Metadata {
+  const url = path ? `${siteConfig.url}${path}` : siteConfig.url;
   return {
+    ...(path && { alternates: { canonical: url } }),
     title: {
       default: title,
       template: `%s | ${siteConfig.name}`,
@@ -28,7 +33,7 @@ export function constructMetadata({
     openGraph: {
       type,
       locale: "en_US",
-      url: siteConfig.url,
+      url,
       title,
       description,
       siteName: siteConfig.name,
@@ -63,12 +68,28 @@ export function constructMetadata({
   };
 }
 
+export function generateBlogPostingJsonLd(post: Post) {
+  const url = `${siteConfig.url}/${post.area}/${post.slug}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.excerpt,
+    author: { "@type": "Person", name: siteConfig.author.name, url: siteConfig.url },
+    datePublished: post.date,
+    keywords: post.tags.join(", "),
+    url,
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+  };
+}
+
 export function generateRecipeJsonLd(post: Post, recipe: Recipe) {
   const url = `${siteConfig.url}/${post.area}/${post.slug}`;
   return {
     "@context": "https://schema.org",
     "@type": "Recipe",
     name: post.title,
+    description: post.excerpt,
     author: { "@type": "Person", name: siteConfig.author.name },
     datePublished: post.date,
     prepTime: `PT${recipe.prepTimeMin}M`,

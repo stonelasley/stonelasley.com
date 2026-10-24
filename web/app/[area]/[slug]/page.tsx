@@ -5,7 +5,7 @@ import { Prose } from "@/components/Prose";
 import { Tag } from "@/components/Tag";
 import { getPost, getPostsByArea } from "@/lib/api";
 import { contentAreas, findArea } from "@/lib/areas";
-import { constructMetadata, generateRecipeJsonLd } from "@/lib/metadata";
+import { constructMetadata, generateBlogPostingJsonLd, generateRecipeJsonLd } from "@/lib/metadata";
 import { IngredientList, RecipeFacts } from "@/components/RecipeDetails";
 import { WatchSpecs } from "@/components/WatchSpecs";
 import { formatDate } from "@/lib/utils";
@@ -34,7 +34,14 @@ async function loadPost(params: PostPageProps["params"]) {
 
 export async function generateMetadata({ params }: PostPageProps) {
   const found = await loadPost(params);
-  return found ? constructMetadata({ title: found.post.title, type: "article" }) : {};
+  if (!found) return {};
+  const { post } = found;
+  return constructMetadata({
+    title: post.title,
+    description: post.excerpt || undefined,
+    type: "article",
+    path: `/${post.area}/${post.slug}`,
+  });
 }
 
 export default async function PostPage({ params }: PostPageProps) {
@@ -51,12 +58,14 @@ export default async function PostPage({ params }: PostPageProps) {
 
   return (
     <article>
-      {recipe && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(generateRecipeJsonLd(post, recipe)) }}
-        />
-      )}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            recipe ? generateRecipeJsonLd(post, recipe) : generateBlogPostingJsonLd(post)
+          ),
+        }}
+      />
       <Container className="py-16 md:py-24 print:py-0">
         <Link
           href={`/${area.slug}`}
