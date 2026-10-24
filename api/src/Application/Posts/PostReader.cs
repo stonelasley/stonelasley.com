@@ -5,7 +5,7 @@ using StoneLasley.Domain.Posts;
 namespace StoneLasley.Application.Posts;
 
 public sealed record PostSummary(
-    string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, WatchSummary? Watch);
+    string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, string Excerpt, WatchSummary? Watch);
 
 /// <summary>What the Watches index shows and filters on.</summary>
 public sealed record WatchSummary(WatchMake Make, string Reference, string ModelName, IReadOnlyList<int> Decades)
@@ -17,7 +17,7 @@ public sealed record WatchSummary(WatchMake Make, string Reference, string Model
 public sealed record WatchFacets(IReadOnlyList<string> Makes, IReadOnlyList<string> ModelNames, IReadOnlyList<int> Decades);
 
 public sealed record PostDetail(
-    string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, string Body, Recipe? Recipe, Watch? Watch);
+    string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, string Excerpt, string Body, Recipe? Recipe, Watch? Watch);
 
 public sealed record AreaDetail(string Slug, string? Intro);
 
@@ -31,17 +31,17 @@ public sealed class PostReader(ID1Database database, TimeProvider clock)
     public async Task<IReadOnlyList<PostSummary>> ListAsync(ContentArea area, CancellationToken cancellationToken)
     {
         var rows = await database.QueryAsync(
-            $"SELECT id, title, slug, area, date, tags, watch FROM posts WHERE area = ? AND {PublicAndPublished} ORDER BY date DESC, id DESC",
+            $"SELECT id, title, slug, area, date, tags, excerpt, watch FROM posts WHERE area = ? AND {PublicAndPublished} ORDER BY date DESC, id DESC",
             [area.Slug()],
             cancellationToken);
         return [.. rows.Select(row => new PostSummary(
-            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), WatchSummary.Of(PostColumns.WatchFromRow(row), clock.GetUtcNow().Year)))];
+            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), WatchSummary.Of(PostColumns.WatchFromRow(row), clock.GetUtcNow().Year)))];
     }
 
     public async Task<PostDetail?> FindAsync(ContentArea area, string slug, CancellationToken cancellationToken)
     {
         var rows = await database.QueryAsync(
-            $"SELECT id, title, slug, area, date, tags, body, recipe, watch FROM posts WHERE area = ? AND slug = ? AND {PublicAndPublished}",
+            $"SELECT id, title, slug, area, date, tags, excerpt, body, recipe, watch FROM posts WHERE area = ? AND slug = ? AND {PublicAndPublished}",
             [area.Slug(), slug],
             cancellationToken);
         if (rows.Count == 0)
@@ -51,7 +51,7 @@ public sealed class PostReader(ID1Database database, TimeProvider clock)
 
         var row = rows[0];
         return new PostDetail(
-            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "body"), PostColumns.RecipeFromRow(row), PostColumns.WatchFromRow(row));
+            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), Text(row, "body"), PostColumns.RecipeFromRow(row), PostColumns.WatchFromRow(row));
     }
 
     /// <summary>The Watches index filters: every make, model name and production decade in use.</summary>

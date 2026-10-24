@@ -82,8 +82,8 @@ public sealed class IngestService(ID1Database database, ISiteRevalidator site)
         await database.QueryAsync(
             """
             INSERT OR REPLACE INTO ingest_staged_posts
-              (run_id, id, area, slug, title, date, tags, audience, status, body, recipe, watch, content_hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              (run_id, id, area, slug, title, date, tags, audience, status, body, excerpt, recipe, watch, content_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 runId,
@@ -96,6 +96,7 @@ public sealed class IngestService(ID1Database database, ISiteRevalidator site)
                 PostColumns.Audience(post.Audience),
                 PostColumns.Status(post.Status),
                 post.Body,
+                post.Excerpt,
                 PostColumns.RecipeJson(post.Recipe),
                 PostColumns.WatchJson(post.Watch),
                 run.Hashes[postId],
@@ -163,8 +164,8 @@ public sealed class IngestService(ID1Database database, ISiteRevalidator site)
                 "UPDATE posts SET slug = '~' || id WHERE id IN (SELECT value FROM json_each(?))", [JsonSerializer.Serialize(upserted)]));
             statements.Add(new D1Statement(
                 $"""
-                INSERT INTO posts (id, area, slug, title, date, tags, audience, status, body, recipe, watch, content_hash, updated_at)
-                SELECT id, area, slug, title, date, tags, audience, status, body, recipe, watch, content_hash, {Now}
+                INSERT INTO posts (id, area, slug, title, date, tags, audience, status, body, excerpt, recipe, watch, content_hash, updated_at)
+                SELECT id, area, slug, title, date, tags, audience, status, body, excerpt, recipe, watch, content_hash, {Now}
                 FROM ingest_staged_posts
                 WHERE run_id = ? AND id IN (SELECT value FROM json_each(?))
                 ON CONFLICT (id) DO UPDATE SET
@@ -176,6 +177,7 @@ public sealed class IngestService(ID1Database database, ISiteRevalidator site)
                   audience = excluded.audience,
                   status = excluded.status,
                   body = excluded.body,
+                  excerpt = excluded.excerpt,
                   recipe = excluded.recipe,
                   watch = excluded.watch,
                   content_hash = excluded.content_hash,

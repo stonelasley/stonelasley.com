@@ -16,6 +16,7 @@ export function PostCard({ post, headingLevel: Heading = "h2" }: PostCardProps) 
           {post.title}
         </Link>
       </Heading>
+      {post.excerpt && <p className="text-muted-foreground">{post.excerpt}</p>}
       <div className="text-muted-foreground text-sm">
         <time dateTime={post.date}>{formatDate(post.date)}</time>
       </div>
