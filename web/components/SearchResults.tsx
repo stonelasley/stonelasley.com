@@ -23,18 +23,27 @@ export function SearchResults({ results }: SearchResultsProps) {
             </Link>
           </h2>
           <p className="text-muted-foreground">
-            {hit.excerpt.map((part, index) =>
-              part.match ? (
-                <mark key={index} className="bg-accent text-foreground rounded px-0.5">
-                  {part.text}
-                </mark>
-              ) : (
-                <span key={index}>{part.text}</span>
-              )
-            )}
+            <HighlightedExcerpt parts={hit.excerpt} />
           </p>
         </article>
       ))}
     </div>
+  );
+}
+
+/** An excerpt with its matched words marked. */
+export function HighlightedExcerpt({ parts }: { parts: SearchHit["excerpt"] }) {
+  return (
+    <>
+      {parts.map((part, index) =>
+        part.match ? (
+          <mark key={index} className="bg-accent text-foreground rounded px-0.5">
+            {part.text}
+          </mark>
+        ) : (
+          <span key={index}>{part.text}</span>
+        )
+      )}
+    </>
   );
 }

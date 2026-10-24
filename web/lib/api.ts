@@ -191,3 +191,14 @@ export async function searchPosts(query: string, area?: AreaSlug): Promise<Searc
   }
   return result;
 }
+
+/** The newest public Posts, across every area or within one. */
+export async function getLatestPosts(area?: AreaSlug, limit = 5): Promise<PostSummary[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (area) params.set("area", area);
+  const posts = await get(`/posts/latest?${params}`, z.array(postSummarySchema));
+  if (posts === null) {
+    throw new Error(`The API does not know the Content Area '${area}'.`);
+  }
+  return posts;
+}

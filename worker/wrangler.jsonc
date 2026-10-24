@@ -17,6 +17,10 @@
   ],
   // Post images under content-hash keys; readers load them from the bucket's custom domain.
   "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "stonelasley-images-local" }],
+  // Vectorize and Workers AI have no local simulation, so local dev and tests bind them remotely, to the
+  // dedicated ci index (one namespace per test run).
+  "vectorize": [{ "binding": "VECTORS", "index_name": "posts-v1-ci", "remote": true }],
+  "ai": { "binding": "AI", "remote": true },
   // Deployed environments. Each has its own D1 database and a custom domain the API reaches it on.
   "env": {
     "preview": {
@@ -31,7 +35,9 @@
           "migrations_dir": "migrations"
         }
       ],
-      "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "stonelasley-images-preview" }]
+      "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "stonelasley-images-preview" }],
+      "vectorize": [{ "binding": "VECTORS", "index_name": "posts-v1-preview" }],
+      "ai": { "binding": "AI" }
     },
     "production": {
       "name": "stonelasley-data-proxy",
@@ -45,7 +51,9 @@
           "migrations_dir": "migrations"
         }
       ],
-      "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "stonelasley-images-prod" }]
+      "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "stonelasley-images-prod" }],
+      "vectorize": [{ "binding": "VECTORS", "index_name": "posts-v1-prod" }],
+      "ai": { "binding": "AI" }
     }
   }
 }

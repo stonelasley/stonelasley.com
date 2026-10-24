@@ -50,6 +50,10 @@ The spec flagged one assumption as unverified: that R2 custom domains need the z
 
 Locally, and in E2E, the Worker serves `/public/images/*` when `SERVE_IMAGES=true`, standing in for the custom domain.
 
+## Vector search
+
+Each environment's Worker binds its own Vectorize index (`posts-v1-preview`, `posts-v1-prod`; `posts-v1-ci` for local dev and tests) and Workers AI (`@cf/baai/bge-base-en-v1.5`, 768 dimensions). Every index already has a metadata index on `area`. Vector ids are `{postUlid}:{chunkIndex}`, and D1 keeps each Post's chunk count (`posts.vector_chunks`) so updates and deletes remove old vectors by id. Vectorize writes took 90 to 110 s to become queryable when measured on 2026-10-24.
+
 ## Cold start
 
 Measured 2026-10-24 on preview (0.25 vCPU / 0.5 GiB, West US 3). The app had scaled to zero, with no replicas running. Cold `GET /health` took 26.5 s, which includes the API's `SELECT 1` through the Worker to D1. Warm requests that followed took 0.28 to 0.31 s. The build's warm-up allows 6 attempts of up to 30 s each, so a cold API doesn't fail a deploy.
