@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { Container } from "@/components/Container";
 import { PostList } from "@/components/PostList";
-import { getAreaIntro, getPostsByArea } from "@/lib/api";
+import { Suspense } from "react";
+import { getAreaIntro, getPostsByArea, getWatchFacets } from "@/lib/api";
+import { WatchIndex } from "@/components/WatchIndex";
 import { markdownToHtml } from "@/lib/markdown";
 import { Prose } from "@/components/Prose";
 import { contentAreas, findArea } from "@/lib/areas";
@@ -43,7 +45,14 @@ export default async function AreaPage({ params }: AreaPageProps) {
         )}
       </div>
 
-      <PostList posts={posts} />
+      {area.slug === "watches" ? (
+        // The filters read the URL, so without JavaScript (or before hydration) the full list shows.
+        <Suspense fallback={<PostList posts={posts} />}>
+          <WatchIndex posts={posts} facets={await getWatchFacets()} />
+        </Suspense>
+      ) : (
+        <PostList posts={posts} />
+      )}
     </Container>
   );
 }

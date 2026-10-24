@@ -7,6 +7,7 @@ import { getPost, getPostsByArea } from "@/lib/api";
 import { contentAreas, findArea } from "@/lib/areas";
 import { constructMetadata, generateRecipeJsonLd } from "@/lib/metadata";
 import { IngredientList, RecipeFacts } from "@/components/RecipeDetails";
+import { WatchSpecs } from "@/components/WatchSpecs";
 import { formatDate } from "@/lib/utils";
 import { highlightCode } from "@/lib/syntax-highlighting";
 import { markdownToHtml } from "@/lib/markdown";
@@ -89,6 +90,8 @@ export default async function PostPage({ params }: PostPageProps) {
             </div>
           )}
         </header>
+
+        {post.watch && <WatchSpecs watch={post.watch} />}
 
         {recipe ? (
           <div className="grid gap-8 md:grid-cols-3 print:flex print:flex-col">

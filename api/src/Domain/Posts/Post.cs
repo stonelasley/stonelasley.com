@@ -2,7 +2,7 @@ namespace StoneLasley.Domain.Posts;
 
 /// <summary>
 /// A single piece of content in one Content Area. Identified by its ULID, so the slug can change.
-/// A Post in the Recipes area also carries its <see cref="Recipe"/> typed core.
+/// A Post in the Recipes area also carries its <see cref="Recipe"/> typed core, and one in Watches its <see cref="Watch"/>.
 /// </summary>
 public sealed record Post(
     string Id,
@@ -14,4 +14,5 @@ public sealed record Post(
     Audience Audience,
     PostStatus Status,
     string Body,
-    Recipe? Recipe = null);
+    Recipe? Recipe = null,
+    Watch? Watch = null);

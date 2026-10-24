@@ -70,10 +70,10 @@ public class PostReadTests
         var (older, newer) = (TestPosts.NewUlid(), TestPosts.NewUlid());
         await Ingest.RunAsync(
             ingest,
-            TestPosts.Markdown(older, TestPosts.NewSlug(), area: "watches", date: "2001-01-01"),
-            TestPosts.Markdown(newer, TestPosts.NewSlug(), area: "watches", date: "2001-01-02"));
+            TestPosts.Markdown(older, TestPosts.NewSlug(), area: "training", date: "2001-01-01"),
+            TestPosts.Markdown(newer, TestPosts.NewSlug(), area: "training", date: "2001-01-02"));
 
-        var posts = await reader.GetFromJsonAsync<List<PostSummaryResponse>>("/areas/watches/posts");
+        var posts = await reader.GetFromJsonAsync<List<PostSummaryResponse>>("/areas/training/posts");
 
         var ids = posts.ShouldNotBeNull().Select(p => p.Id).Where(i => i == older || i == newer).ToList();
         ids.ShouldBe([newer, older]);
