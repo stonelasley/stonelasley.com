@@ -27,7 +27,7 @@ public static class DependencyInjection
         services.AddHealthChecks().AddCheck<D1HealthCheck>("d1");
 
         services.AddOptions<RevalidationOptions>().BindConfiguration(RevalidationOptions.SectionName);
-        services.AddHttpClient<ISiteRevalidator, WebhookSiteRevalidator>(http => http.Timeout = TimeSpan.FromSeconds(30));
+        services.AddHttpClient<ISiteRevalidator, WebhookSiteRevalidator>(http => http.Timeout = TimeSpan.FromSeconds(10));
 
         return services;
     }

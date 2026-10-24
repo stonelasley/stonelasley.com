@@ -50,13 +50,17 @@ jobs:
 
       - name: Deploy the Worker
         working-directory: worker
+        env:
+          WORKER_SECRET: ${{ secrets.PREVIEW_WORKER_SECRET }}
         run: |
-          printf '%s' "${{ secrets.PREVIEW_WORKER_SECRET }}" | npx wrangler secret put WORKER_SECRET --env preview
+          printf '%s' "$WORKER_SECRET" | npx wrangler secret put WORKER_SECRET --env preview
           npx wrangler deploy --env preview
 
       - name: Build and push the API image
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           docker build -t "$IMAGE:${{ github.sha }}" \
             --label org.opencontainers.image.source=https://github.com/${{ github.repository }} api
           docker push "$IMAGE:${{ github.sha }}"
@@ -81,6 +85,7 @@ jobs:
               "$api/v1/projects/$VERCEL_PROJECT_ID/protection-bypass$team" \
               | jq -r '.protectionBypass | to_entries[] | select(.value.scope == "automation-bypass") | .key' | head -1)
           fi
+          if [ -z "$secret" ]; then echo "::error::No Vercel automation bypass secret" && exit 1; fi
           echo "::add-mask::$secret"
           echo "secret=$secret" >> "$GITHUB_OUTPUT"
 
@@ -92,14 +97,19 @@ jobs:
 
       - name: Deploy the API revision
         id: api
+        env:
+          WORKER_SECRET: ${{ secrets.PREVIEW_WORKER_SECRET }}
+          INGEST_TOKEN: ${{ secrets.PREVIEW_INGEST_TOKEN }}
+          REVALIDATE_SECRET: ${{ secrets.PREVIEW_REVALIDATE_SECRET }}
+          VERCEL_BYPASS: ${{ steps.bypass.outputs.secret }}
         run: |
           set -euo pipefail
           az extension add --name containerapp --upgrade --only-show-errors
           secrets=(
-            "worker-secret=${{ secrets.PREVIEW_WORKER_SECRET }}"
-            "ingest-token=${{ secrets.PREVIEW_INGEST_TOKEN }}"
-            "revalidate-secret=${{ secrets.PREVIEW_REVALIDATE_SECRET }}"
-            "vercel-bypass=${{ steps.bypass.outputs.secret }}"
+            "worker-secret=$WORKER_SECRET"
+            "ingest-token=$INGEST_TOKEN"
+            "revalidate-secret=$REVALIDATE_SECRET"
+            "vercel-bypass=$VERCEL_BYPASS"
           )
           env_vars=(
             "Worker__BaseUrl=$WORKER_URL"
@@ -112,7 +122,8 @@ jobs:
           if az containerapp show -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --only-show-errors >/dev/null 2>&1; then
             az containerapp secret set -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --secrets "${secrets[@]}" --only-show-errors >/dev/null
             az containerapp update -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" \
-              --image "$IMAGE:${{ github.sha }}" --set-env-vars "${env_vars[@]}" --only-show-errors >/dev/null
+              --image "$IMAGE:${{ github.sha }}" --min-replicas 0 --max-replicas 1 \
+              --set-env-vars "${env_vars[@]}" --only-show-errors >/dev/null
           else
             az containerapp create -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --environment "$CONTAINER_ENV" \
               --image "$IMAGE:${{ github.sha }}" --target-port 8080 --ingress external \
@@ -133,13 +144,15 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          # Read by `vercel build` (prebuild warm-up and every prerendered page) and again at runtime.
           API_URL: ${{ steps.api.outputs.url }}
+          REVALIDATE_SECRET: ${{ secrets.PREVIEW_REVALIDATE_SECRET }}
         run: |
           set -euo pipefail
           npx vercel@latest pull --yes --environment=preview --token="$VERCEL_TOKEN"
           npx vercel@latest build --token="$VERCEL_TOKEN"
           url=$(npx vercel@latest deploy --prebuilt --token="$VERCEL_TOKEN" \
-            --env API_URL="$API_URL" --env REVALIDATE_SECRET="${{ secrets.PREVIEW_REVALIDATE_SECRET }}")
+            --env API_URL="$API_URL" --env REVALIDATE_SECRET="$REVALIDATE_SECRET")
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       # The shared preview API revalidates whichever preview deployed last.
@@ -151,9 +164,10 @@ jobs:
       - name: Check the site revalidates through the API's path
         env:
           BYPASS: ${{ steps.bypass.outputs.secret }}
+          REVALIDATE_SECRET: ${{ secrets.PREVIEW_REVALIDATE_SECRET }}
         run: |
           status=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            -H "Authorization: Bearer ${{ secrets.PREVIEW_REVALIDATE_SECRET }}" \
+            -H "Authorization: Bearer $REVALIDATE_SECRET" \
             -H "x-vercel-protection-bypass: $BYPASS" "${{ steps.site.outputs.url }}/api/revalidate")
           echo "revalidate answered $status"
           test "$status" = 200
