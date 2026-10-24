@@ -6,11 +6,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Every PR shares the preview stack, so runs queue rather than overlap. The last push wins.
-concurrency:
-  group: deploy-preview
-  cancel-in-progress: false
-
 permissions:
   contents: read
   packages: write # push the API image to GHCR
@@ -35,6 +30,11 @@ jobs:
       (github.event.pull_request.head.repo.full_name == github.repository &&
        github.event.pull_request.base.ref == 'master')
     runs-on: ubuntu-latest
+    # Every PR shares the preview stack, so runs queue rather than overlap; the last push wins. Set on the job,
+    # not the workflow, so a run whose job skips (a stacked PR) never takes a place in the queue.
+    concurrency:
+      group: deploy-preview
+      cancel-in-progress: false
     env:
       CONTAINER_APP: ca-stonelasley-api-preview
       CONTAINER_ENV: cae-stonelasley-preview
