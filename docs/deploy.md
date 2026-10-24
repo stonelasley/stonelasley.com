@@ -1,6 +1,6 @@
 # Deploy
 
-`.github/workflows/deploy.yml` ships every layer in order, and each stage runs only if the one before it succeeded. Every same-repo PR deploys to **preview**; fork PRs get no secrets and skip. Production (#55) reuses the same stages.
+`.github/workflows/deploy.yml` ships every layer in order, and each stage runs only if the one before it succeeded. A same-repo PR that targets `master` deploys to **preview**. A PR stacked on another branch skips, so preview shows the next PR to merge, and fork PRs get no secrets and skip too. Run the workflow by hand (workflow_dispatch) to preview any branch. Production (#55) reuses the same stages.
 
 | #   | Stage                                                                            | Preview                                                                               |
 | --- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |

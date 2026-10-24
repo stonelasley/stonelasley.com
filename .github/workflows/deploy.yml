@@ -27,8 +27,13 @@ env:
 jobs:
   preview:
     name: Deploy to preview
-    # Fork PRs get no secrets, so they can't deploy.
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    # Preview shows the next PR to merge: one that targets master. A PR stacked on another branch skips
+    # (otherwise every push in a stack would displace the pending run of the PR below it). Fork PRs get no
+    # secrets, so they skip too. Any branch can still be deployed by hand with workflow_dispatch.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.base.ref == 'master')
     runs-on: ubuntu-latest
     env:
       CONTAINER_APP: ca-stonelasley-api-preview
