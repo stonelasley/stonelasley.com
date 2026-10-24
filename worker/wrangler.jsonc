@@ -12,7 +12,7 @@
       // Placeholder until the preview and production databases are provisioned.
       // `--local` runs ignore it.
       "database_id": "00000000-0000-0000-0000-000000000000",
-      "migrations_dir": "migrations"
-    }
-  ]
+      "migrations_dir": "migrations",
+    },
+  ],
 }

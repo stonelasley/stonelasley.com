@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "fetch-content": "node scripts/fetch-notion-content.js",
-    "prebuild": "npm run fetch-content",
+    "prebuild": "node scripts/warm-api.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

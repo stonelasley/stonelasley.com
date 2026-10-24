@@ -7,10 +7,8 @@ export const siteConfig = {
     email: "website@lasley.io",
     avatar: "/images/avatar.jpg", // You'll need to add this image
   },
-  pagination: {
-    postsPerPage: 10,
-    recipesPerPage: 10,
-    homeRecentPosts: 3,
+  home: {
+    recentPosts: 3,
   },
   social: {
     github: "https://github.com/stonelasley",
@@ -26,8 +24,10 @@ export const siteConfig = {
   nav: {
     main: [
       { name: "Home", href: "/" },
-      { name: "Blog", href: "/blog" },
       { name: "Recipes", href: "/recipes" },
+      { name: "Watches", href: "/watches" },
+      { name: "AI & Development", href: "/ai-development" },
+      { name: "Training", href: "/training" },
     ],
   },
 } as const;

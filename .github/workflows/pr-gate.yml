@@ -62,16 +62,6 @@ jobs:
       - name: Run .NET functional tests
         run: dotnet test api/tests/Api.FunctionalTests --no-build
 
-      - name: Build application
-        run: npm run build
-        env:
-          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
-          BLOG_DATABASE_ID: ${{ secrets.BLOG_DATABASE_ID }}
-          RECIPE_DATABASE_ID: ${{ secrets.RECIPE_DATABASE_ID }}
-          INGREDIENT_DATABASE_ID: ${{ secrets.INGREDIENT_DATABASE_ID }}
-          RECIPE_INGREDIENT_DATABASE_ID: ${{ secrets.RECIPE_INGREDIENT_DATABASE_ID }}
-          MEALPREP_PAGE_ID: ${{ secrets.MEALPREP_PAGE_ID }}
-
       - name: Get Playwright version
         id: playwright-version
         run: echo "version=$(npm ls @playwright/test -w e2e --json | jq -r '.dependencies.e2e.dependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
@@ -87,6 +77,7 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx -w e2e playwright install chromium --with-deps
 
+      # Starts the Worker, the API and `next start`, ingesting e2e/fixtures/content before the build.
       - name: Run E2E tests
         run: npm run test:e2e
 

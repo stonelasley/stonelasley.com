@@ -1,24 +1,10 @@
 import { MetadataRoute } from "next";
-import { getAllBlogPosts, getAllRecipes } from "@/lib/content";
+import { getAllPosts } from "@/lib/api";
+import { contentAreas } from "@/lib/areas";
 import { siteConfig } from "@/site.config";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const posts = getAllBlogPosts();
-  const recipes = getAllRecipes();
-
-  const postUrls = posts.map((post) => ({
-    url: `${siteConfig.url}/blog/${post.slug}`,
-    lastModified: new Date(post.lastUpdated),
-    changeFrequency: "monthly" as const,
-    priority: post.featured ? 0.8 : 0.6,
-  }));
-
-  const recipeUrls = recipes.map((recipe) => ({
-    url: `${siteConfig.url}/recipes/${recipe.slug}`,
-    lastModified: new Date(recipe.lastUpdated),
-    changeFrequency: "monthly" as const,
-    priority: 0.6,
-  }));
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const posts = await getAllPosts();
 
   return [
     {
@@ -27,19 +13,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 1,
     },
-    {
-      url: `${siteConfig.url}/blog`,
+    ...contentAreas.map((area) => ({
+      url: `${siteConfig.url}/${area.slug}`,
       lastModified: new Date(),
-      changeFrequency: "weekly",
+      changeFrequency: "weekly" as const,
       priority: 0.9,
-    },
-    {
-      url: `${siteConfig.url}/recipes`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
-    ...postUrls,
-    ...recipeUrls,
+    })),
+    ...posts.map((post) => ({
+      url: `${siteConfig.url}/${post.area}/${post.slug}`,
+      lastModified: new Date(post.date),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
   ];
 }

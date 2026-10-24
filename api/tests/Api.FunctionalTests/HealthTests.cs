@@ -7,7 +7,7 @@ public class HealthTests
     [Test]
     public async Task Is_healthy_when_the_api_reaches_d1_through_the_worker()
     {
-        await using var api = new ApiFactory(Testing.Worker.BaseUrl, WranglerDev.Secret);
+        await using var api = new ApiFactory();
         using var client = api.CreateClient();
 
         var response = await client.GetAsync("/health");

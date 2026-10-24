@@ -1,0 +1,92 @@
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { Container } from "@/components/Container";
+import { Prose } from "@/components/Prose";
+import { Tag } from "@/components/Tag";
+import { getPost, getPostsByArea } from "@/lib/api";
+import { contentAreas, findArea } from "@/lib/areas";
+import { constructMetadata } from "@/lib/metadata";
+import { formatDate } from "@/lib/utils";
+import { highlightCode } from "@/lib/syntax-highlighting";
+import { markdownToHtml } from "@/lib/markdown";
+
+export const revalidate = false; // Static generation
+
+interface PostPageProps {
+  params: Promise<{ area: string; slug: string }>;
+}
+
+export async function generateStaticParams() {
+  const byArea = await Promise.all(
+    contentAreas.map(async (area) =>
+      (await getPostsByArea(area.slug)).map((post) => ({ area: area.slug, slug: post.slug }))
+    )
+  );
+  return byArea.flat();
+}
+
+async function loadPost(params: PostPageProps["params"]) {
+  const { area: areaSlug, slug } = await params;
+  const area = findArea(areaSlug);
+  const post = area ? await getPost(area.slug, slug) : null;
+  return area && post ? { area, post } : null;
+}
+
+export async function generateMetadata({ params }: PostPageProps) {
+  const found = await loadPost(params);
+  return found ? constructMetadata({ title: found.post.title, type: "article" }) : {};
+}
+
+export default async function PostPage({ params }: PostPageProps) {
+  const found = await loadPost(params);
+  if (!found) {
+    notFound();
+  }
+  const { area, post } = found;
+
+  // Convert Markdown to HTML, then highlight code blocks
+  const html = await highlightCode(await markdownToHtml(post.body));
+
+  return (
+    <article>
+      <Container className="py-16 md:py-24">
+        <Link
+          href={`/${area.slug}`}
+          className="text-muted-foreground hover:text-foreground mb-8 inline-flex items-center gap-2 text-sm transition-colors"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="h-4 w-4"
+          >
+            <path
+              fillRule="evenodd"
+              d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Back to {area.name}
+        </Link>
+
+        <header className="mb-12 max-w-3xl">
+          <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">{post.title}</h1>
+          <div className="text-muted-foreground text-sm">
+            <time dateTime={post.date}>{formatDate(post.date)}</time>
+          </div>
+          {post.tags.length > 0 && (
+            <div className="mt-6 flex flex-wrap gap-2">
+              {post.tags.map((tag) => (
+                <Tag key={tag} tag={tag} />
+              ))}
+            </div>
+          )}
+        </header>
+
+        <Prose className="max-w-3xl">
+          <div dangerouslySetInnerHTML={{ __html: html }} />
+        </Prose>
+      </Container>
+    </article>
+  );
+}

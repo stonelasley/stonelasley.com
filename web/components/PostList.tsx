@@ -1,15 +1,15 @@
-import type { BlogPost } from "@/lib/schemas";
+import type { PostSummary } from "@/lib/api";
 import { PostCard } from "./PostCard";
 
 interface PostListProps {
-  posts: BlogPost[];
+  posts: PostSummary[];
 }
 
 export function PostList({ posts }: PostListProps) {
   if (posts.length === 0) {
     return (
       <div className="py-12 text-center">
-        <p className="text-muted-foreground">No posts found.</p>
+        <p className="text-muted-foreground">No posts yet.</p>
       </div>
     );
   }
