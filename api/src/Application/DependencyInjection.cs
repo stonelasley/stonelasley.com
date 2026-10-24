@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using StoneLasley.Application.Ingest;
 using StoneLasley.Application.Posts;
 
@@ -10,6 +11,7 @@ public static class DependencyInjection
     {
         services.AddScoped<IngestService>();
         services.AddScoped<PostReader>();
+        services.TryAddSingleton(TimeProvider.System);
         return services;
     }
 }

@@ -12,6 +12,9 @@ public static class PostEndpoints
                 ? Results.Ok(await reader.AreaAsync(contentArea, cancellationToken))
                 : Results.NotFound());
 
+        app.MapGet("/areas/watches/facets", async (PostReader reader, CancellationToken cancellationToken) =>
+            Results.Ok(await reader.WatchFacetsAsync(cancellationToken)));
+
         var posts = app.MapGroup("/areas/{area}/posts");
 
         posts.MapGet("/", async (string area, PostReader reader, CancellationToken cancellationToken) =>

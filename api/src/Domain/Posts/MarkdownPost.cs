@@ -96,6 +96,7 @@ public static partial class MarkdownPost
         // `area` is only meaningful when it parsed, so check it again rather than trusting the default.
         var hasArea = ContentAreas.TryParse(frontmatter.Area?.Trim(), out _);
         var recipe = hasArea && area == ContentArea.Recipes ? ReadRecipe(frontmatter, errors) : null;
+        var watch = hasArea && area == ContentArea.Watches ? ReadWatch(frontmatter, errors) : null;
 
         if (errors.Count > 0)
         {
@@ -103,7 +104,7 @@ public static partial class MarkdownPost
         }
 
         var body = match.Groups["body"].Value.Trim('\n');
-        var post = new Post(id!, title!, slug!, area, date, tags, Audience.Public, status, body, recipe);
+        var post = new Post(id!, title!, slug!, area, date, tags, Audience.Public, status, body, recipe, watch);
         return new MarkdownPostResult(post, []);
     }
 
@@ -138,5 +139,17 @@ public static partial class MarkdownPost
         public string? Difficulty { get; set; }
         public string? OvenTempC { get; set; }
         public List<IngredientFrontmatter?>? Ingredients { get; set; }
+
+        // Watch typed core
+        public string? Make { get; set; }
+        public string? Reference { get; set; }
+        public string? ModelName { get; set; }
+        public List<string?>? Variants { get; set; }
+        public string? ProductionStart { get; set; }
+        public string? ProductionEnd { get; set; }
+        public string? CaseDiameterMm { get; set; }
+        public string? Calibre { get; set; }
+        public string? CaseMaterial { get; set; }
+        public string? WaterResistanceM { get; set; }
     }
 }

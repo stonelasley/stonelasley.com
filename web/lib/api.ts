@@ -5,6 +5,14 @@ import { contentAreas, type AreaSlug } from "./areas";
 
 // The site reads content only from the .NET API (ADR 0001), at build time for public pages.
 
+// What the Watches index shows and filters on.
+const watchSummarySchema = z.object({
+  make: z.string(),
+  reference: z.string(),
+  modelName: z.string(),
+  decades: z.array(z.number()), // 1980 for the 1980s
+});
+
 const postSummarySchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -12,6 +20,7 @@ const postSummarySchema = z.object({
   area: z.enum(contentAreas.map((area) => area.slug)),
   date: z.string(), // YYYY-MM-DD
   tags: z.array(z.string()),
+  watch: watchSummarySchema.nullable(),
 });
 
 const ingredientSchema = z.object({
@@ -34,9 +43,32 @@ const recipeSchema = z.object({
   ingredients: z.array(ingredientSchema),
 });
 
-const postSchema = postSummarySchema.extend({
+// The Watch typed core, metric-only, with feet and "in production" derived by the API.
+const watchSchema = z.object({
+  make: z.string(),
+  reference: z.string(),
+  modelName: z.string(),
+  variants: z.array(z.string()),
+  productionStart: z.number().nullable(),
+  productionEnd: z.number().nullable(),
+  inProduction: z.boolean(),
+  caseDiameterMm: z.number().nullable(),
+  calibre: z.string().nullable(),
+  caseMaterial: z.string().nullable(),
+  waterResistanceM: z.number().nullable(),
+  waterResistanceFt: z.number().nullable(),
+});
+
+const postSchema = postSummarySchema.omit({ watch: true }).extend({
   body: z.string(), // Markdown
   recipe: recipeSchema.nullable(),
+  watch: watchSchema.nullable(),
+});
+
+const watchFacetsSchema = z.object({
+  makes: z.array(z.string()),
+  modelNames: z.array(z.string()),
+  decades: z.array(z.number()),
 });
 
 const areaSchema = z.object({
@@ -48,6 +80,8 @@ export type PostSummary = z.infer<typeof postSummarySchema>;
 export type Post = z.infer<typeof postSchema>;
 export type Recipe = z.infer<typeof recipeSchema>;
 export type Ingredient = z.infer<typeof ingredientSchema>;
+export type Watch = z.infer<typeof watchSchema>;
+export type WatchFacets = z.infer<typeof watchFacetsSchema>;
 
 function apiUrl(): string {
   if (process.env.VERCEL && !process.env.API_URL) {
@@ -115,4 +149,13 @@ export async function getPost(area: AreaSlug, slug: string): Promise<Post | null
 export async function getAreaIntro(area: AreaSlug): Promise<string | null> {
   const found = await get(`/areas/${area}`, areaSchema);
   return found?.intro ?? null;
+}
+
+/** Every make, model name and production decade the Watches index can filter by. */
+export async function getWatchFacets(): Promise<WatchFacets> {
+  const facets = await get("/areas/watches/facets", watchFacetsSchema);
+  if (facets === null) {
+    throw new Error("The API has no Watch facets.");
+  }
+  return facets;
 }

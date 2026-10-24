@@ -2,12 +2,17 @@ using System.Text.Json.Serialization;
 using StoneLasley.Api.Ingest;
 using StoneLasley.Api.Posts;
 using StoneLasley.Application;
+using StoneLasley.Domain.Posts;
 using StoneLasley.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Converters in options outrank [JsonConverter] on a type, so the make's own converter goes first.
 builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+{
+    options.SerializerOptions.Converters.Add(new WatchMakeJsonConverter());
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure();

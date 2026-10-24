@@ -50,4 +50,16 @@ public static class TestPosts
           - { quantity: 0.5, unit: cup, name: oats }
           - { name: salt, note: a pinch, optional: true }
         """;
+
+    public static string WatchCore(string make = "Rolex", string reference = "16610", string modelName = "Submariner Date", string production = "productionStart: 1988\nproductionEnd: 2010") => $"""
+        make: {make}
+        reference: "{reference}"
+        modelName: {modelName}
+        variants: [16610LV]
+        {production}
+        caseDiameterMm: 40
+        calibre: "3135"
+        caseMaterial: Oystersteel
+        waterResistanceM: 300
+        """;
 }
