@@ -2,9 +2,10 @@ name: Instagram refresh
 
 # The API scales to zero and runs no background jobs, so this renews the 60-day Instagram token and refreshes the
 # cached media every day. The API then revalidates the site, so the feed on the home page updates.
+# The daily schedule is off until a token is stored (#79): with none, every run fails. Restore it then:
+#   schedule:
+#     - cron: '0 13 * * *' # 07:00 MDT
 on:
-  schedule:
-    - cron: '0 13 * * *' # 07:00 MDT
   workflow_dispatch:
 
 jobs:
