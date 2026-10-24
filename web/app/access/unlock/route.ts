@@ -8,16 +8,15 @@ export async function POST(request: Request) {
   const code = String(form.get("code") ?? "");
   // Turnstile's widget adds this field; without a site key (local, E2E) there's no widget and the API fakes it.
   const turnstile = String(form.get("cf-turnstile-response") ?? "local");
-  const visitorIp = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? null;
-
-  const exchanged = await exchangeAccessCode(code, turnstile, visitorIp);
+  const exchanged = await exchangeAccessCode(code, turnstile);
   const back = new URL("/access", request.url);
   if (!exchanged) {
     back.searchParams.set("error", "1");
     return NextResponse.redirect(back, 303);
   }
 
-  back.searchParams.set("unlocked", exchanged.clientName);
+  // The page reads the Client's name from the session, so nothing from the URL is shown as theirs.
+  back.searchParams.set("unlocked", "1");
   const response = NextResponse.redirect(back, 303);
   response.cookies.set(accessCookie, exchanged.session, {
     httpOnly: true,
