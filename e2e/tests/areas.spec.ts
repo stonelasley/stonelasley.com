@@ -46,4 +46,10 @@ test.describe("Content Areas", () => {
 
     expect(response?.status()).toBe(404);
   });
+
+  test("an unknown Content Area is not found", async ({ page }) => {
+    const response = await page.goto("/not-an-area");
+
+    expect(response?.status()).toBe(404);
+  });
 });

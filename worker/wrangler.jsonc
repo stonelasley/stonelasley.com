@@ -15,4 +15,33 @@
       "migrations_dir": "migrations",
     },
   ],
+  // Deployed environments. Each has its own D1 database and a custom domain the API reaches it on.
+  "env": {
+    "preview": {
+      "name": "stonelasley-data-proxy-preview",
+      "workers_dev": false,
+      "routes": [{ "pattern": "data-preview.stonelasley.com", "custom_domain": true }],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "stonelasley-preview",
+          "database_id": "0fad15fd-6140-43be-bbcb-e8574fc0ebd9",
+          "migrations_dir": "migrations"
+        }
+      ]
+    },
+    "production": {
+      "name": "stonelasley-data-proxy",
+      "workers_dev": false,
+      "routes": [{ "pattern": "data.stonelasley.com", "custom_domain": true }],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "stonelasley-prod",
+          "database_id": "4721e4ee-b6c5-4dcc-8df7-d6c05c699e6a",
+          "migrations_dir": "migrations"
+        }
+      ]
+    }
+  }
 }
