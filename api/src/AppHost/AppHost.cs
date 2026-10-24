@@ -15,6 +15,8 @@ var api = builder.AddProject<Projects.Api>("api")
     .WithEnvironment("Worker__BaseUrl", worker.GetEndpoint("http"))
     .WithEnvironment("Worker__Secret", workerSecret)
     .WithEnvironment("Ingest__Token", ingestToken)
+    // Local dev binds Vectorize remotely to the ci index; keep its vectors in their own namespace.
+    .WithEnvironment("Search__Vector__Namespace", "local-dev")
     .WithEnvironment("Images__BaseUrl", ReferenceExpression.Create($"{worker.GetEndpoint("http")}/public/"))
     .WithHttpHealthCheck("/health")
     .WaitFor(worker);

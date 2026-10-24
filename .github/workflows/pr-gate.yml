@@ -56,9 +56,14 @@ jobs:
       - name: Run .NET unit tests
         run: dotnet test api/tests/Domain.UnitTests --no-build
 
-      # Starts the real Worker under `wrangler dev` with a throwaway local D1.
+      # Starts the real Worker under `wrangler dev` with a throwaway local D1. Vectorize and Workers AI are bound
+      # remotely to the ci index; fork PRs get no Cloudflare secrets, so they use the API's vector fake instead.
       - name: Run .NET functional tests
         run: dotnet test api/tests/Api.FunctionalTests --no-build
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          SL_FAKE_VECTORS: ${{ secrets.CLOUDFLARE_API_TOKEN == '' && '1' || '0' }}
 
       - name: Get Playwright version
         id: playwright-version
