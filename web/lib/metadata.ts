@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { siteConfig } from "@/site.config";
+import type { Post, Recipe } from "./api";
+import { ingredientText } from "./recipe";
 
 export function constructMetadata({
   title = siteConfig.name,
@@ -58,6 +60,27 @@ export function constructMetadata({
         follow: false,
       },
     }),
+  };
+}
+
+export function generateRecipeJsonLd(post: Post, recipe: Recipe) {
+  const url = `${siteConfig.url}/${post.area}/${post.slug}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "Recipe",
+    name: post.title,
+    author: { "@type": "Person", name: siteConfig.author.name },
+    datePublished: post.date,
+    prepTime: `PT${recipe.prepTimeMin}M`,
+    cookTime: `PT${recipe.cookTimeMin}M`,
+    totalTime: `PT${recipe.totalTimeMin}M`,
+    recipeYield: `${recipe.servings} servings`,
+    recipeIngredient: recipe.ingredients.map((ingredient) =>
+      ingredientText(ingredient, { markOptional: true })
+    ),
+    keywords: post.tags.join(", "),
+    url,
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
   };
 }
 

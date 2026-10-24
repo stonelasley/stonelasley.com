@@ -5,12 +5,11 @@ import { Prose } from "@/components/Prose";
 import { Tag } from "@/components/Tag";
 import { getPost, getPostsByArea } from "@/lib/api";
 import { contentAreas, findArea } from "@/lib/areas";
-import { constructMetadata } from "@/lib/metadata";
+import { constructMetadata, generateRecipeJsonLd } from "@/lib/metadata";
+import { IngredientList, RecipeFacts } from "@/components/RecipeDetails";
 import { formatDate } from "@/lib/utils";
 import { highlightCode } from "@/lib/syntax-highlighting";
 import { markdownToHtml } from "@/lib/markdown";
-
-export const revalidate = false; // Static generation
 
 interface PostPageProps {
   params: Promise<{ area: string; slug: string }>;
@@ -47,12 +46,20 @@ export default async function PostPage({ params }: PostPageProps) {
   // Convert Markdown to HTML, then highlight code blocks
   const html = await highlightCode(await markdownToHtml(post.body));
 
+  const { recipe } = post;
+
   return (
     <article>
-      <Container className="py-16 md:py-24">
+      {recipe && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(generateRecipeJsonLd(post, recipe)) }}
+        />
+      )}
+      <Container className="py-16 md:py-24 print:py-0">
         <Link
           href={`/${area.slug}`}
-          className="text-muted-foreground hover:text-foreground mb-8 inline-flex items-center gap-2 text-sm transition-colors"
+          className="text-muted-foreground hover:text-foreground no-print mb-8 inline-flex items-center gap-2 text-sm transition-colors"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -83,9 +90,25 @@ export default async function PostPage({ params }: PostPageProps) {
           )}
         </header>
 
-        <Prose className="max-w-3xl">
-          <div dangerouslySetInnerHTML={{ __html: html }} />
-        </Prose>
+        {recipe ? (
+          <div className="grid gap-8 md:grid-cols-3 print:flex print:flex-col">
+            <div className="md:col-span-2">
+              <IngredientList recipe={recipe} />
+              <Prose>
+                <div dangerouslySetInnerHTML={{ __html: html }} />
+              </Prose>
+            </div>
+            <aside className="md:col-span-1 print:order-first">
+              <div className="sticky top-24 print:static">
+                <RecipeFacts recipe={recipe} />
+              </div>
+            </aside>
+          </div>
+        ) : (
+          <Prose className="max-w-3xl">
+            <div dangerouslySetInnerHTML={{ __html: html }} />
+          </Prose>
+        )}
       </Container>
     </article>
   );

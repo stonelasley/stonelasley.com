@@ -96,7 +96,7 @@ public class IngestHardeningTests
 
         await Ingest.RunAsync(
             client,
-            TestPosts.Markdown(TestPosts.NewUlid(), slug, area: "recipes"),
+            TestPosts.Markdown(TestPosts.NewUlid(), slug, area: "recipes", extra: TestPosts.RecipeCore),
             TestPosts.Markdown(TestPosts.NewUlid(), slug, area: "training"));
 
         (await client.GetAsync($"/areas/recipes/posts/{slug}")).StatusCode.ShouldBe(HttpStatusCode.OK);

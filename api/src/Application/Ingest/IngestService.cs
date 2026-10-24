@@ -19,6 +19,7 @@ public sealed class IngestService(ID1Database database)
 
     public async Task<Manifest> StartAsync(
         IReadOnlyDictionary<string, string> hashes,
+        IReadOnlyDictionary<ContentArea, string>? intros,
         bool dryRun,
         bool includeDrafts,
         CancellationToken cancellationToken)
@@ -42,8 +43,15 @@ public sealed class IngestService(ID1Database database)
 
         var runId = Guid.CreateVersion7().ToString("N");
         await database.QueryAsync(
-            "INSERT INTO ingest_runs (id, hashes, requested, dry_run, include_drafts) VALUES (?, ?, ?, ?, ?)",
-            [runId, JsonSerializer.Serialize(hashes), JsonSerializer.Serialize(requested), dryRun ? 1 : 0, includeDrafts ? 1 : 0],
+            "INSERT INTO ingest_runs (id, hashes, requested, intros, dry_run, include_drafts) VALUES (?, ?, ?, ?, ?, ?)",
+            [
+                runId,
+                JsonSerializer.Serialize(hashes),
+                JsonSerializer.Serialize(requested),
+                intros is null ? null : JsonSerializer.Serialize(intros.ToDictionary(intro => intro.Key.Slug(), intro => intro.Value)),
+                dryRun ? 1 : 0,
+                includeDrafts ? 1 : 0,
+            ],
             cancellationToken);
 
         return new Manifest(runId, requested);
@@ -74,8 +82,8 @@ public sealed class IngestService(ID1Database database)
         await database.QueryAsync(
             """
             INSERT OR REPLACE INTO ingest_staged_posts
-              (run_id, id, area, slug, title, date, tags, audience, status, body, content_hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              (run_id, id, area, slug, title, date, tags, audience, status, body, recipe, content_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 runId,
@@ -88,6 +96,7 @@ public sealed class IngestService(ID1Database database)
                 PostColumns.Audience(post.Audience),
                 PostColumns.Status(post.Status),
                 post.Body,
+                PostColumns.RecipeJson(post.Recipe),
                 run.Hashes[postId],
             ],
             cancellationToken);
@@ -153,8 +162,8 @@ public sealed class IngestService(ID1Database database)
                 "UPDATE posts SET slug = '~' || id WHERE id IN (SELECT value FROM json_each(?))", [JsonSerializer.Serialize(upserted)]));
             statements.Add(new D1Statement(
                 $"""
-                INSERT INTO posts (id, area, slug, title, date, tags, audience, status, body, content_hash, updated_at)
-                SELECT id, area, slug, title, date, tags, audience, status, body, content_hash, {Now}
+                INSERT INTO posts (id, area, slug, title, date, tags, audience, status, body, recipe, content_hash, updated_at)
+                SELECT id, area, slug, title, date, tags, audience, status, body, recipe, content_hash, {Now}
                 FROM ingest_staged_posts
                 WHERE run_id = ? AND id IN (SELECT value FROM json_each(?))
                 ON CONFLICT (id) DO UPDATE SET
@@ -166,6 +175,7 @@ public sealed class IngestService(ID1Database database)
                   audience = excluded.audience,
                   status = excluded.status,
                   body = excluded.body,
+                  recipe = excluded.recipe,
                   content_hash = excluded.content_hash,
                   updated_at = excluded.updated_at
                 """,
@@ -179,6 +189,13 @@ public sealed class IngestService(ID1Database database)
                 ON CONFLICT (id) DO UPDATE SET content_hash = excluded.content_hash
                 """,
                 [JsonSerializer.Serialize(skippedDrafts)]));
+            // A manifest without intros leaves them as they are; one with intros replaces them all.
+            if (run.Intros is not null)
+            {
+                statements.Add(new D1Statement("DELETE FROM area_intros", []));
+                statements.Add(new D1Statement(
+                    "INSERT INTO area_intros (area, intro) SELECT key, value FROM json_each(?)", [run.Intros]));
+            }
         }
         statements.Add(new D1Statement($"UPDATE ingest_runs SET committed_at = {Now} WHERE id = ?", [runId]));
         statements.Add(new D1Statement("DELETE FROM ingest_staged_posts WHERE run_id = ?", [runId]));
@@ -190,7 +207,7 @@ public sealed class IngestService(ID1Database database)
     private async Task<(Run? Run, IngestOutcome? Refusal)> OpenRunAsync(string runId, CancellationToken cancellationToken)
     {
         var rows = await database.QueryAsync(
-            "SELECT hashes, requested, dry_run, include_drafts, committed_at FROM ingest_runs WHERE id = ?",
+            "SELECT hashes, requested, intros, dry_run, include_drafts, committed_at FROM ingest_runs WHERE id = ?",
             [runId],
             cancellationToken);
         if (rows.Count == 0)
@@ -206,7 +223,8 @@ public sealed class IngestService(ID1Database database)
 
         var run = new Run(
             JsonSerializer.Deserialize<Dictionary<string, string>>(Text(row, "hashes"))!,
-            [.. JsonSerializer.Deserialize<List<string>>(Text(row, "requested"))!],
+            JsonSerializer.Deserialize<List<string>>(Text(row, "requested"))!.ToHashSet(),
+            row.GetProperty("intros").GetString(),
             row.GetProperty("dry_run").GetInt32() == 1,
             row.GetProperty("include_drafts").GetInt32() == 1);
         return (run, null);
@@ -227,7 +245,8 @@ public sealed class IngestService(ID1Database database)
 
     private static string Text(JsonElement row, string column) => row.GetProperty(column).GetString()!;
 
-    private sealed record Run(IReadOnlyDictionary<string, string> Hashes, HashSet<string> Requested, bool DryRun, bool IncludeDrafts);
+    private sealed record Run(
+        IReadOnlyDictionary<string, string> Hashes, IReadOnlySet<string> Requested, string? Intros, bool DryRun, bool IncludeDrafts);
 
     private sealed record StoredAddress(PostAddress Address, string Status);
 }

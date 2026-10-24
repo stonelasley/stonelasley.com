@@ -21,7 +21,8 @@ public static class TestPosts
         string area = "ai-development",
         string date = "2026-10-01",
         string status = "published",
-        string body = "## Section\n\nSome **bold** text.") => $"""
+        string body = "## Section\n\nSome **bold** text.",
+        string extra = "") => $"""
         ---
         id: {id}
         title: {title}
@@ -31,10 +32,22 @@ public static class TestPosts
         tags: [fixture, testing]
         audience: public
         status: {status}
+        {extra}
         ---
         {body}
         """;
 
     public static string Hash(string markdown) =>
         Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(markdown)));
+
+    public const string RecipeCore = """
+        prepTimeMin: 5
+        cookTimeMin: 20
+        servings: 4
+        difficulty: Medium
+        ovenTempC: 200
+        ingredients:
+          - { quantity: 0.5, unit: cup, name: oats }
+          - { name: salt, note: a pinch, optional: true }
+        """;
 }

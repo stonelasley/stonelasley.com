@@ -100,4 +100,20 @@ html {
   .no-print {
     display: none !important;
   }
+
+  /* Paper is white: print the light palette even when the reader browses in dark mode. */
+  .dark {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 9%;
+    --border: 0 0% 90%;
+    color-scheme: light;
+  }
 }

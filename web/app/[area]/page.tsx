@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 import { Container } from "@/components/Container";
 import { PostList } from "@/components/PostList";
-import { getPostsByArea } from "@/lib/api";
+import { getAreaIntro, getPostsByArea } from "@/lib/api";
+import { markdownToHtml } from "@/lib/markdown";
+import { Prose } from "@/components/Prose";
 import { contentAreas, findArea } from "@/lib/areas";
 import { constructMetadata } from "@/lib/metadata";
 
-export const revalidate = false; // Static generation
 export const dynamicParams = false; // The four Content Areas are a closed set
 
 interface AreaPageProps {
@@ -27,13 +28,19 @@ export default async function AreaPage({ params }: AreaPageProps) {
     notFound();
   }
 
-  const posts = await getPostsByArea(area.slug);
+  const [posts, intro] = await Promise.all([getPostsByArea(area.slug), getAreaIntro(area.slug)]);
 
   return (
     <Container className="py-16 md:py-24">
       <div className="mb-12">
         <h1 className="mb-4 text-4xl font-bold tracking-tight">{area.name}</h1>
-        <p className="text-muted-foreground text-lg">{area.description}</p>
+        {intro ? (
+          <Prose className="text-muted-foreground text-lg">
+            <div dangerouslySetInnerHTML={{ __html: await markdownToHtml(intro) }} />
+          </Prose>
+        ) : (
+          <p className="text-muted-foreground text-lg">{area.description}</p>
+        )}
       </div>
 
       <PostList posts={posts} />

@@ -8,13 +8,17 @@ namespace StoneLasley.Cli;
 /// <summary>
 /// Sends every Markdown Post under a directory through the API's manifest → upload → commit protocol.
 /// The API parses and validates; this only finds each Post's id and hashes its file.
+/// <c>_areas/{area}.md</c> holds a Content Area's intro; nothing under a <c>_</c> folder is a Post.
 /// </summary>
 internal static partial class IngestCommand
 {
     public static async Task<int> RunAsync(Uri apiUrl, string token, string directory, bool dryRun, bool includeDrafts)
     {
         var posts = new Dictionary<string, string>();
-        foreach (var path in Directory.EnumerateFiles(directory, "*.md", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+        var markdownFiles = Directory.EnumerateFiles(directory, "*.md", SearchOption.AllDirectories)
+            .Where(path => !Path.GetRelativePath(directory, path).Split(Path.DirectorySeparatorChar).Any(part => part.StartsWith('_')))
+            .Order(StringComparer.Ordinal);
+        foreach (var path in markdownFiles)
         {
             var markdown = await File.ReadAllTextAsync(path);
             var id = IdPattern().Match(markdown);
@@ -37,12 +41,17 @@ internal static partial class IngestCommand
             return 1;
         }
 
+        var introDirectory = Path.Combine(directory, "_areas");
+        var intros = Directory.Exists(introDirectory)
+            ? Directory.EnumerateFiles(introDirectory, "*.md").ToDictionary(path => Path.GetFileNameWithoutExtension(path), File.ReadAllText)
+            : [];
+
         using var client = new HttpClient { BaseAddress = apiUrl };
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var manifestResponse = await client.PostAsJsonAsync(
             $"ingest/manifest?dryRun={dryRun}&includeDrafts={includeDrafts}",
-            new { posts = posts.ToDictionary(p => p.Key, p => Hash(p.Value)) });
+            new { posts = posts.ToDictionary(p => p.Key, p => Hash(p.Value)), intros });
         if (!await SucceededAsync(manifestResponse, "manifest"))
         {
             return 1;

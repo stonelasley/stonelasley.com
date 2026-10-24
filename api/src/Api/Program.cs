@@ -1,9 +1,13 @@
+using System.Text.Json.Serialization;
 using StoneLasley.Api.Ingest;
 using StoneLasley.Api.Posts;
 using StoneLasley.Application;
 using StoneLasley.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
