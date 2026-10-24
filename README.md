@@ -155,7 +155,6 @@ Edit `site.config.ts` to customize:
 - Navigation links
 - Social media links
 - Pagination settings
-- Analytics (GTM container ID)
 
 ### Styling
 
@@ -174,7 +173,6 @@ The design system uses HSL color variables defined in `app/globals.css`. To cust
 3. Configure the domain `stonelasley.com`
 4. Set environment variables:
    - `NEXT_PUBLIC_SITE_URL`: Your production URL
-   - `NEXT_PUBLIC_GTM_ID`: Google Tag Manager ID (optional)
 
 5. Deploy!
 

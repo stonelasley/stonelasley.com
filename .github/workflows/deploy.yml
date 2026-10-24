@@ -1,10 +1,17 @@
 name: Deploy
 
-# One ordered deploy per environment: D1 migrations → Worker → API image → Container Apps revision
-# (waits on /health) → Vercel. Each stage runs only if the one before it succeeded.
+# Preview on PRs, production on merges to master. The ordered stages live in deploy-environment.yml.
 on:
   pull_request:
+  push:
+    branches: [master]
   workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy
+        type: choice
+        options: [preview, production]
+        default: preview
 
 permissions:
   contents: read
@@ -12,200 +19,36 @@ permissions:
   id-token: write # Azure OIDC
   pull-requests: write # comment the preview URL
 
-env:
-  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  RESOURCE_GROUP: rg-stonelasley
-  IMAGE: ghcr.io/${{ github.repository_owner }}/stonelasley-api
-
 jobs:
   preview:
-    name: Deploy to preview
     # Preview shows the next PR to merge: one that targets master. A PR stacked on another branch skips
     # (otherwise every push in a stack would displace the pending run of the PR below it). Fork PRs get no
     # secrets, so they skip too. Any branch can still be deployed by hand with workflow_dispatch.
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'preview') ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
        github.event.pull_request.base.ref == 'master')
-    runs-on: ubuntu-latest
     # Every PR shares the preview stack, so runs queue rather than overlap; the last push wins. Set on the job,
     # not the workflow, so a run whose job skips (a stacked PR) never takes a place in the queue.
     concurrency:
       group: deploy-preview
       cancel-in-progress: false
-    env:
-      CONTAINER_APP: ca-stonelasley-api-preview
-      CONTAINER_ENV: cae-stonelasley-preview
-      WORKER_URL: https://data-preview.stonelasley.com
-    steps:
-      - uses: actions/checkout@v4
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: preview
+    secrets: inherit
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - run: npm ci
-
-      - name: Apply D1 migrations
-        working-directory: worker
-        run: npx wrangler d1 migrations apply DB --env preview --remote
-
-      - name: Deploy the Worker
-        working-directory: worker
-        env:
-          WORKER_SECRET: ${{ secrets.PREVIEW_WORKER_SECRET }}
-        run: |
-          printf '%s' "$WORKER_SECRET" | npx wrangler secret put WORKER_SECRET --env preview
-          npx wrangler deploy --env preview
-
-      - name: Build and push the API image
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          docker build -t "$IMAGE:${{ github.sha }}" \
-            --label org.opencontainers.image.source=https://github.com/${{ github.repository }} api
-          docker push "$IMAGE:${{ github.sha }}"
-
-      # Previews sit behind Vercel Deployment Protection, so the API revalidates with the project's
-      # "Protection Bypass for Automation" secret, generated here the first time.
-      - name: Get the Vercel automation bypass secret
-        id: bypass
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          set -euo pipefail
-          team=""; [[ "$VERCEL_ORG_ID" == team_* ]] && team="?teamId=$VERCEL_ORG_ID"
-          api="https://api.vercel.com"
-          auth=(-H "Authorization: Bearer $VERCEL_TOKEN")
-          secret=$(curl -fsS "${auth[@]}" "$api/v9/projects/$VERCEL_PROJECT_ID$team" \
-            | jq -r '.protectionBypass // {} | to_entries[] | select(.value.scope == "automation-bypass") | .key' | head -1)
-          if [ -z "$secret" ]; then
-            secret=$(curl -fsS -X PATCH "${auth[@]}" -H "Content-Type: application/json" -d '{}' \
-              "$api/v1/projects/$VERCEL_PROJECT_ID/protection-bypass$team" \
-              | jq -r '.protectionBypass | to_entries[] | select(.value.scope == "automation-bypass") | .key' | head -1)
-          fi
-          if [ -z "$secret" ]; then echo "::error::No Vercel automation bypass secret" && exit 1; fi
-          echo "::add-mask::$secret"
-          echo "secret=$secret" >> "$GITHUB_OUTPUT"
-
-      - uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Deploy the API revision
-        id: api
-        env:
-          WORKER_SECRET: ${{ secrets.PREVIEW_WORKER_SECRET }}
-          INGEST_TOKEN: ${{ secrets.PREVIEW_INGEST_TOKEN }}
-          REVALIDATE_SECRET: ${{ secrets.PREVIEW_REVALIDATE_SECRET }}
-          VERCEL_BYPASS: ${{ steps.bypass.outputs.secret }}
-          ADMIN_TOKEN: ${{ secrets.PREVIEW_ADMIN_TOKEN }}
-          SESSION_KEY: ${{ secrets.PREVIEW_ACCESS_SESSION_KEY }}
-          TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}
-        run: |
-          set -euo pipefail
-          # The API reads the index version the Worker binds as active (#44).
-          INDEX_VERSION=$(node -e 'const t=require("fs").readFileSync("worker/wrangler.jsonc","utf8"); console.log(t.match(/"preview"[\s\S]*?"ACTIVE_INDEX_VERSION":\s*"([^"]+)"/)[1])')
-          az extension add --name containerapp --upgrade --only-show-errors
-          secrets=(
-            "worker-secret=$WORKER_SECRET"
-            "ingest-token=$INGEST_TOKEN"
-            "revalidate-secret=$REVALIDATE_SECRET"
-            "vercel-bypass=$VERCEL_BYPASS"
-            "admin-token=$ADMIN_TOKEN"
-            "session-key=$SESSION_KEY"
-            "turnstile-secret=$TURNSTILE_SECRET"
-          )
-          env_vars=(
-            "Worker__BaseUrl=$WORKER_URL"
-            "Worker__Secret=secretref:worker-secret"
-            "Ingest__Token=secretref:ingest-token"
-            "Revalidation__Secret=secretref:revalidate-secret"
-            "Revalidation__ProtectionBypass=secretref:vercel-bypass"
-            "Admin__Token=secretref:admin-token"
-            "Access__SessionKey=secretref:session-key"
-            "Turnstile__SecretKey=secretref:turnstile-secret"
-            "Images__BaseUrl=https://img-preview.stonelasley.com/"
-            "Site__NoIndex=true"
-            "Site__ShowDrafts=true"
-            "Search__Vector__IndexVersion=$INDEX_VERSION"
-          )
-          if az containerapp show -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --only-show-errors >/dev/null 2>&1; then
-            az containerapp secret set -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --secrets "${secrets[@]}" --only-show-errors >/dev/null
-            az containerapp update -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" \
-              --image "$IMAGE:${{ github.sha }}" --min-replicas 0 --max-replicas 1 \
-              --set-env-vars "${env_vars[@]}" --only-show-errors >/dev/null
-          else
-            az containerapp create -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --environment "$CONTAINER_ENV" \
-              --image "$IMAGE:${{ github.sha }}" --target-port 8080 --ingress external \
-              --min-replicas 0 --max-replicas 1 --cpu 0.25 --memory 0.5Gi \
-              --secrets "${secrets[@]}" --env-vars "${env_vars[@]}" --only-show-errors >/dev/null
-          fi
-          fqdn=$(az containerapp show -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --query properties.configuration.ingress.fqdn -o tsv)
-          echo "url=https://$fqdn" >> "$GITHUB_OUTPUT"
-
-      - name: Wait for the API on /health
-        run: node web/scripts/warm-api.mjs
-        env:
-          API_URL: ${{ steps.api.outputs.url }}
-
-      # After a version bump, adopt the index re-index.yml built (404 when there's nothing to promote).
-      - name: Promote a finished index build
-        env:
-          ADMIN_TOKEN: ${{ secrets.PREVIEW_ADMIN_TOKEN }}
-        run: |
-          version=$(node -e 'const t=require("fs").readFileSync("worker/wrangler.jsonc","utf8"); console.log(t.match(/"preview"[\s\S]*?"ACTIVE_INDEX_VERSION":\s*"([^"]+)"/)[1])')
-          status=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ steps.api.outputs.url }}/admin/vectors/promote?version=$version" -H "Authorization: Bearer $ADMIN_TOKEN")
-          echo "promote $version: $status"
-          [ "$status" = 204 ] || [ "$status" = 404 ]
-
-      - name: Build and deploy the site
-        id: site
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          # Read by `vercel build` (prebuild warm-up and every prerendered page) and again at runtime.
-          API_URL: ${{ steps.api.outputs.url }}
-          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
-          REVALIDATE_SECRET: ${{ secrets.PREVIEW_REVALIDATE_SECRET }}
-        run: |
-          set -euo pipefail
-          npx vercel@latest pull --yes --environment=preview --token="$VERCEL_TOKEN"
-          npx vercel@latest build --token="$VERCEL_TOKEN"
-          url=$(npx vercel@latest deploy --prebuilt --token="$VERCEL_TOKEN" \
-            --env API_URL="$API_URL" --env REVALIDATE_SECRET="$REVALIDATE_SECRET")
-          echo "url=$url" >> "$GITHUB_OUTPUT"
-
-      # The shared preview API revalidates whichever preview deployed last.
-      - name: Point API revalidation at this deployment
-        run: |
-          az containerapp update -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --set-env-vars \
-            "Revalidation__Url=${{ steps.site.outputs.url }}/api/revalidate" --only-show-errors >/dev/null
-
-      - name: Check the site revalidates through the API's path
-        env:
-          BYPASS: ${{ steps.bypass.outputs.secret }}
-          REVALIDATE_SECRET: ${{ secrets.PREVIEW_REVALIDATE_SECRET }}
-        run: |
-          status=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            -H "Authorization: Bearer $REVALIDATE_SECRET" \
-            -H "x-vercel-protection-bypass: $BYPASS" "${{ steps.site.outputs.url }}/api/revalidate")
-          echo "revalidate answered $status"
-          test "$status" = 200
-
-      - name: Comment the preview URLs
-        if: github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body \
-            "Preview for ${{ github.sha }}: site ${{ steps.site.outputs.url }} · API ${{ steps.api.outputs.url }}"
+  production:
+    # Off until production is provisioned (#55): set the PRODUCTION_ENABLED variable to true to turn it on.
+    if: >-
+      vars.PRODUCTION_ENABLED == 'true' &&
+      ((github.event_name == 'push') ||
+       (github.event_name == 'workflow_dispatch' && inputs.environment == 'production' && github.ref == 'refs/heads/master'))
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: production
+    secrets: inherit
