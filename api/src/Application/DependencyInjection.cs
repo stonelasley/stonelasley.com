@@ -13,6 +13,8 @@ public static class DependencyInjection
         services.AddScoped<IngestService>();
         services.AddScoped<PostReader>();
         services.AddScoped<KeywordSearch>();
+        services.AddScoped<VectorSearch>();
+        services.AddScoped<VectorIndexer>();
         services.TryAddSingleton(TimeProvider.System);
         return services;
     }

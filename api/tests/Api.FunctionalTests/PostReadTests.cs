@@ -135,3 +135,38 @@ public class PostReadTests
 }
 
 public sealed record ExcerptResponse(string Id, string Excerpt);
+
+public class LatestPostsTests
+{
+    [Test]
+    public async Task Latest_posts_are_the_newest_public_published_posts_across_areas()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var (old, mid, newest, draft) = (TestPosts.NewUlid(), TestPosts.NewUlid(), TestPosts.NewUlid(), TestPosts.NewUlid());
+        await Ingest.RunAsync(
+            client,
+            dryRun: false,
+            includeDrafts: true,
+            TestPosts.Markdown(old, TestPosts.NewSlug(), area: "training", date: "2020-01-01"),
+            TestPosts.Markdown(mid, TestPosts.NewSlug(), area: "ai-development", date: "2021-01-01"),
+            TestPosts.Markdown(newest, TestPosts.NewSlug(), area: "training", date: "2022-01-01"),
+            TestPosts.Markdown(draft, TestPosts.NewSlug(), area: "training", date: "2023-01-01", status: "draft"));
+
+        var latest = await client.GetFromJsonAsync<List<PostSummaryResponse>>("/posts/latest?limit=2");
+        var inTraining = await client.GetFromJsonAsync<List<PostSummaryResponse>>("/posts/latest?area=training");
+
+        latest.ShouldNotBeNull().Select(p => p.Id).ShouldBe([newest, mid]);
+        inTraining.ShouldNotBeNull().Select(p => p.Id).ShouldBe([newest, old]);
+    }
+
+    [Test]
+    public async Task Latest_posts_cap_the_limit()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateClient();
+
+        (await client.GetAsync("/posts/latest?limit=500")).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await client.GetAsync("/posts/latest?area=blog")).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+}

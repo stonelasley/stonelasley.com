@@ -28,11 +28,20 @@ public sealed class PostReader(ID1Database database, TimeProvider clock)
 {
     private const string PublicAndPublished = $"audience = '{PostColumns.PublicAudience}' AND status = '{PostColumns.PublishedStatus}'";
 
-    public async Task<IReadOnlyList<PostSummary>> ListAsync(ContentArea area, CancellationToken cancellationToken)
+    public Task<IReadOnlyList<PostSummary>> ListAsync(ContentArea area, CancellationToken cancellationToken) =>
+        SummariesAsync($"WHERE area = ? AND {PublicAndPublished} ORDER BY date DESC, id DESC", [area.Slug()], cancellationToken);
+
+    /// <summary>The newest public, published Posts, across every area or within one.</summary>
+    public Task<IReadOnlyList<PostSummary>> LatestAsync(ContentArea? area, int limit, CancellationToken cancellationToken) =>
+        area is { } only
+            ? SummariesAsync($"WHERE area = ? AND {PublicAndPublished} ORDER BY date DESC, id DESC LIMIT ?", [only.Slug(), limit], cancellationToken)
+            : SummariesAsync($"WHERE {PublicAndPublished} ORDER BY date DESC, id DESC LIMIT ?", [limit], cancellationToken);
+
+    private async Task<IReadOnlyList<PostSummary>> SummariesAsync(string where, IReadOnlyList<object?> parameters, CancellationToken cancellationToken)
     {
         var rows = await database.QueryAsync(
-            $"SELECT id, title, slug, area, date, tags, excerpt, watch FROM posts WHERE area = ? AND {PublicAndPublished} ORDER BY date DESC, id DESC",
-            [area.Slug()],
+            $"SELECT id, title, slug, area, date, tags, excerpt, watch FROM posts {where}",
+            parameters,
             cancellationToken);
         return [.. rows.Select(row => new PostSummary(
             Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), WatchSummary.Of(PostColumns.WatchFromRow(row), clock.GetUtcNow().Year)))];

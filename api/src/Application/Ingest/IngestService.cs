@@ -16,7 +16,7 @@ public sealed record UploadedImage(string Path, byte[] Content);
 /// then a commit that validates the whole set and applies it in one transaction. Posts missing from the
 /// manifest are deleted, because the content repo is the source of truth (ADR 0002).
 /// </summary>
-public sealed class IngestService(ID1Database database, IImageStore images, ISiteRevalidator site)
+public sealed class IngestService(ID1Database database, IImageStore images, VectorIndexer vectors, ISiteRevalidator site)
 {
     private const string Now = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
 
@@ -32,12 +32,12 @@ public sealed class IngestService(ID1Database database, IImageStore images, ISit
             "DELETE FROM ingest_staged_posts WHERE run_id IN (SELECT id FROM ingest_runs WHERE committed_at IS NULL AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 day'))",
             cancellationToken: cancellationToken);
 
-        // A public, published Post missing from the keyword index counts as changed, so the next full ingest
+        // A public, published Post missing from the keyword or vector index counts as changed, so the next full ingest
         // indexes Posts stored before the index existed (or left out by a failure).
         var storedPosts = $"""
             SELECT id, content_hash FROM posts
             WHERE NOT (audience = '{PostColumns.PublicAudience}' AND status = '{PostColumns.PublishedStatus}')
-               OR id IN (SELECT post_id FROM posts_fts)
+               OR (id IN (SELECT post_id FROM posts_fts) AND vector_chunks IS NOT NULL)
             """;
         var known = includeDrafts
             ? storedPosts
@@ -175,8 +175,26 @@ public sealed class IngestService(ID1Database database, IImageStore images, ISit
             .ToDictionary(post => post.Key, post => post.Value);
 
         List<D1Statement> statements = [];
+        var previousChunks = new Dictionary<string, int>();
+        var chunks = new List<PostChunks>();
         if (!run.DryRun)
         {
+            // Vectors of every rewritten or removed Post go, by id, once the commit lands.
+            previousChunks = (await database.QueryAsync(
+                    "SELECT id, vector_chunks FROM posts WHERE vector_chunks IS NOT NULL AND id IN (SELECT value FROM json_each(?))",
+                    [JsonSerializer.Serialize(deleted.Concat(upserted))],
+                    cancellationToken))
+                .ToDictionary(row => Text(row, "id"), row => row.GetProperty("vector_chunks").GetInt32());
+            chunks = [.. (await database.QueryAsync(
+                    $"""
+                    SELECT id, area, title, body FROM ingest_staged_posts
+                    WHERE run_id = ? AND id IN (SELECT value FROM json_each(?))
+                      AND status = '{PostColumns.PublishedStatus}' AND audience = '{PostColumns.PublicAudience}'
+                    """,
+                    [runId, JsonSerializer.Serialize(upserted)],
+                    cancellationToken))
+                .Select(row => VectorIndexer.Chunk(Text(row, "id"), Text(row, "area"), Text(row, "title"), Text(row, "body")))];
+
             statements.Add(new D1Statement(
                 "DELETE FROM posts WHERE id IN (SELECT value FROM json_each(?))", [JsonSerializer.Serialize(deleted)]));
             // Park the slugs of Posts being rewritten, so two Posts can swap slugs without tripping UNIQUE (area, slug)
@@ -202,9 +220,20 @@ public sealed class IngestService(ID1Database database, IImageStore images, ISit
                   recipe = excluded.recipe,
                   watch = excluded.watch,
                   content_hash = excluded.content_hash,
-                  updated_at = excluded.updated_at
+                  updated_at = excluded.updated_at,
+                  vector_chunks = NULL
                 """,
                 [runId, JsonSerializer.Serialize(upserted)]));
+            statements.Add(new D1Statement(
+                "DELETE FROM post_chunks WHERE post_id IN (SELECT value FROM json_each(?))",
+                [JsonSerializer.Serialize(deleted.Concat(upserted))]));
+            // One statement per Post keeps each bound value about the size of one body, well under D1's limit.
+            statements.AddRange(chunks.Select(post => new D1Statement(
+                """
+                INSERT INTO post_chunks (post_id, idx, text)
+                SELECT ?, key, value FROM json_each(?)
+                """,
+                [post.PostId, JsonSerializer.Serialize(post.Chunks)])));
             // The keyword index follows the Posts table in the same transaction: public, published Posts only.
             statements.Add(new D1Statement(
                 "DELETE FROM posts_fts WHERE post_id IN (SELECT value FROM json_each(?))",
@@ -238,6 +267,10 @@ public sealed class IngestService(ID1Database database, IImageStore images, ISit
         statements.Add(new D1Statement($"UPDATE ingest_runs SET committed_at = {Now} WHERE id = ?", [runId]));
         statements.Add(new D1Statement("DELETE FROM ingest_staged_posts WHERE run_id = ?", [runId]));
         await database.BatchAsync(statements, cancellationToken);
+        if (!run.DryRun)
+        {
+            await vectors.ApplyAsync(previousChunks, chunks, cancellationToken);
+        }
 
         if (!run.DryRun && (upserted.Count > 0 || deleted.Count > 0 || run.Intros is not null))
         {

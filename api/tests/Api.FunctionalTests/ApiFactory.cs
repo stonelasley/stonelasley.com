@@ -25,6 +25,15 @@ public sealed class ApiFactory(Uri workerUrl, string workerSecret) : WebApplicat
     /// <summary>Stands in for the site's revalidate webhook (an external port).</summary>
     public FakeSiteRevalidator Revalidator { get; } = new();
 
+    private bool _realVectors;
+
+    /// <summary>Use Workers AI and the ci Vectorize index instead of the fake (unless SL_FAKE_VECTORS=1).</summary>
+    public ApiFactory WithRealVectors()
+    {
+        _realVectors = true;
+        return this;
+    }
+
     public ApiFactory WithSetting(string key, string? value)
     {
         _settings[key] = value;
@@ -45,6 +54,9 @@ public sealed class ApiFactory(Uri workerUrl, string workerSecret) : WebApplicat
         builder.UseSetting("Worker:Secret", workerSecret);
         builder.UseSetting("Ingest:Token", IngestToken);
         builder.UseSetting("Images:BaseUrl", ImagesBaseUrl);
+        builder.UseSetting("Search:Vector:Namespace", Testing.VectorNamespace);
+        // Only the vector tests pay for real embeddings; everything else uses the in-process fake.
+        builder.UseSetting("Search:Vector:Fake", WranglerDev.FakeVectors || !_realVectors ? "true" : "false");
         foreach (var (key, value) in _settings)
         {
             builder.UseSetting(key, value);
