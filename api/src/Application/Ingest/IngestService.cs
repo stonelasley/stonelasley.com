@@ -268,6 +268,10 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
             if (run.Clients is not null)
             {
                 statements.Add(new D1Statement("DELETE FROM clients", []));
+                // A Client removed from the file loses their code too, so re-adding them later doesn't revive it.
+                statements.Add(new D1Statement(
+                    $"UPDATE access_grants SET revoked_at = {Now} WHERE revoked_at IS NULL AND client_id NOT IN (SELECT json_extract(value, '$.Id') FROM json_each(?))",
+                    [run.Clients]));
                 statements.Add(new D1Statement(
                     "INSERT INTO clients (id, name) SELECT json_extract(value, '$.Id'), json_extract(value, '$.Name') FROM json_each(?)",
                     [run.Clients]));
