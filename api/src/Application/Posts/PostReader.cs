@@ -31,6 +31,13 @@ public sealed class PostReader(ID1Database database, TimeProvider clock)
     public Task<IReadOnlyList<PostSummary>> ListAsync(ContentArea area, CancellationToken cancellationToken) =>
         SummariesAsync($"WHERE area = ? AND {PublicAndPublished} ORDER BY date DESC, id DESC", [area.Slug()], cancellationToken);
 
+    /// <summary>A Client's Private Posts: the shared Clients library and their own, newest first. No Public filler.</summary>
+    public Task<IReadOnlyList<PostSummary>> PrivateForClientAsync(string clientId, CancellationToken cancellationToken) =>
+        SummariesAsync(
+            $"WHERE status = '{PostColumns.PublishedStatus}' AND audience IN (?, ?) ORDER BY date DESC, id DESC",
+            [Audience.Clients.Stored, Audience.ForClient(clientId).Stored],
+            cancellationToken);
+
     /// <summary>The newest public, published Posts, across every area or within one.</summary>
     public Task<IReadOnlyList<PostSummary>> LatestAsync(ContentArea? area, int limit, CancellationToken cancellationToken) =>
         area is { } only

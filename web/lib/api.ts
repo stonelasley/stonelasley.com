@@ -254,3 +254,19 @@ export async function getLatestPosts(area?: AreaSlug, limit = 5): Promise<PostSu
   }
   return posts;
 }
+
+const yourContentSchema = z.object({ clientName: z.string(), posts: z.array(postSummarySchema) });
+
+/** An unlocked Client's Private Posts, or null when the session isn't live. */
+export async function getYourContent(
+  session: string
+): Promise<z.infer<typeof yourContentSchema> | null> {
+  const response = await request(`${apiUrl()}/access/posts`, {
+    headers: { "x-access-session": session },
+  });
+  if (response.status === 401) return null;
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`GET /access/posts failed: ${response.status} ${response.body}`);
+  }
+  return yourContentSchema.parse(JSON.parse(response.body));
+}

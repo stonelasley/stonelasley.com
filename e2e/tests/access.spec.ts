@@ -68,4 +68,31 @@ test.describe("Access Codes", () => {
 
     expect(response?.headers()["cache-control"]).toContain("no-store");
   });
+
+  test("“Your content” lists the Client's Posts and the shared library, with no public filler", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    await unlock(page, issueCode(clientAlex));
+    await page.getByRole("link", { name: "See your content" }).click();
+
+    await expect(page).toHaveURL(/\/your-content$/);
+    await expect(page.getByRole("heading", { level: 1, name: "Your content" })).toBeVisible();
+    const titles = page.getByRole("main").getByRole("article").getByRole("link");
+    await expect(titles).toHaveText(["Fixture Clients library", "Alex's fixture plan"]);
+  });
+
+  test("“Your content” asks for a code without a valid cookie", async ({ browser }) => {
+    const context = await browser.newContext();
+    await context.addCookies([
+      { name: "sl_access", value: "forged.value", url: "http://localhost:3000" },
+    ]);
+    const page = await context.newPage();
+
+    await page.goto("/your-content");
+
+    await expect(page.getByLabel("Access Code")).toBeVisible();
+    await expect(page.getByRole("main").getByRole("article")).toHaveCount(0);
+    await context.close();
+  });
 });
