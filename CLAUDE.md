@@ -118,13 +118,12 @@ Central configuration for:
 - Navigation structure
 - Social links
 - Home page settings (number of recent Posts)
-- Analytics (GTM container ID)
 
 ### Environment Variables
 
 **Site Configuration:**
 
-- `NEXT_PUBLIC_GTM_ID` - Google Tag Manager (optional)
+- Analytics: Vercel Web Analytics (`<Analytics />` in `app/layout.tsx`), no configuration
 - `NEXT_PUBLIC_SITE_URL` - Site URL for absolute links
 - `VERCEL_URL` - Auto-set by Vercel deployment
 

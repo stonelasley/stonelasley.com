@@ -17,9 +17,6 @@ export const siteConfig = {
     hevy: "https://hevy.com/user/stonelasley",
     email: "mailto:website@lasley.io",
   },
-  analytics: {
-    gtmContainerId: process.env.NEXT_PUBLIC_GTM_ID || "",
-  },
   // Navigation links
   nav: {
     main: [

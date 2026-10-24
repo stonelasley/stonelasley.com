@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "type-check": "tsc --noEmit",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:smoke": "playwright test -c playwright.smoke.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
