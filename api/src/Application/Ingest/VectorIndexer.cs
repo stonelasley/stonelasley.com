@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using StoneLasley.Application.Common.Interfaces;
 using StoneLasley.Domain.Posts;
@@ -41,7 +40,9 @@ public sealed partial class VectorIndexer(ID1Database database, IEmbedder embedd
                 await database.QueryAsync("UPDATE posts SET vector_chunks = ? WHERE id = ?", [post.Chunks.Count, post.PostId], cancellationToken);
             }
         }
-        catch (Exception exception) when (exception is HttpRequestException or InvalidOperationException or JsonException)
+        // The Posts are already committed, so any failure here (a timeout included) is logged rather than thrown;
+        // only the caller cancelling stops the ingest.
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
             LogFailed(logger, exception);
         }

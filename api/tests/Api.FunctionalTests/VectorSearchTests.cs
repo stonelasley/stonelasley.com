@@ -6,7 +6,7 @@ namespace StoneLasley.Api.FunctionalTests;
 internal static class Vectors
 {
     // Vectorize writes can take a couple of minutes to become queryable.
-    private static readonly TimeSpan Visible = TimeSpan.FromMinutes(4);
+    private static readonly TimeSpan Visible = TimeSpan.FromMinutes(6);
 
     public const string Deadlift = """
         ## Setup
@@ -79,8 +79,10 @@ public class VectorSearchTests
             _client,
             TestPosts.Markdown(Training, TestPosts.NewSlug(), title: "Deadlift technique", area: "training", body: Vectors.Deadlift),
             TestPosts.Markdown(Watches, TestPosts.NewSlug("watch"), title: "Submariner Date", area: "watches", body: Vectors.DiveWatch, extra: TestPosts.WatchCore()));
-        await Vectors.EventuallyAsync(() => Vectors.SearchAsync(_client, "deadlift setup hinge at the hips"), s => s!.Results.Any(r => r.Id == Training));
-        await Vectors.EventuallyAsync(() => Vectors.SearchAsync(_client, "dive watch aluminium bezel"), s => s!.Results.Any(r => r.Id == Watches));
+        (await Vectors.EventuallyAsync(() => Vectors.SearchAsync(_client, "deadlift setup hinge at the hips"), s => s!.Results.Any(r => r.Id == Training)))!
+            .Results.ShouldContain(r => r.Id == Training, "the corpus never became queryable");
+        (await Vectors.EventuallyAsync(() => Vectors.SearchAsync(_client, "dive watch aluminium bezel"), s => s!.Results.Any(r => r.Id == Watches)))!
+            .Results.ShouldContain(r => r.Id == Watches, "the corpus never became queryable");
     }
 
     [OneTimeTearDown]
@@ -96,7 +98,9 @@ public class VectorSearchTests
     [Test]
     public async Task A_paraphrased_query_finds_the_post_by_its_best_chunk()
     {
-        var search = await Vectors.SearchAsync(_client, "how do I pick a heavy barbell up off the ground safely");
+        // Just after a write, Vectorize replicas can disagree, so even reads after setup poll.
+        var search = await Vectors.EventuallyAsync(
+            () => Vectors.SearchAsync(_client, "how do I pick a heavy barbell up off the ground safely"), s => s!.Results.Count == 1);
 
         var hit = search.ShouldNotBeNull().Results.ShouldHaveSingleItem();
         hit.Id.ShouldBe(Training);
@@ -115,8 +119,10 @@ public class VectorSearchTests
     [Test]
     public async Task The_content_area_filter_applies_to_the_vector_leg()
     {
-        var everywhere = await Vectors.SearchAsync(_client, "a dive watch with a rotating bezel");
-        var trainingOnly = await Vectors.SearchAsync(_client, "a dive watch with a rotating bezel", area: "training");
+        var everywhere = await Vectors.EventuallyAsync(
+            () => Vectors.SearchAsync(_client, "a dive watch with a rotating bezel"), s => s!.Results.Any(r => r.Id == Watches));
+        var trainingOnly = await Vectors.EventuallyAsync(
+            () => Vectors.SearchAsync(_client, "a dive watch with a rotating bezel", area: "training"), s => s!.Counts.SequenceEqual(everywhere!.Counts));
 
         everywhere.ShouldNotBeNull().Results.ShouldContain(r => r.Id == Watches);
         trainingOnly.ShouldNotBeNull().Results.ShouldNotContain(r => r.Id == Watches);

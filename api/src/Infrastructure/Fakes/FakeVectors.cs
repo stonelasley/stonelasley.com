@@ -20,10 +20,21 @@ internal sealed partial class FakeEmbedder : IEmbedder
         var vector = new float[Dimensions];
         foreach (Match word in Word().Matches(text.ToLowerInvariant()))
         {
-            vector[(int)((uint)string.GetHashCode(word.Value, StringComparison.Ordinal) % Dimensions)] += 1;
+            vector[(int)(Fnv1a(word.Value) % Dimensions)] += 1;
         }
         var length = MathF.Sqrt(vector.Sum(v => v * v));
         return length == 0 ? vector : [.. vector.Select(v => v / length)];
+    }
+
+    // A stable hash: string.GetHashCode is randomized per process.
+    private static uint Fnv1a(string text)
+    {
+        var hash = 2166136261u;
+        foreach (var c in text)
+        {
+            hash = (hash ^ c) * 16777619u;
+        }
+        return hash;
     }
 
     [GeneratedRegex(@"[\p{L}\p{N}]{3,}")]

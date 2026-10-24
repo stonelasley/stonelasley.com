@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using StoneLasley.Application.Common.Interfaces;
 using StoneLasley.Application.Search;
@@ -25,6 +27,12 @@ internal sealed class WorkerVectorIndex(HttpClient http, IOptions<SearchOptions>
 {
     private const int DeleteBatch = 1000;
 
+    // Preview and production use the index's default namespace: leave "namespace" out rather than send null.
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
+
     private string? Namespace => options.Value.Vector.Namespace;
 
     public async Task UpsertAsync(IReadOnlyList<ChunkVector> vectors, CancellationToken cancellationToken)
@@ -40,7 +48,7 @@ internal sealed class WorkerVectorIndex(HttpClient http, IOptions<SearchOptions>
             @namespace = Namespace,
             metadata = new { postId = v.PostId, area = v.Area },
         });
-        using var response = await http.PostAsJsonAsync("vectors/upsert", new { vectors = payload }, cancellationToken);
+        using var response = await http.PostAsJsonAsync("vectors/upsert", new { vectors = payload }, Json, cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 
@@ -58,6 +66,7 @@ internal sealed class WorkerVectorIndex(HttpClient http, IOptions<SearchOptions>
         using var response = await http.PostAsJsonAsync(
             "vectors/query",
             new { vector, topK, @namespace = Namespace, filter = area is null ? null : new { area } },
+            Json,
             cancellationToken);
         response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadFromJsonAsync<QueryResponse>(cancellationToken)

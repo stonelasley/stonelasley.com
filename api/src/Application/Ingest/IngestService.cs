@@ -227,12 +227,13 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
             statements.Add(new D1Statement(
                 "DELETE FROM post_chunks WHERE post_id IN (SELECT value FROM json_each(?))",
                 [JsonSerializer.Serialize(deleted.Concat(upserted))]));
-            statements.Add(new D1Statement(
+            // One statement per Post keeps each bound value about the size of one body, well under D1's limit.
+            statements.AddRange(chunks.Select(post => new D1Statement(
                 """
                 INSERT INTO post_chunks (post_id, idx, text)
-                SELECT json_extract(value, '$.p'), json_extract(value, '$.i'), json_extract(value, '$.t') FROM json_each(?)
+                SELECT ?, key, value FROM json_each(?)
                 """,
-                [JsonSerializer.Serialize(chunks.SelectMany(post => post.Chunks.Select((text, i) => new { p = post.PostId, i, t = text })))]));
+                [post.PostId, JsonSerializer.Serialize(post.Chunks)])));
             // The keyword index follows the Posts table in the same transaction: public, published Posts only.
             statements.Add(new D1Statement(
                 "DELETE FROM posts_fts WHERE post_id IN (SELECT value FROM json_each(?))",
