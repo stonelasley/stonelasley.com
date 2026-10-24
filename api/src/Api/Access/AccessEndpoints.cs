@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 using StoneLasley.Application.Access;
 using StoneLasley.Application.Common.Interfaces;
+using StoneLasley.Application.Posts;
 
 namespace StoneLasley.Api.Access;
 
@@ -49,6 +50,12 @@ public static class AccessEndpoints
         app.MapGet("/access/me", async (HttpRequest request, AccessService access, CancellationToken cancellationToken) =>
             await access.ResolveAsync(request.Headers[SessionHeader].ToString(), cancellationToken) is { } session
                 ? Results.Ok(new { session.ClientName })
+                : Results.Unauthorized());
+
+        // "Your content": everything the unlocked Client can read beyond the public site.
+        app.MapGet("/access/posts", async (HttpRequest request, AccessService access, PostReader reader, CancellationToken cancellationToken) =>
+            await access.ResolveAsync(request.Headers[SessionHeader].ToString(), cancellationToken) is { } session
+                ? Results.Ok(new { session.ClientName, Posts = await reader.PrivateForClientAsync(session.ClientId, cancellationToken) })
                 : Results.Unauthorized());
 
         var admin = app.MapGroup("/admin").AddEndpointFilter(RequireBearerToken.For<AdminOptions>(options => options.Token));
