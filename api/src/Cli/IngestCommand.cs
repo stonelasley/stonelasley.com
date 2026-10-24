@@ -20,6 +20,7 @@ internal static partial class IngestCommand
         var postFiles = new Dictionary<string, string>();
         var markdownFiles = Directory.EnumerateFiles(directory, "*.md", SearchOption.AllDirectories)
             .Where(path => !Path.GetRelativePath(directory, path).Split(Path.DirectorySeparatorChar).Any(part => part.StartsWith('_')))
+            .Where(path => !Path.GetFileName(path).Equals("README.md", StringComparison.OrdinalIgnoreCase)) // the repo's own docs
             .Order(StringComparer.Ordinal);
         foreach (var path in markdownFiles)
         {
