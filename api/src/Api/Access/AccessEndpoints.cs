@@ -1,8 +1,11 @@
 using System.Threading.RateLimiting;
+using Microsoft.Extensions.Options;
 using StoneLasley.Application.Access;
 using StoneLasley.Application.Common.Interfaces;
+using StoneLasley.Application.Ingest;
 using StoneLasley.Application.Instagram;
 using StoneLasley.Application.Posts;
+using StoneLasley.Application.Search;
 
 namespace StoneLasley.Api.Access;
 
@@ -80,6 +83,26 @@ public static class AccessEndpoints
             await feed.RefreshAsync(cancellationToken)
                 ? Results.NoContent()
                 : Results.Conflict(new { error = "No Instagram token is stored; PUT one to /admin/instagram/token first." }));
+
+        // Re-indexing (#44): build the new version's index alongside, then promote once the API runs on it.
+        admin.MapPost("/vectors/rebuild", async (string version, VectorIndexer indexer, IOptions<SearchOptions> options, CancellationToken cancellationToken) =>
+        {
+            if (version == options.Value.Vector.IndexVersion)
+            {
+                return Results.Conflict(new { error = $"{version} is the active index version; rebuild into a new one." });
+            }
+            var (posts, vectors) = await indexer.RebuildAsync(version, cancellationToken);
+            return Results.Ok(new { version, posts, vectors });
+        });
+
+        admin.MapPost("/vectors/promote", async (string version, VectorIndexer indexer, IOptions<SearchOptions> options, CancellationToken cancellationToken) =>
+        {
+            if (version != options.Value.Vector.IndexVersion)
+            {
+                return Results.Conflict(new { error = $"The API runs index version {options.Value.Vector.IndexVersion}; deploy it on {version} first." });
+            }
+            return await indexer.PromoteAsync(version, cancellationToken) ? Results.NoContent() : Results.NotFound();
+        });
 
         admin.MapDelete("/clients/{clientId}/codes", async (string clientId, AccessService access, CancellationToken cancellationToken) =>
         {

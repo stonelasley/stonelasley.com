@@ -35,7 +35,7 @@ internal sealed class WorkerVectorIndex(HttpClient http, IOptions<SearchOptions>
 
     private string? Namespace => options.Value.Vector.Namespace;
 
-    public async Task UpsertAsync(IReadOnlyList<ChunkVector> vectors, CancellationToken cancellationToken)
+    public async Task UpsertAsync(string version, IReadOnlyList<ChunkVector> vectors, CancellationToken cancellationToken)
     {
         if (vectors.Count == 0)
         {
@@ -48,24 +48,24 @@ internal sealed class WorkerVectorIndex(HttpClient http, IOptions<SearchOptions>
             @namespace = Namespace,
             metadata = new { postId = v.PostId, area = v.Area },
         });
-        using var response = await http.PostAsJsonAsync("vectors/upsert", new { vectors = payload }, Json, cancellationToken);
+        using var response = await http.PostAsJsonAsync("vectors/upsert", new { version, vectors = payload }, Json, cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 
-    public async Task DeleteAsync(IReadOnlyList<string> ids, CancellationToken cancellationToken)
+    public async Task DeleteAsync(string version, IReadOnlyList<string> ids, CancellationToken cancellationToken)
     {
         foreach (var batch in ids.Chunk(DeleteBatch))
         {
-            using var response = await http.PostAsJsonAsync("vectors/delete", new { ids = batch }, cancellationToken);
+            using var response = await http.PostAsJsonAsync("vectors/delete", new { version, ids = batch }, cancellationToken);
             response.EnsureSuccessStatusCode();
         }
     }
 
-    public async Task<IReadOnlyList<VectorMatch>> QueryAsync(float[] vector, int topK, string? area, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<VectorMatch>> QueryAsync(string version, float[] vector, int topK, string? area, CancellationToken cancellationToken)
     {
         using var response = await http.PostAsJsonAsync(
             "vectors/query",
-            new { vector, topK, @namespace = Namespace, filter = area is null ? null : new { area } },
+            new { version, vector, topK, @namespace = Namespace, filter = area is null ? null : new { area } },
             Json,
             cancellationToken);
         response.EnsureSuccessStatusCode();
