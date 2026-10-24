@@ -4,6 +4,7 @@ namespace StoneLasley.Domain.Posts;
 
 public static partial class MarkdownPost
 {
+    // Decimal point only: "1,5" would otherwise read as 15.
     private static Recipe? ReadRecipe(Frontmatter frontmatter, List<string> errors)
     {
         var count = errors.Count;
@@ -50,7 +51,7 @@ public static partial class MarkdownPost
         decimal? quantity = null;
         if (line.Quantity is not null)
         {
-            if (decimal.TryParse(line.Quantity.Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out var value) && value > 0)
+            if (decimal.TryParse(line.Quantity.Trim(), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value) && value > 0)
             {
                 quantity = value;
             }

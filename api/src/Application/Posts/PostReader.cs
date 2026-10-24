@@ -41,7 +41,7 @@ public sealed class PostReader(ID1Database database)
 
         var row = rows[0];
         return new PostDetail(
-            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "body"), PostColumns.Recipe(row));
+            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "body"), PostColumns.RecipeFromRow(row));
     }
 
     public async Task<AreaDetail> AreaAsync(ContentArea area, CancellationToken cancellationToken)

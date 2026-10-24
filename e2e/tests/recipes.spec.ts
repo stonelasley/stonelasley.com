@@ -87,4 +87,18 @@ test.describe("Recipes", () => {
     await expect(page.getByRole("contentinfo")).toBeHidden();
     await expect(page.getByRole("button", { name: "Print recipe" })).toBeHidden();
   });
+
+  test("printing puts the details before the method and always prints light", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto(recipe);
+    await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+
+    await page.emulateMedia({ colorScheme: "dark", media: "print" });
+
+    const details = await page.getByRole("region", { name: "Recipe details" }).boundingBox();
+    const method = await page.getByText("Stir the oats and water").boundingBox();
+    expect(details!.y).toBeLessThan(method!.y);
+    await expect(page.locator("body")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await expect(page.locator("body")).toHaveCSS("color", "rgb(23, 23, 23)");
+  });
 });

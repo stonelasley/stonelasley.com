@@ -85,7 +85,11 @@ async function get<T>(path: string, schema: z.ZodType<T>): Promise<T | null> {
   if (response.status < 200 || response.status >= 300) {
     throw new Error(`GET ${path} failed: ${response.status} ${response.body}`);
   }
-  return schema.parse(JSON.parse(response.body));
+  try {
+    return schema.parse(JSON.parse(response.body));
+  } catch (error) {
+    throw new Error(`GET ${path} returned an unexpected body`, { cause: error });
+  }
 }
 
 /** Public Posts in one Content Area, newest first. */

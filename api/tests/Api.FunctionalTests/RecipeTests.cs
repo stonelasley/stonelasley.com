@@ -91,7 +91,7 @@ public class RecipeTests
     }
 
     [Test]
-    public async Task An_intro_left_out_of_the_manifest_is_removed()
+    public async Task An_area_left_out_of_the_intros_loses_its_intro()
     {
         await using var api = new ApiFactory();
         using var client = api.CreateIngestClient();
@@ -100,10 +100,28 @@ public class RecipeTests
             new { posts = new Dictionary<string, string>(), intros = new Dictionary<string, string> { ["training"] = "Lift." } });
         (await Ingest.CommitAsync(client, (await first.Content.ReadFromJsonAsync<ManifestResponse>())!.RunId)).EnsureSuccessStatusCode();
 
-        var second = await Ingest.ManifestAsync(client, new Dictionary<string, string>());
-        (await Ingest.CommitAsync(client, second.RunId)).EnsureSuccessStatusCode();
+        var second = await client.PostAsJsonAsync(
+            "/ingest/manifest",
+            new { posts = new Dictionary<string, string>(), intros = new Dictionary<string, string>() });
+        (await Ingest.CommitAsync(client, (await second.Content.ReadFromJsonAsync<ManifestResponse>())!.RunId)).EnsureSuccessStatusCode();
 
         (await client.GetFromJsonAsync<AreaResponse>("/areas/training")).ShouldNotBeNull().Intro.ShouldBeNull();
+    }
+
+    [Test]
+    public async Task A_manifest_without_intros_leaves_them_alone()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var first = await client.PostAsJsonAsync(
+            "/ingest/manifest",
+            new { posts = new Dictionary<string, string>(), intros = new Dictionary<string, string> { ["watches"] = "Steel." } });
+        (await Ingest.CommitAsync(client, (await first.Content.ReadFromJsonAsync<ManifestResponse>())!.RunId)).EnsureSuccessStatusCode();
+
+        var second = await client.PostAsJsonAsync("/ingest/manifest", new { posts = new Dictionary<string, string>() });
+        (await Ingest.CommitAsync(client, (await second.Content.ReadFromJsonAsync<ManifestResponse>())!.RunId)).EnsureSuccessStatusCode();
+
+        (await client.GetFromJsonAsync<AreaResponse>("/areas/watches")).ShouldNotBeNull().Intro.ShouldBe("Steel.");
     }
 
     [Test]

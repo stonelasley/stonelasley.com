@@ -73,6 +73,7 @@ public class RecipeTests
     [TestCase("ovenTempC: 180", "ovenTempC: hot", "'ovenTempC' must be a whole number, 1 or more.")]
     [TestCase("- { name: cinnamon, optional: true }", "- { optional: true }", "'ingredients[3].name' is required.")]
     [TestCase("- { quantity: 80, unit: g, name: rolled oats }", "- { quantity: none, unit: g, name: rolled oats }", "'ingredients[1].quantity' must be a number above 0.")]
+    [TestCase("- { quantity: 80, unit: g, name: rolled oats }", "- { quantity: '1,5', unit: g, name: rolled oats }", "'ingredients[1].quantity' must be a number above 0.")]
     [TestCase("- { name: cinnamon, optional: true }", "- { name: cinnamon, optional: maybe }", "'ingredients[3].optional' must be true or false.")]
     public void Rejects_an_invalid_typed_core_field(string valid, string invalid, string error)
     {
@@ -95,6 +96,14 @@ public class RecipeTests
             "'difficulty' must be Easy, Medium or Veteran.",
             "'ingredients' must list at least one ingredient.",
         ]);
+    }
+
+    [Test]
+    public void Reports_typed_core_errors_alongside_other_frontmatter_errors()
+    {
+        var result = MarkdownPost.Parse(ValidRecipe.Replace("title: Protein oats", "title: ''").Replace("servings: 2", "servings: none"));
+
+        result.Errors.ShouldBe(["'title' is required.", "'servings' must be a whole number, 1 or more."]);
     }
 
     [Test]

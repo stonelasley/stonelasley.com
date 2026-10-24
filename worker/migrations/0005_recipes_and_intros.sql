@@ -3,7 +3,7 @@ ALTER TABLE posts ADD COLUMN recipe TEXT;
 ALTER TABLE ingest_staged_posts ADD COLUMN recipe TEXT;
 
 -- Optional Markdown shown above a Content Area's index, kept in the content repo.
-ALTER TABLE ingest_runs ADD COLUMN intros TEXT NOT NULL DEFAULT '{}'; -- JSON object of area slug → Markdown
+ALTER TABLE ingest_runs ADD COLUMN intros TEXT; -- JSON object of area slug → Markdown, or null to leave intros alone
 CREATE TABLE area_intros (
   area TEXT PRIMARY KEY,
   intro TEXT NOT NULL

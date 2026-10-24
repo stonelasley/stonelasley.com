@@ -93,7 +93,9 @@ public static partial class MarkdownPost
                 break;
         }
 
-        var recipe = area == ContentArea.Recipes && errors.Count == 0 ? ReadRecipe(frontmatter, errors) : null;
+        // `area` is only meaningful when it parsed, so check it again rather than trusting the default.
+        var hasArea = ContentAreas.TryParse(frontmatter.Area?.Trim(), out _);
+        var recipe = hasArea && area == ContentArea.Recipes ? ReadRecipe(frontmatter, errors) : null;
 
         if (errors.Count > 0)
         {

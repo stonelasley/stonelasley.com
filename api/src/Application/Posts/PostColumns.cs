@@ -18,9 +18,9 @@ internal static class PostColumns
         Converters = { new JsonStringEnumConverter() },
     };
 
-    public static string? Recipe(Recipe? recipe) => recipe is null ? null : JsonSerializer.Serialize(recipe, Json);
+    public static string? RecipeJson(Recipe? recipe) => recipe is null ? null : JsonSerializer.Serialize(recipe, Json);
 
-    public static Recipe? Recipe(JsonElement row) =>
+    public static Recipe? RecipeFromRow(JsonElement row) =>
         row.TryGetProperty("recipe", out var column) && column.ValueKind == JsonValueKind.String
             ? JsonSerializer.Deserialize<Recipe>(column.GetString()!, Json)
             : null;
