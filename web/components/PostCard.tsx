@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 import type { PostSummary } from "@/lib/api";
+import { DraftBadge } from "./DraftBadge";
 import { Tag } from "./Tag";
 
 interface PostCardProps {
@@ -15,6 +16,12 @@ export function PostCard({ post, headingLevel: Heading = "h2" }: PostCardProps) 
         <Link href={`/${post.area}/${post.slug}`} className="group-hover:underline">
           {post.title}
         </Link>
+        {post.draft && (
+          <>
+            {" "}
+            <DraftBadge />
+          </>
+        )}
       </Heading>
       {post.excerpt && <p className="text-muted-foreground">{post.excerpt}</p>}
       <div className="text-muted-foreground text-sm">
