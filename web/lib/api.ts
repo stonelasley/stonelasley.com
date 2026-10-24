@@ -94,12 +94,19 @@ function apiUrl(): string {
 // Plain node:http, not fetch. Next caches every fetch made while prerendering a static page and reuses it
 // in later builds (and Vercel keeps that cache across deployments), so a rebuild after an ingest would
 // render the old content. Pages stay static either way; revalidation re-renders them from fresh API data.
-function request(url: string): Promise<{ status: number; body: string }> {
+function request(
+  url: string,
+  {
+    method = "GET",
+    headers = {},
+    body,
+  }: { method?: string; headers?: Record<string, string>; body?: string } = {}
+): Promise<{ status: number; body: string }> {
   const client = url.startsWith("https:") ? https : http;
   return new Promise((resolve, reject) => {
-    const req = client.get(
+    const req = client.request(
       url,
-      { headers: { accept: "application/json" }, timeout: 30_000 },
+      { method, headers: { accept: "application/json", ...headers }, timeout: 30_000 },
       (res) => {
         let body = "";
         res.setEncoding("utf8");
@@ -107,13 +114,18 @@ function request(url: string): Promise<{ status: number; body: string }> {
         res.on("end", () => resolve({ status: res.statusCode ?? 0, body }));
       }
     );
-    req.on("timeout", () => req.destroy(new Error(`GET ${url} timed out`)));
+    req.on("timeout", () => req.destroy(new Error(`${method} ${url} timed out`)));
     req.on("error", reject);
+    req.end(body);
   });
 }
 
-async function get<T>(path: string, schema: z.ZodType<T>): Promise<T | null> {
-  const response = await request(`${apiUrl()}${path}`);
+async function get<T>(
+  path: string,
+  schema: z.ZodType<T>,
+  headers?: Record<string, string>
+): Promise<T | null> {
+  const response = await request(`${apiUrl()}${path}`, { headers });
   if (response.status === 404) {
     return null;
   }
@@ -142,8 +154,40 @@ export async function getAllPosts(): Promise<PostSummary[]> {
   return byArea.flat().sort((a, b) => b.date.localeCompare(a.date));
 }
 
-export async function getPost(area: AreaSlug, slug: string): Promise<Post | null> {
-  return get(`/areas/${area}/posts/${encodeURIComponent(slug)}`, postSchema);
+/** A Post by area and slug. With an Access session, Private Posts the Client may read come back too. */
+export async function getPost(
+  area: AreaSlug,
+  slug: string,
+  session?: string
+): Promise<Post | null> {
+  return get(
+    `/areas/${area}/posts/${encodeURIComponent(slug)}`,
+    postSchema,
+    session ? { "x-access-session": session } : undefined
+  );
+}
+
+const exchangedSchema = z.object({ session: z.string(), clientName: z.string() });
+
+/** Trades an Access Code (plus a Turnstile token) for a session value, or null if the code didn't work. */
+export async function exchangeAccessCode(
+  code: string,
+  turnstileToken: string,
+  visitorIp: string | null
+): Promise<z.infer<typeof exchangedSchema> | null> {
+  const response = await request(`${apiUrl()}/access/exchange`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...(visitorIp ? { "x-forwarded-for": visitorIp } : {}),
+    },
+    body: JSON.stringify({ code, turnstileToken }),
+  });
+  if (response.status === 401 || response.status === 429) return null;
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`POST /access/exchange failed: ${response.status} ${response.body}`);
+  }
+  return exchangedSchema.parse(JSON.parse(response.body));
 }
 
 /** A Content Area's intro from the content repo, if it has one. */

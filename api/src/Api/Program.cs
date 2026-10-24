@@ -1,7 +1,9 @@
 using System.Text.Json.Serialization;
+using StoneLasley.Api.Access;
 using StoneLasley.Api.Ingest;
 using StoneLasley.Api.Posts;
 using StoneLasley.Application;
+using StoneLasley.Application.Access;
 using StoneLasley.Application.Search;
 using StoneLasley.Domain.Posts;
 using StoneLasley.Infrastructure;
@@ -18,6 +20,15 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddOptions<SearchOptions>().BindConfiguration(SearchOptions.SectionName);
+builder.Services.AddOptions<AdminOptions>()
+    .BindConfiguration(AdminOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddOptions<AccessOptions>()
+    .BindConfiguration(AccessOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddAccessRateLimit();
 builder.Services.AddOptions<IngestOptions>()
     .BindConfiguration(IngestOptions.SectionName)
     .ValidateDataAnnotations()
@@ -35,7 +46,10 @@ if (app.Configuration.GetValue<bool>("Site:NoIndex"))
     });
 }
 
+app.UseRateLimiter();
+
 app.MapHealthChecks("/health");
+app.MapAccess();
 app.MapIngest();
 app.MapPosts();
 

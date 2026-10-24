@@ -20,10 +20,22 @@ switch (args)
             return 2;
         }
         return await IngestCommand.RunAsync(apiUrl, token, directory, flags.Contains("--dry-run"), flags.Contains("--include-drafts"));
+    case [var command, var clientId] when command is "issue" or "revoke":
+        var adminToken = Environment.GetEnvironmentVariable("SL_ADMIN_TOKEN");
+        if (string.IsNullOrEmpty(adminToken))
+        {
+            Console.Error.WriteLine("SL_ADMIN_TOKEN is not set.");
+            return 2;
+        }
+        return command == "issue"
+            ? await AccessCommands.IssueAsync(apiUrl, adminToken, clientId)
+            : await AccessCommands.RevokeAsync(apiUrl, adminToken, clientId);
     default:
         Console.Error.WriteLine("""
             usage: sl health
                    sl ingest <directory> [--dry-run] [--include-drafts]    (token from SL_INGEST_TOKEN)
+                   sl issue <client-ulid>     prints a new Access Code once, revoking any earlier one
+                   sl revoke <client-ulid>    (admin token from SL_ADMIN_TOKEN)
 
             The API is SL_API_URL, default http://localhost:5180.
             """);
