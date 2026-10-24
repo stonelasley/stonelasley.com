@@ -61,6 +61,7 @@ const watchSchema = z.object({
 });
 
 const postSchema = postSummarySchema.omit({ watch: true }).extend({
+  audiencePublic: z.boolean().default(true), // false for a Private Post
   body: z.string(), // Markdown
   recipe: recipeSchema.nullable(),
   watch: watchSchema.nullable(),
