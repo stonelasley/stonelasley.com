@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* `dark:` follows the .dark class the theme toggle sets, not the media query. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Design System - Grayscale with HSL variables */
 :root {
   /* Light theme - Grayscale palette */
