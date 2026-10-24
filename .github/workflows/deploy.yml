@@ -117,11 +117,47 @@ jobs:
             --env API_URL="$API_URL" --env REVALIDATE_SECRET="${{ secrets.PREVIEW_REVALIDATE_SECRET }}")
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
+      # Previews sit behind Vercel Deployment Protection, so the API revalidates with the project's
+      # "Protection Bypass for Automation" secret, generated here the first time.
+      - name: Get the Vercel automation bypass secret
+        id: bypass
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          team=""; [[ "$VERCEL_ORG_ID" == team_* ]] && team="?teamId=$VERCEL_ORG_ID"
+          api="https://api.vercel.com"
+          auth=(-H "Authorization: Bearer $VERCEL_TOKEN")
+          secret=$(curl -fsS "${auth[@]}" "$api/v9/projects/$VERCEL_PROJECT_ID$team" \
+            | jq -r '.protectionBypass // {} | to_entries[] | select(.value.scope == "automation-bypass") | .key' | head -1)
+          if [ -z "$secret" ]; then
+            secret=$(curl -fsS -X PATCH "${auth[@]}" -H "Content-Type: application/json" -d '{}' \
+              "$api/v1/projects/$VERCEL_PROJECT_ID/protection-bypass$team" \
+              | jq -r '.protectionBypass | to_entries[] | select(.value.scope == "automation-bypass") | .key' | head -1)
+          fi
+          echo "::add-mask::$secret"
+          echo "secret=$secret" >> "$GITHUB_OUTPUT"
+
       # The shared preview API revalidates whichever preview deployed last.
       - name: Point API revalidation at this deployment
         run: |
-          az containerapp update -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" \
-            --set-env-vars "Revalidation__Url=${{ steps.site.outputs.url }}/api/revalidate" --only-show-errors >/dev/null
+          az containerapp secret set -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" \
+            --secrets "vercel-bypass=${{ steps.bypass.outputs.secret }}" --only-show-errors >/dev/null
+          az containerapp update -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --set-env-vars \
+            "Revalidation__Url=${{ steps.site.outputs.url }}/api/revalidate" \
+            "Revalidation__ProtectionBypass=secretref:vercel-bypass" --only-show-errors >/dev/null
+
+      - name: Check the site revalidates through the API's path
+        env:
+          BYPASS: ${{ steps.bypass.outputs.secret }}
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ secrets.PREVIEW_REVALIDATE_SECRET }}" \
+            -H "x-vercel-protection-bypass: $BYPASS" "${{ steps.site.outputs.url }}/api/revalidate")
+          echo "revalidate answered $status"
+          test "$status" = 200
 
       - name: Comment the preview URLs
         if: github.event_name == 'pull_request'

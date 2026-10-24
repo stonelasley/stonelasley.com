@@ -57,8 +57,7 @@ test.describe("Watches", () => {
 
     await page.getByLabel("Make").selectOption("Patek Philippe");
 
-    const models = await page.getByLabel("Model").locator("option").allTextContents();
-    expect(models).toEqual(["All models", "Nautilus"]);
+    await expect(page.getByLabel("Model").locator("option")).toHaveText(["All models", "Nautilus"]);
     await expect(page.getByLabel("Model")).toHaveValue("");
     await expect(listed(page)).toHaveText(["Patek Philippe Nautilus 5711"]);
   });
@@ -76,7 +75,9 @@ test.describe("Watches", () => {
   test("the decade filter offers only decades with Watches", async ({ page }) => {
     await page.goto("/watches");
 
-    const decades = await page.getByLabel("Decade").locator("option").allTextContents();
-    expect(decades.slice(0, 4)).toEqual(["All decades", "1980s", "1990s", "2000s"]);
+    // Options render after hydration; toHaveText retries until they're there.
+    await expect(page.getByLabel("Decade").locator("option").nth(3)).toHaveText("2000s");
+    await expect(page.getByLabel("Decade").locator("option").nth(0)).toHaveText("All decades");
+    await expect(page.getByLabel("Decade").locator("option").nth(1)).toHaveText("1980s");
   });
 });
