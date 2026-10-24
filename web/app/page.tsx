@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Container } from "@/components/Container";
 import { PostCard } from "@/components/PostCard";
+import { InstagramFeed } from "@/components/InstagramFeed";
 import { getAllPosts } from "@/lib/api";
 import { contentAreas } from "@/lib/areas";
 import { siteConfig } from "@/site.config";
@@ -88,6 +89,9 @@ export default async function Home() {
           </Container>
         </section>
       )}
+      <Container>
+        <InstagramFeed />
+      </Container>
     </>
   );
 }
