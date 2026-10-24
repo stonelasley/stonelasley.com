@@ -1,5 +1,6 @@
-import Script from "next/script";
+import Link from "next/link";
 import { cookies } from "next/headers";
+import { AccessCodeForm } from "@/components/AccessCodeForm";
 import { Container } from "@/components/Container";
 import { getAccessClientName } from "@/lib/api";
 import { accessCookie } from "@/lib/access";
@@ -17,7 +18,6 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
   const { error, unlocked } = await searchParams;
   const session = (await cookies()).get(accessCookie)?.value;
   const clientName = unlocked && session ? await getAccessClientName(session) : null;
-  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   return (
     <Container className="max-w-xl py-16 md:py-24">
@@ -29,7 +29,10 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
 
       {clientName && (
         <p role="status" className="border-border bg-card mb-6 rounded-md border p-4">
-          Unlocked for {clientName}.
+          Unlocked for {clientName}.{" "}
+          <Link href="/your-content" className="underline">
+            See your content
+          </Link>
         </p>
       )}
       {error && (
@@ -38,37 +41,7 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
         </p>
       )}
 
-      <form action="/access/unlock" method="post" className="space-y-4">
-        <div className="space-y-2">
-          <label htmlFor="code" className="text-sm font-medium">
-            Access Code
-          </label>
-          <input
-            id="code"
-            name="code"
-            required
-            autoComplete="off"
-            autoCapitalize="characters"
-            spellCheck={false}
-            className="border-border bg-background focus:ring-ring w-full rounded-md border px-3 py-2 font-mono tracking-wider focus:ring-2 focus:outline-none"
-          />
-        </div>
-        {siteKey && (
-          <>
-            <Script
-              src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-              strategy="afterInteractive"
-            />
-            <div className="cf-turnstile" data-sitekey={siteKey} />
-          </>
-        )}
-        <button
-          type="submit"
-          className="bg-foreground text-background hover:bg-foreground/90 rounded-md px-4 py-2 text-sm font-semibold"
-        >
-          Unlock
-        </button>
-      </form>
+      <AccessCodeForm />
     </Container>
   );
 }

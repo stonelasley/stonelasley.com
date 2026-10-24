@@ -278,4 +278,52 @@ public class AccessTests
 
         statuses.ShouldContain(HttpStatusCode.TooManyRequests);
     }
+
+    public sealed record YourContent(string ClientName, IReadOnlyList<PostSummaryResponse> Posts);
+
+    private static Task<HttpResponseMessage> YourContentAsync(HttpClient client, string? session)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/access/posts");
+        if (session is not null)
+        {
+            request.Headers.Add("X-Access-Session", session);
+        }
+        return client.SendAsync(request);
+    }
+
+    [Test]
+    public async Task Your_content_lists_the_shared_library_and_the_clients_own_posts_only()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateClient();
+        using (var ingest = api.CreateIngestClient())
+        {
+            var (alex, sam) = (TestPosts.NewUlid(), TestPosts.NewUlid());
+            await Ingest.RunWithClientsAsync(
+                ingest,
+                Clients((alex, "Alex Example"), (sam, "Sam Sample")),
+                TestPosts.Markdown(TestPosts.NewUlid(), "library", title: "Library", area: "training", audience: "clients", date: "2026-09-01"),
+                TestPosts.Markdown(TestPosts.NewUlid(), "alex-plan", title: "Alex plan", area: "training", audience: alex, date: "2026-09-02"),
+                TestPosts.Markdown(TestPosts.NewUlid(), "sam-plan", title: "Sam plan", area: "training", audience: sam),
+                TestPosts.Markdown(TestPosts.NewUlid(), "public-post", title: "Public", area: "training"));
+            var session = await SessionAsync(client, await IssueAsync(api, alex));
+
+            var response = await YourContentAsync(client, session);
+
+            response.StatusCode.ShouldBe(HttpStatusCode.OK);
+            var mine = await response.Content.ReadFromJsonAsync<YourContent>();
+            mine.ShouldNotBeNull().ClientName.ShouldBe("Alex Example");
+            mine.Posts.Select(p => p.Title).ShouldBe(["Alex plan", "Library"]);
+        }
+    }
+
+    [TestCase(null)]
+    [TestCase("garbage")]
+    public async Task Your_content_needs_a_live_session(string? session)
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateClient();
+
+        (await YourContentAsync(client, session)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
 }
