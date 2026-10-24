@@ -77,3 +77,14 @@ dotnet test api/tests/Api.FunctionalTests    # API in WebApplicationFactory agai
 The functional tests start their own `wrangler dev` on a free port, with migrations applied to a throwaway local D1. Run `npm install` at the root first so `wrangler` is available.
 
 Vectorize and Workers AI have no local simulation. Most tests use the API's in-process vector fake; `VectorSearchTests` and `VectorIndexMaintenanceTests` bind them remotely to the `posts-v1-ci` index, in a namespace per run that's deleted by id afterwards. That needs a Cloudflare login (`wrangler login` locally, `CLOUDFLARE_API_TOKEN` in CI). Without one, set `SL_FAKE_VECTORS=1`: the Worker runs `--local` and those tests are skipped, as on fork PRs.
+
+### Search eval
+
+`SearchEvalTests` measures search quality: it ingests the frozen corpus in `tests/Api.FunctionalTests/SearchEval/corpus/` into the ci index, runs the graded queries in `queries.json` through `/search` in every mode, and gates on nDCG@5 against `scores.json` (ADR 0004). It is `[Explicit]`, so the ordinary run skips it. The Search Eval workflow runs it on PRs that touch the API or Worker, and nightly. It needs the real index, so it fails rather than skipping under `SL_FAKE_VECTORS=1`.
+
+```bash
+dotnet test tests/Api.FunctionalTests --filter TestCategory=SearchEval
+SL_EVAL_WRITE_SCORES=1 dotnet test tests/Api.FunctionalTests --filter TestCategory=SearchEval  # accept a deliberate change as the new baseline
+```
+
+`SL_EVAL_REPORT_DIR` sets where the report, scores and status file land (default: the test run's work directory). The corpus is public: `CorpusTests` fails if a snapshot Post isn't public and published.

@@ -1,0 +1,88 @@
+{
+  "modes": {
+    "hybrid": {
+      "overall": {
+        "ndcg5": 0.879,
+        "recall10": 0.924,
+        "mrr": 0.92,
+        "queries": 40
+      },
+      "byType": {
+        "exact": {
+          "ndcg5": 1,
+          "recall10": 1,
+          "mrr": 1,
+          "queries": 14
+        },
+        "paraphrase": {
+          "ndcg5": 0.957,
+          "recall10": 1,
+          "mrr": 0.962,
+          "queries": 13
+        },
+        "conceptual": {
+          "ndcg5": 0.67,
+          "recall10": 0.766,
+          "mrr": 0.792,
+          "queries": 13
+        }
+      }
+    },
+    "keyword": {
+      "overall": {
+        "ndcg5": 0.868,
+        "recall10": 0.891,
+        "mrr": 0.932,
+        "queries": 40
+      },
+      "byType": {
+        "exact": {
+          "ndcg5": 1,
+          "recall10": 1,
+          "mrr": 1,
+          "queries": 14
+        },
+        "paraphrase": {
+          "ndcg5": 0.985,
+          "recall10": 1,
+          "mrr": 1,
+          "queries": 13
+        },
+        "conceptual": {
+          "ndcg5": 0.609,
+          "recall10": 0.663,
+          "mrr": 0.792,
+          "queries": 13
+        }
+      }
+    },
+    "vector": {
+      "overall": {
+        "ndcg5": 0.685,
+        "recall10": 0.708,
+        "mrr": 0.725,
+        "queries": 40
+      },
+      "byType": {
+        "exact": {
+          "ndcg5": 0.857,
+          "recall10": 0.857,
+          "mrr": 0.857,
+          "queries": 14
+        },
+        "paraphrase": {
+          "ndcg5": 0.711,
+          "recall10": 0.769,
+          "mrr": 0.731,
+          "queries": 13
+        },
+        "conceptual": {
+          "ndcg5": 0.472,
+          "recall10": 0.486,
+          "mrr": 0.577,
+          "queries": 13
+        }
+      }
+    }
+  }
+}

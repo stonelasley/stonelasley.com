@@ -27,6 +27,8 @@ yarn.lock
 
 # Generated content
 content/
+# The search eval's frozen snapshot of the content repo: formatting it would change what was measured
+api/tests/Api.FunctionalTests/SearchEval/corpus/
 web/public/images/notion/
 
 # Claude Code and GitHub workflows

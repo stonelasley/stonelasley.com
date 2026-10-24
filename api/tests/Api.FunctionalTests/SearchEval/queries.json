@@ -1,0 +1,233 @@
+{
+  "_grades": "2 = the answer, 1 = also relevant. 'none' queries have no answer in the corpus.",
+  "queries": [
+    {
+      "type": "exact",
+      "q": "banana bread",
+      "judged": {
+        "buffed-up-protein-banana-bread": 2,
+        "lemon-blueberry-high-protein-banana-brea": 2
+      }
+    },
+    { "type": "exact", "q": "keto ketchup", "judged": { "keto-ketchup": 2 } },
+    { "type": "exact", "q": "bbq sauce", "judged": { "hard-bbq-sauce": 2 } },
+    { "type": "exact", "q": "cornbread", "judged": { "mexican-muscle-cornbread": 2 } },
+    {
+      "type": "exact",
+      "q": "coconut cream balls",
+      "judged": { "high-protein-coconut-cream-balls": 2 }
+    },
+    {
+      "type": "exact",
+      "q": "ice cream",
+      "judged": { "peanut-butter-blueberry-anabolic-icecream": 2 }
+    },
+    { "type": "exact", "q": "GMT-Master 1675", "judged": { "rolex-gmt-master-1675": 2 } },
+    { "type": "exact", "q": "Submariner 5513", "judged": { "rolex-submariner-5513": 2 } },
+    { "type": "exact", "q": "Sea-Dweller 1665", "judged": { "rolex-sea-dweller-1665": 2 } },
+    {
+      "type": "exact",
+      "q": "Daytona 6265",
+      "judged": { "rolex-daytona-6265": 2, "rolex-daytona-116520": 1 }
+    },
+    {
+      "type": "exact",
+      "q": "Datejust 126234",
+      "judged": { "rolex-datejust-126234": 2, "rolex-datejust-16234": 1 }
+    },
+    { "type": "exact", "q": "Aquanaut", "judged": { "patek-philippe-aquanaut-5167a": 2 } },
+    { "type": "exact", "q": "116610", "judged": { "rolex-submariner-116610": 2 } },
+    {
+      "type": "exact",
+      "q": "calibre 3135",
+      "judged": { "rolex-submariner-116610": 2, "rolex-datejust-126234": 1 }
+    },
+
+    {
+      "type": "paraphrase",
+      "q": "protein loaf made with bananas",
+      "judged": {
+        "buffed-up-protein-banana-bread": 2,
+        "lemon-blueberry-high-protein-banana-brea": 2
+      }
+    },
+    {
+      "type": "paraphrase",
+      "q": "homemade low sugar tomato sauce",
+      "judged": { "keto-ketchup": 2, "hard-bbq-sauce": 1 }
+    },
+    {
+      "type": "paraphrase",
+      "q": "smoky barbecue glaze for meat",
+      "judged": { "hard-bbq-sauce": 2 }
+    },
+    {
+      "type": "paraphrase",
+      "q": "frozen dessert with peanut butter and berries",
+      "judged": { "peanut-butter-blueberry-anabolic-icecream": 2 }
+    },
+    {
+      "type": "paraphrase",
+      "q": "high protein corn bake with green chiles",
+      "judged": { "mexican-muscle-cornbread": 2 }
+    },
+    {
+      "type": "paraphrase",
+      "q": "Rolex with the red and blue Pepsi bezel",
+      "judged": { "rolex-gmt-master-1675": 2 }
+    },
+    {
+      "type": "paraphrase",
+      "q": "Submariner with red text on the dial",
+      "judged": { "rolex-submariner-1680": 2, "rolex-sea-dweller-1665": 1 }
+    },
+    {
+      "type": "paraphrase",
+      "q": "green ceramic bezel Submariner",
+      "judged": { "rolex-submariner-116610": 2 }
+    },
+    {
+      "type": "paraphrase",
+      "q": "dive watch with a helium escape valve",
+      "judged": { "rolex-sea-dweller-1665": 2, "rolex-sea-dweller-1226600": 2 }
+    },
+    {
+      "type": "paraphrase",
+      "q": "Submariner issued to COMEX divers",
+      "judged": {
+        "rolex-submariner-5513": 2,
+        "rolex-submariner-1680": 1,
+        "rolex-submariner-168000": 1,
+        "rolex-sea-dweller-1665": 1
+      }
+    },
+    {
+      "type": "paraphrase",
+      "q": "transitional Submariner in 904L steel",
+      "judged": { "rolex-submariner-168000": 2 }
+    },
+    {
+      "type": "paraphrase",
+      "q": "Paul Newman dial chronograph",
+      "judged": { "rolex-daytona-6265": 2 }
+    },
+    {
+      "type": "paraphrase",
+      "q": "big crown Submariner from the 1950s",
+      "judged": { "rolex-submariner-6538": 2, "rolex-submariner-5512": 1 }
+    },
+
+    {
+      "type": "conceptual",
+      "q": "a post-workout snack that tastes like dessert",
+      "judged": {
+        "peanut-butter-blueberry-anabolic-icecream": 2,
+        "high-protein-coconut-cream-balls": 2,
+        "buffed-up-protein-banana-bread": 1,
+        "lemon-blueberry-high-protein-banana-brea": 1
+      }
+    },
+    {
+      "type": "conceptual",
+      "q": "baking with whey protein powder",
+      "judged": {
+        "buffed-up-protein-banana-bread": 2,
+        "lemon-blueberry-high-protein-banana-brea": 2,
+        "high-protein-coconut-cream-balls": 1,
+        "mexican-muscle-cornbread": 1,
+        "peanut-butter-blueberry-anabolic-icecream": 1
+      }
+    },
+    {
+      "type": "conceptual",
+      "q": "condiments without sugar",
+      "judged": { "keto-ketchup": 2, "hard-bbq-sauce": 2 }
+    },
+    {
+      "type": "conceptual",
+      "q": "something savory to bake for a cookout",
+      "judged": { "mexican-muscle-cornbread": 2, "hard-bbq-sauce": 1 }
+    },
+    {
+      "type": "conceptual",
+      "q": "lemon and berries",
+      "judged": {
+        "lemon-blueberry-high-protein-banana-brea": 2,
+        "peanut-butter-blueberry-anabolic-icecream": 1
+      }
+    },
+    {
+      "type": "conceptual",
+      "q": "restoring a vintage dive watch",
+      "judged": {
+        "rolex-submariner-5512": 2,
+        "rolex-submariner-5513": 2,
+        "rolex-submariner-6538": 2,
+        "rolex-submariner-1680": 2,
+        "rolex-sea-dweller-1665": 1
+      }
+    },
+    {
+      "type": "conceptual",
+      "q": "how to spot a fake vintage Rolex",
+      "judged": {
+        "rolex-submariner-5513": 2,
+        "rolex-daytona-6265": 1,
+        "rolex-gmt-master-1675": 1,
+        "rolex-oyster-perpetual-1500": 1,
+        "rolex-sea-dweller-1665": 1,
+        "rolex-submariner-6538": 1,
+        "rolex-submariner-168000": 1
+      }
+    },
+    {
+      "type": "conceptual",
+      "q": "a watch for timing laps at a race track",
+      "judged": {
+        "rolex-daytona-6265": 2,
+        "rolex-daytona-116520": 2,
+        "patek-philippe-perpetual-calendar-chronograph-5970": 1
+      }
+    },
+    {
+      "type": "conceptual",
+      "q": "a watch that shows two time zones for pilots",
+      "judged": { "rolex-gmt-master-1675": 2 }
+    },
+    {
+      "type": "conceptual",
+      "q": "a dress watch with a fluted bezel",
+      "judged": {
+        "rolex-datejust-126234": 2,
+        "rolex-datejust-16234": 2,
+        "rolex-oyster-perpetual-1500": 1
+      }
+    },
+    {
+      "type": "conceptual",
+      "q": "a luxury sports watch on a rubber strap",
+      "judged": { "patek-philippe-aquanaut-5167a": 2 }
+    },
+    {
+      "type": "conceptual",
+      "q": "a watch that tracks leap years and the date automatically",
+      "judged": { "patek-philippe-perpetual-calendar-chronograph-5970": 2 }
+    },
+    {
+      "type": "conceptual",
+      "q": "replacement bracelet and endlink part numbers",
+      "judged": {
+        "rolex-submariner-1680": 2,
+        "rolex-submariner-5512": 2,
+        "rolex-submariner-5513": 2,
+        "rolex-gmt-master-1675": 1
+      }
+    },
+
+    { "type": "none", "q": "sourdough starter" },
+    { "type": "none", "q": "marathon training plan" },
+    { "type": "none", "q": "Omega Speedmaster moonwatch" },
+    { "type": "none", "q": "vegan lasagna" },
+    { "type": "none", "q": "filing small business taxes" }
+  ]
+}
