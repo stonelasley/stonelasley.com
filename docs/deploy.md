@@ -2,16 +2,16 @@
 
 `.github/workflows/deploy.yml` ships every layer in order, and each stage runs only if the one before it succeeded. The stages live once, in `deploy-environment.yml`, which both environments call. A same-repo PR that targets `master` deploys to **preview**. A PR stacked on another branch skips, so preview shows the next PR to merge, and fork PRs get no secrets and skip too. A merge to `master` deploys to **production** once the `PRODUCTION_ENABLED` variable is `true` (see [Production cutover](#production-cutover)). Run the workflow by hand (workflow_dispatch) to preview any branch, or to redeploy production from `master`.
 
-| #   | Stage                                                                            | Preview                                                                               | Production                                                              |
-| --- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| 1   | D1 migrations (`wrangler d1 migrations apply --remote`)                          | `stonelasley-preview`                                                                 | `stonelasley-prod`                                                      |
-| 2   | Worker secret + `wrangler deploy`                                                | `stonelasley-data-proxy-preview` on `data-preview.stonelasley.com`, `workers.dev` off | `stonelasley-data-proxy` on `data.stonelasley.com`                      |
-| 3   | API image to GHCR                                                                | `ghcr.io/stonelasley/stonelasley-api:<sha>` (public, inherited from the repo)         | same                                                                    |
-| 4   | Container Apps revision                                                          | `ca-stonelasley-api-preview` in `cae-stonelasley-preview`, scale 0 to 1               | `ca-stonelasley-api` in `cae-stonelasley`, on `PRODUCTION_API_URL`      |
-| 5   | Wait on `/health`                                                                | `web/scripts/warm-api.mjs`                                                            | same; the build fails if the API never answers                          |
-| 6   | `vercel build` + `vercel deploy --prebuilt`                                      | built against the preview API; Deployment Protection on                               | `--prod`, built against the production API                              |
-| 7   | Point the API's revalidate webhook at that deployment, then check it answers 200 | through Vercel's automation bypass secret                                             | at `PRODUCTION_SITE_URL`                                                |
-| 8   | Smoke tests (`npm run test:smoke -w e2e`)                                        | against the deployment URL                                                            | against `PRODUCTION_SITE_URL`, and also checks the site isn't `noindex` |
+| #   | Stage                                                                            | Preview                                                                               | Production                                                                   |
+| --- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 1   | D1 migrations (`wrangler d1 migrations apply --remote`)                          | `stonelasley-preview`                                                                 | `stonelasley-prod`                                                           |
+| 2   | Worker secret + `wrangler deploy`                                                | `stonelasley-data-proxy-preview` on `data-preview.stonelasley.com`, `workers.dev` off | `stonelasley-data-proxy` on `data.stonelasley.com`                           |
+| 3   | API image to GHCR                                                                | `ghcr.io/stonelasley/stonelasley-api:<sha>` (public, inherited from the repo)         | same                                                                         |
+| 4   | Container Apps revision                                                          | `ca-stonelasley-api-preview` in `cae-stonelasley-preview`, scale 0 to 1               | `ca-stonelasley-api-prod` in `cae-stonelasley-prod`, on `PRODUCTION_API_URL` |
+| 5   | Wait on `/health`                                                                | `web/scripts/warm-api.mjs`                                                            | same; the build fails if the API never answers                               |
+| 6   | `vercel build` + `vercel deploy --prebuilt`                                      | built against the preview API; Deployment Protection on                               | `--prod`, built against the production API                                   |
+| 7   | Point the API's revalidate webhook at that deployment, then check it answers 200 | through Vercel's automation bypass secret                                             | at `PRODUCTION_SITE_URL`                                                     |
+| 8   | Smoke tests (`npm run test:smoke -w e2e`)                                        | against the deployment URL                                                            | against `PRODUCTION_SITE_URL`, and also checks the site isn't `noindex`      |
 
 All Vercel previews share one preview API, so runs queue (`concurrency: deploy-preview`) and the last push wins. Production runs queue the same way (`deploy-production`).
 
@@ -30,7 +30,7 @@ GitHub Actions secrets are the only source. The workflow pushes them into Contai
 | `PREVIEW_INGEST_TOKEN`                                        | content CI → API ingest                                                                                                                                                                             |
 | `PREVIEW_REVALIDATE_SECRET`                                   | API → site `/api/revalidate`                                                                                                                                                                        |
 | `PREVIEW_ADMIN_TOKEN`, `PREVIEW_ACCESS_SESSION_KEY`           | admin endpoints; signing Client sessions                                                                                                                                                            |
-| `PRODUCTION_*`                                                | the same six for production                                                                                                                                                                         |
+| `PRODUCTION_*`                                                | the same five for production                                                                                                                                                                        |
 
 Rotate a secret by setting a new value (`gh secret set NAME`) and re-running the deploy.
 
@@ -88,9 +88,9 @@ Measured 2026-10-24 on preview (0.25 vCPU / 0.5 GiB, West US 3). The app had sca
 Production stays off until each of these is done, in order. Until then, merges to `master` deploy nothing, and the v1 site keeps serving `stonelasley.com`.
 
 1. **Cloudflare.** Check D1 `stonelasley-prod` and Vectorize `posts-v1-prod` exist (both are named in `worker/wrangler.jsonc`). Create the R2 bucket `stonelasley-images-prod` and connect `img.stonelasley.com` to it.
-2. **Azure.** Create the Container Apps environment `cae-stonelasley` in `rg-stonelasley`. The first production deploy creates `ca-stonelasley-api` in it.
-3. **Secrets.** Set the six `PRODUCTION_*` secrets with `gh secret set`.
+2. **Azure.** Check the Container Apps environment `cae-stonelasley-prod` exists in `rg-stonelasley` (subscription StoneSubscription). The first production deploy creates `ca-stonelasley-api-prod` in it.
+3. **Secrets.** Set the five `PRODUCTION_*` secrets with `gh secret set`.
 4. **API and Worker.** Set the variable `PRODUCTION_ENABLED=true`, then run the workflow by hand for `production` on `master`. Without `PRODUCTION_SITE_ENABLED` it stops after the API is healthy, so `stonelasley.com` doesn't change.
-5. **API domain.** Bind `api.stonelasley.com` to `ca-stonelasley-api` (`az containerapp hostname add` and `bind`), then set `PRODUCTION_API_URL=https://api.stonelasley.com`.
+5. **API domain.** Bind `api.stonelasley.com` to `ca-stonelasley-api-prod` (`az containerapp hostname add` and `bind`), then set `PRODUCTION_API_URL=https://api.stonelasley.com`.
 6. **Content.** Set `PRODUCTION_API_URL` and the production ingest token in the content repo, and merge to its `main` to ingest production. Check `$PRODUCTION_API_URL/areas/recipes/posts` lists the Recipes.
 7. **Site.** This is the cutover. Set `PRODUCTION_SITE_URL` to the canonical origin and `PRODUCTION_SITE_ENABLED=true`, then run the workflow again. Its Vercel `--prod` deploy takes over `stonelasley.com`, and the smoke tests check it. To roll back, promote the previous production deployment in Vercel.

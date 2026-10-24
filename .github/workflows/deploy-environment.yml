@@ -20,8 +20,8 @@ env:
   PREVIEW: ${{ inputs.environment == 'preview' }}
   # Secrets are named PREVIEW_* and PRODUCTION_*.
   PREFIX: ${{ inputs.environment == 'preview' && 'PREVIEW' || 'PRODUCTION' }}
-  CONTAINER_APP: ${{ inputs.environment == 'preview' && 'ca-stonelasley-api-preview' || 'ca-stonelasley-api' }}
-  CONTAINER_ENV: ${{ inputs.environment == 'preview' && 'cae-stonelasley-preview' || 'cae-stonelasley' }}
+  CONTAINER_APP: ${{ inputs.environment == 'preview' && 'ca-stonelasley-api-preview' || 'ca-stonelasley-api-prod' }}
+  CONTAINER_ENV: ${{ inputs.environment == 'preview' && 'cae-stonelasley-preview' || 'cae-stonelasley-prod' }}
   WORKER_URL: ${{ inputs.environment == 'preview' && 'https://data-preview.stonelasley.com' || 'https://data.stonelasley.com' }}
   IMAGES_URL: ${{ inputs.environment == 'preview' && 'https://img-preview.stonelasley.com/' || 'https://img.stonelasley.com/' }}
   # Production only; preview uses the Container App's own address and each deployment's URL.
