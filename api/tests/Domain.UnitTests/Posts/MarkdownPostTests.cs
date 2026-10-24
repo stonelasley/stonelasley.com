@@ -44,7 +44,7 @@ public class MarkdownPostTests
     [TestCase("slug: learning-with-mind-maps", "slug: Learning With Spaces", "'slug' must be lowercase letters, digits and single hyphens.")]
     [TestCase("area: ai-development", "area: blog", "'area' must be one of: recipes, watches, ai-development, training.")]
     [TestCase("date: 2026-10-01", "date: October 1st", "'date' must be a date in the form YYYY-MM-DD.")]
-    [TestCase("audience: public", "audience: clients", "'audience' must be 'public'.")]
+    [TestCase("audience: public", "audience: everyone", "'audience' must be public, clients, or a Client's ULID.")]
     [TestCase("status: published", "status: live", "'status' must be 'published' or 'draft'.")]
     public void Rejects_an_invalid_field(string valid, string invalid, string error)
     {
