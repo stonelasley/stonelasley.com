@@ -116,4 +116,22 @@ public class PostReadTests
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
+
+    [Test]
+    public async Task Summaries_and_posts_carry_an_excerpt_of_the_opening_prose()
+    {
+        await using var api = new ApiFactory();
+        using var ingest = api.CreateIngestClient();
+        using var reader = api.CreateClient();
+        var (id, slug) = (TestPosts.NewUlid(), TestPosts.NewSlug());
+        await Ingest.RunAsync(ingest, TestPosts.Markdown(id, slug, area: "training", body: "## Start\n\nLift **heavy**, recover well."));
+
+        var summaries = await reader.GetFromJsonAsync<List<ExcerptResponse>>("/areas/training/posts");
+        var post = await reader.GetFromJsonAsync<ExcerptResponse>($"/areas/training/posts/{slug}");
+
+        summaries.ShouldNotBeNull().Single(p => p.Id == id).Excerpt.ShouldBe("Lift heavy, recover well.");
+        post.ShouldNotBeNull().Excerpt.ShouldBe("Lift heavy, recover well.");
+    }
 }
+
+public sealed record ExcerptResponse(string Id, string Excerpt);

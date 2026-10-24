@@ -27,6 +27,12 @@ public static class Ingest
     public static Task<HttpResponseMessage> UploadAsync(HttpClient client, string runId, string id, string markdown) =>
         client.PutAsJsonAsync($"/ingest/runs/{runId}/posts/{id}", new { markdown });
 
+    public static Task<HttpResponseMessage> UploadAsync(
+        HttpClient client, string runId, string id, string markdown, IReadOnlyDictionary<string, byte[]> images) =>
+        client.PutAsJsonAsync(
+            $"/ingest/runs/{runId}/posts/{id}",
+            new { markdown, images = images.Select(i => new { path = i.Key, content = Convert.ToBase64String(i.Value) }) });
+
     public static Task<HttpResponseMessage> CommitAsync(HttpClient client, string runId) =>
         client.PostAsync($"/ingest/runs/{runId}/commit", null);
 

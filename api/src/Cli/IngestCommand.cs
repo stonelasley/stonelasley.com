@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using StoneLasley.Domain.Posts;
 
 namespace StoneLasley.Cli;
 
@@ -15,6 +16,7 @@ internal static partial class IngestCommand
     public static async Task<int> RunAsync(Uri apiUrl, string token, string directory, bool dryRun, bool includeDrafts)
     {
         var posts = new Dictionary<string, string>();
+        var postFiles = new Dictionary<string, string>();
         var markdownFiles = Directory.EnumerateFiles(directory, "*.md", SearchOption.AllDirectories)
             .Where(path => !Path.GetRelativePath(directory, path).Split(Path.DirectorySeparatorChar).Any(part => part.StartsWith('_')))
             .Order(StringComparer.Ordinal);
@@ -27,6 +29,7 @@ internal static partial class IngestCommand
                 await Console.Error.WriteLineAsync($"{path}: no 'id' in the frontmatter.");
                 return 1;
             }
+            postFiles[id.Groups["id"].Value] = path;
             if (!posts.TryAdd(id.Groups["id"].Value, markdown))
             {
                 await Console.Error.WriteLineAsync($"{path}: id {id.Groups["id"].Value} is used by another Post.");
@@ -51,7 +54,7 @@ internal static partial class IngestCommand
 
         var manifestResponse = await client.PostAsJsonAsync(
             $"ingest/manifest?dryRun={dryRun}&includeDrafts={includeDrafts}",
-            new { posts = posts.ToDictionary(p => p.Key, p => Hash(p.Value)), intros });
+            new { posts = posts.ToDictionary(p => p.Key, p => Hash(p.Value, ImagesOf(directory, postFiles[p.Key], p.Value))), intros });
         if (!await SucceededAsync(manifestResponse, "manifest"))
         {
             return 1;
@@ -62,7 +65,8 @@ internal static partial class IngestCommand
         var failed = 0;
         foreach (var id in manifest.Requested)
         {
-            var upload = await client.PutAsJsonAsync($"ingest/runs/{manifest.RunId}/posts/{id}", new { markdown = posts[id] });
+            var images = ImagesOf(directory, postFiles[id], posts[id]).Select(i => new { path = i.Path, content = Convert.ToBase64String(i.Content) });
+            var upload = await client.PutAsJsonAsync($"ingest/runs/{manifest.RunId}/posts/{id}", new { markdown = posts[id], images });
             if (!await SucceededAsync(upload, $"upload {id}"))
             {
                 failed++;
@@ -90,8 +94,38 @@ internal static partial class IngestCommand
         return 0;
     }
 
-    private static string Hash(string markdown) =>
-        Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(markdown)));
+    // The Post's hash covers its images, so changing only an image still re-ingests the Post.
+    private static string Hash(string markdown, IEnumerable<(string Path, byte[] Content)> images)
+    {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        hash.AppendData(System.Text.Encoding.UTF8.GetBytes(markdown));
+        foreach (var (path, content) in images.OrderBy(i => i.Path, StringComparer.Ordinal))
+        {
+            hash.AppendData(System.Text.Encoding.UTF8.GetBytes(path));
+            hash.AppendData(SHA256.HashData(content));
+        }
+        return Convert.ToHexStringLower(hash.GetHashAndReset());
+    }
+
+    // Images next to the Post that its Markdown references. Only regular files inside the content directory
+    // are read, never a symlink or a path that climbs out; anything else is left for the API to report.
+    private static IEnumerable<(string Path, byte[] Content)> ImagesOf(string contentRoot, string postFile, string markdown)
+    {
+        var root = Path.GetFullPath(contentRoot) + Path.DirectorySeparatorChar;
+        var folder = Path.GetDirectoryName(Path.GetFullPath(postFile))!;
+        foreach (var reference in PostImages.References(markdown))
+        {
+            if (PostImages.Normalise(reference) is null)
+            {
+                continue;
+            }
+            var file = new FileInfo(Path.GetFullPath(Path.Combine(folder, reference)));
+            if (file.FullName.StartsWith(root, StringComparison.Ordinal) && file.Exists && file.LinkTarget is null)
+            {
+                yield return (reference, File.ReadAllBytes(file.FullName));
+            }
+        }
+    }
 
     private static async Task<bool> SucceededAsync(HttpResponseMessage response, string step)
     {

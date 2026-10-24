@@ -8,12 +8,15 @@ namespace StoneLasley.Application.Ingest;
 
 public sealed record Manifest(string RunId, IReadOnlyList<string> Requested);
 
+/// <summary>An image uploaded with its Post, keyed by the path the Markdown references it by.</summary>
+public sealed record UploadedImage(string Path, byte[] Content);
+
 /// <summary>
 /// The ingest protocol: a manifest of every Post's content hash, an upload of each Post the API asked for,
 /// then a commit that validates the whole set and applies it in one transaction. Posts missing from the
 /// manifest are deleted, because the content repo is the source of truth (ADR 0002).
 /// </summary>
-public sealed class IngestService(ID1Database database, ISiteRevalidator site)
+public sealed class IngestService(ID1Database database, IImageStore images, ISiteRevalidator site)
 {
     private const string Now = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
 
@@ -57,7 +60,8 @@ public sealed class IngestService(ID1Database database, ISiteRevalidator site)
         return new Manifest(runId, requested);
     }
 
-    public async Task<IngestOutcome> UploadAsync(string runId, string postId, string markdown, CancellationToken cancellationToken)
+    public async Task<IngestOutcome> UploadAsync(
+        string runId, string postId, string markdown, IReadOnlyList<UploadedImage> uploadedImages, CancellationToken cancellationToken)
     {
         var (run, refusal) = await OpenRunAsync(runId, cancellationToken);
         if (run is null)
@@ -79,11 +83,18 @@ public sealed class IngestService(ID1Database database, ISiteRevalidator site)
             return new IngestOutcome.Invalid([$"The frontmatter id {post.Id} does not match the uploaded Post {postId}."]);
         }
 
+        var stored = await StoreImagesAsync(post.Body, uploadedImages, cancellationToken);
+        if (stored.Errors.Count > 0)
+        {
+            return new IngestOutcome.Invalid(stored.Errors);
+        }
+        post = post with { Body = PostImages.Rewrite(post.Body, stored.Urls) };
+
         await database.QueryAsync(
             """
             INSERT OR REPLACE INTO ingest_staged_posts
-              (run_id, id, area, slug, title, date, tags, audience, status, body, recipe, watch, content_hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              (run_id, id, area, slug, title, date, tags, audience, status, body, excerpt, recipe, watch, content_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 runId,
@@ -96,6 +107,7 @@ public sealed class IngestService(ID1Database database, ISiteRevalidator site)
                 PostColumns.Audience(post.Audience),
                 PostColumns.Status(post.Status),
                 post.Body,
+                post.Excerpt,
                 PostColumns.RecipeJson(post.Recipe),
                 PostColumns.WatchJson(post.Watch),
                 run.Hashes[postId],
@@ -163,8 +175,8 @@ public sealed class IngestService(ID1Database database, ISiteRevalidator site)
                 "UPDATE posts SET slug = '~' || id WHERE id IN (SELECT value FROM json_each(?))", [JsonSerializer.Serialize(upserted)]));
             statements.Add(new D1Statement(
                 $"""
-                INSERT INTO posts (id, area, slug, title, date, tags, audience, status, body, recipe, watch, content_hash, updated_at)
-                SELECT id, area, slug, title, date, tags, audience, status, body, recipe, watch, content_hash, {Now}
+                INSERT INTO posts (id, area, slug, title, date, tags, audience, status, body, excerpt, recipe, watch, content_hash, updated_at)
+                SELECT id, area, slug, title, date, tags, audience, status, body, excerpt, recipe, watch, content_hash, {Now}
                 FROM ingest_staged_posts
                 WHERE run_id = ? AND id IN (SELECT value FROM json_each(?))
                 ON CONFLICT (id) DO UPDATE SET
@@ -176,6 +188,7 @@ public sealed class IngestService(ID1Database database, ISiteRevalidator site)
                   audience = excluded.audience,
                   status = excluded.status,
                   body = excluded.body,
+                  excerpt = excluded.excerpt,
                   recipe = excluded.recipe,
                   watch = excluded.watch,
                   content_hash = excluded.content_hash,
@@ -209,6 +222,65 @@ public sealed class IngestService(ID1Database database, ISiteRevalidator site)
         }
 
         return new IngestOutcome.Committed(new CommitSummary(run.DryRun, upserted, deleted));
+    }
+
+    /// <summary>
+    /// Every image the body references must be uploaded with it. Each goes to the image store under its content
+    /// hash, skipped when already there, so re-ingesting an unchanged image costs one existence check.
+    /// Images go up before commit; an abandoned run leaves only harmless, content-addressed objects.
+    /// </summary>
+    private async Task<(IReadOnlyDictionary<string, string> Urls, IReadOnlyList<string> Errors)> StoreImagesAsync(
+        string body, IReadOnlyList<UploadedImage> uploadedImages, CancellationToken cancellationToken)
+    {
+        // Two spellings of one path ("./a.png", "a.png") are one image.
+        var byPath = uploadedImages
+            .Select(image => (Path: PostImages.Normalise(image.Path), image.Content))
+            .Where(image => image.Path is not null)
+            .GroupBy(image => image.Path!)
+            .ToDictionary(group => group.Key, group => group.First().Content);
+        var references = PostImages.References(body);
+
+        var errors = new List<string>();
+        foreach (var label in PostImages.ReferenceStyle(body))
+        {
+            errors.Add($"Image [{label}] is reference-style; write it inline as ![alt](path) so ingest can store it.");
+        }
+        foreach (var path in references)
+        {
+            if (PostImages.Normalise(path) is null)
+            {
+                errors.Add($"Image '{path}' must be inside the Post's folder.");
+            }
+            else if (!byPath.TryGetValue(path, out var content))
+            {
+                errors.Add($"Image '{path}' is referenced but was not uploaded.");
+            }
+            else if (PostImages.ContentType(path) is null)
+            {
+                errors.Add($"'{path}' is not a supported image type (jpg, png, gif, webp, avif).");
+            }
+            else if (content.Length > PostImages.MaxBytes)
+            {
+                errors.Add($"Image '{path}' is over the {PostImages.MaxBytes / (1024 * 1024)} MB limit.");
+            }
+        }
+        if (errors.Count > 0)
+        {
+            return (new Dictionary<string, string>(), errors);
+        }
+
+        var urls = new Dictionary<string, string>();
+        foreach (var path in references)
+        {
+            var content = byPath[path];
+            var key = PostImages.Key(path, content);
+            if (!await images.ExistsAsync(key, cancellationToken))
+            {
+                await images.PutAsync(key, content, PostImages.ContentType(path)!, cancellationToken);
+            }
+            urls[path] = images.PublicUrl(key).ToString();
+        }
+        return (urls, []);
     }
 
     private async Task<(Run? Run, IngestOutcome? Refusal)> OpenRunAsync(string runId, CancellationToken cancellationToken)

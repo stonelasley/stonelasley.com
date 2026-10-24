@@ -15,4 +15,8 @@ public sealed record Post(
     PostStatus Status,
     string Body,
     Recipe? Recipe = null,
-    Watch? Watch = null);
+    Watch? Watch = null)
+{
+    /// <summary>The opening prose as plain text; see <see cref="Posts.Excerpt"/>.</summary>
+    public string Excerpt => Posts.Excerpt.From(Body);
+}

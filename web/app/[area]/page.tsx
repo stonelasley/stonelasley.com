@@ -19,7 +19,9 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: AreaPageProps) {
   const area = findArea((await params).area);
-  return area ? constructMetadata({ title: area.name, description: area.description }) : {};
+  return area
+    ? constructMetadata({ title: area.name, description: area.description, path: `/${area.slug}` })
+    : {};
 }
 
 export default async function AreaPage({ params }: AreaPageProps) {

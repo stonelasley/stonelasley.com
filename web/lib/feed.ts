@@ -26,6 +26,10 @@ export async function buildFeed(): Promise<Feed> {
       title: post.title,
       id: url,
       link: url,
+      // The feed links to each Post rather than carrying its body; `content` is needed for the
+      // JSON Feed `summary` to be written at all.
+      description: post.excerpt,
+      content: post.excerpt,
       date: new Date(post.date),
       category: post.tags.map((tag) => ({ name: tag })),
     });
