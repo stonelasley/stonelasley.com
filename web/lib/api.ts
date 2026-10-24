@@ -272,3 +272,18 @@ export async function getYourContent(
   }
   return yourContentSchema.parse(JSON.parse(response.body));
 }
+
+const instagramSchema = z.array(
+  z.object({
+    id: z.string(),
+    imageUrl: z.string(),
+    permalink: z.string(),
+    caption: z.string().nullable(),
+    timestamp: z.string(),
+  })
+);
+
+/** Stone's recent Instagram posts, as the API last cached them (newest first). */
+export async function getInstagramMedia(): Promise<z.infer<typeof instagramSchema>> {
+  return (await get("/instagram/media", instagramSchema)) ?? [];
+}

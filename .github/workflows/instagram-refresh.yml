@@ -1,0 +1,28 @@
+name: Instagram refresh
+
+# The API scales to zero and runs no background jobs, so this renews the 60-day Instagram token and refreshes the
+# cached media every day. The API then revalidates the site, so the feed on the home page updates.
+on:
+  schedule:
+    - cron: '0 13 * * *' # 07:00 MDT
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - environment: preview
+            api: ${{ vars.PREVIEW_API_URL }}
+            token: PREVIEW_ADMIN_TOKEN
+    steps:
+      - name: Refresh ${{ matrix.environment }}
+        if: matrix.api != ''
+        env:
+          ADMIN_TOKEN: ${{ secrets[matrix.token] }}
+        run: |
+          status=$(curl -s -o response.txt -w "%{http_code}" -X POST "${{ matrix.api }}/admin/instagram/refresh" \
+            -H "Authorization: Bearer $ADMIN_TOKEN")
+          cat response.txt; echo
+          test "$status" = 204
