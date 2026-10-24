@@ -10,12 +10,15 @@ public interface IEmbedder
     Task<IReadOnlyList<float[]>> EmbedAsync(IReadOnlyList<string> texts, CancellationToken cancellationToken);
 }
 
-/// <summary>The Vectorize index of Post chunks, one namespace per environment (or per test run).</summary>
+/// <summary>
+/// The Vectorize index of Post chunks, one per index version (embedding model + chunker), one namespace per
+/// environment (or per test run).
+/// </summary>
 public interface IVectorIndex
 {
-    Task UpsertAsync(IReadOnlyList<ChunkVector> vectors, CancellationToken cancellationToken);
+    Task UpsertAsync(string version, IReadOnlyList<ChunkVector> vectors, CancellationToken cancellationToken);
 
-    Task DeleteAsync(IReadOnlyList<string> ids, CancellationToken cancellationToken);
+    Task DeleteAsync(string version, IReadOnlyList<string> ids, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<VectorMatch>> QueryAsync(float[] vector, int topK, string? area, CancellationToken cancellationToken);
+    Task<IReadOnlyList<VectorMatch>> QueryAsync(string version, float[] vector, int topK, string? area, CancellationToken cancellationToken);
 }

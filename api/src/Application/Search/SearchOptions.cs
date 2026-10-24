@@ -28,6 +28,12 @@ public sealed class SearchOptions
 
     public sealed class VectorOptions
     {
+        /// <summary>
+        /// The active index version (embedding model + chunker). Bumping it means building a new index first; see
+        /// docs/deploy.md § Re-indexing.
+        /// </summary>
+        public string IndexVersion { get; set; } = "v1";
+
         /// <summary>Chunks fetched per query before they're rolled up into Posts.</summary>
         public int TopK { get; set; } = 50;
 

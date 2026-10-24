@@ -57,6 +57,23 @@ public sealed class ApiFactory(Uri workerUrl, string workerSecret) : WebApplicat
         return this;
     }
 
+    /// <summary>
+    /// A second API host sharing this one's in-process vector index (so a test can switch versions the way a
+    /// redeploy would), with one setting changed.
+    /// </summary>
+    public ApiFactory WithSettingOnNewHost(string key, string value)
+    {
+        var next = new ApiFactory();
+        foreach (var (k, v) in _settings)
+        {
+            next._settings[k] = v;
+        }
+        next._settings[key] = value;
+        var index = Services.GetRequiredService<IVectorIndex>();
+        next._services = services => services.AddSingleton(index);
+        return next;
+    }
+
     public ApiFactory WithSetting(string key, string? value)
     {
         _settings[key] = value;

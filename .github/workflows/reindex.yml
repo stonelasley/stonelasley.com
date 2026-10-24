@@ -1,0 +1,71 @@
+name: Re-index
+
+# Builds a new Vectorize index for a new index version (embedding model + chunker) while search keeps serving
+# from the old one (#44). Then bump the version in a PR (docs/deploy.md § Re-indexing): its deploy switches the
+# Worker binding and the API to the new index and promotes the build. A failed build changes nothing live.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [preview]
+      version:
+        description: New index version, e.g. v2
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      INDEX: posts-${{ inputs.version }}-${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+
+      - name: Create the index and its area metadata index
+        working-directory: worker
+        run: |
+          npx wrangler vectorize create "$INDEX" --dimensions 768 --metric cosine || echo "exists"
+          npx wrangler vectorize create-metadata-index "$INDEX" --property-name area --type string || echo "exists"
+
+      - name: Deploy the Worker with the build index bound alongside the active one
+        working-directory: worker
+        env:
+          WORKER_SECRET: ${{ secrets.PREVIEW_WORKER_SECRET }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const text = fs.readFileSync("wrangler.jsonc", "utf8").replace(/^\s*\/\/.*$/gm, "");
+            const config = JSON.parse(text.replace(/,(\s*[}\]])/g, "$1"));
+            const env = config.env[process.argv[1]];
+            env.vectorize.push({ binding: "VECTORS_BUILD", index_name: process.env.INDEX });
+            env.vars = { ...env.vars, BUILD_INDEX_VERSION: process.argv[2] };
+            fs.writeFileSync("wrangler.build.json", JSON.stringify(config));
+          ' "${{ inputs.environment }}" "${{ inputs.version }}"
+          npx wrangler deploy --config wrangler.build.json --env "${{ inputs.environment }}"
+
+      - name: Re-embed every public Post into the new index
+        id: rebuild
+        env:
+          ADMIN_TOKEN: ${{ secrets.PREVIEW_ADMIN_TOKEN }}
+        run: |
+          curl -sf -X POST "${{ vars.PREVIEW_API_URL }}/admin/vectors/rebuild?version=${{ inputs.version }}" \
+            -H "Authorization: Bearer $ADMIN_TOKEN" | tee rebuild.json
+          echo "vectors=$(jq .vectors rebuild.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Wait until Vectorize holds every vector
+        working-directory: worker
+        run: |
+          for i in $(seq 1 60); do
+            count=$(npx wrangler vectorize info "$INDEX" --json | jq '.vectorCount // .vectorsCount // 0')
+            echo "vectorCount=$count of ${{ steps.rebuild.outputs.vectors }}"
+            [ "$count" -ge "${{ steps.rebuild.outputs.vectors }}" ] && exit 0
+            sleep 15
+          done
+          echo "::error::$INDEX never reached ${{ steps.rebuild.outputs.vectors }} vectors" && exit 1
