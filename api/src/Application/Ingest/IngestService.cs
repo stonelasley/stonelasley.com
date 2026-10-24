@@ -93,8 +93,9 @@ public sealed class IngestService(ID1Database database, IImageStore images, ISit
         await database.QueryAsync(
             """
             INSERT OR REPLACE INTO ingest_staged_posts
-              (run_id, id, area, slug, title, date, tags, audience, status, body, excerpt, recipe, watch, content_hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              (run_id, id, area, slug, title, date, tags, audience, status, body, excerpt, recipe, watch,
+               search_structured, search_body, content_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 runId,
@@ -110,6 +111,8 @@ public sealed class IngestService(ID1Database database, IImageStore images, ISit
                 post.Excerpt,
                 PostColumns.RecipeJson(post.Recipe),
                 PostColumns.WatchJson(post.Watch),
+                SearchText.Structured(post),
+                SearchText.Body(post.Body),
                 run.Hashes[postId],
             ],
             cancellationToken);
@@ -193,6 +196,19 @@ public sealed class IngestService(ID1Database database, IImageStore images, ISit
                   watch = excluded.watch,
                   content_hash = excluded.content_hash,
                   updated_at = excluded.updated_at
+                """,
+                [runId, JsonSerializer.Serialize(upserted)]));
+            // The keyword index follows the Posts table in the same transaction: public, published Posts only.
+            statements.Add(new D1Statement(
+                "DELETE FROM posts_fts WHERE post_id IN (SELECT value FROM json_each(?))",
+                [JsonSerializer.Serialize(deleted.Concat(upserted))]));
+            statements.Add(new D1Statement(
+                $"""
+                INSERT INTO posts_fts (post_id, title, structured, tags, body)
+                SELECT id, title, search_structured, (SELECT group_concat(value, ' ') FROM json_each(tags)), search_body
+                FROM ingest_staged_posts
+                WHERE run_id = ? AND id IN (SELECT value FROM json_each(?))
+                  AND status = '{PostColumns.PublishedStatus}' AND audience = '{PostColumns.PublicAudience}'
                 """,
                 [runId, JsonSerializer.Serialize(upserted)]));
             statements.Add(new D1Statement(

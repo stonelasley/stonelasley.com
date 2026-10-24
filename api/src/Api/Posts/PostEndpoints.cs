@@ -1,4 +1,5 @@
 using StoneLasley.Application.Posts;
+using StoneLasley.Application.Search;
 using StoneLasley.Domain.Posts;
 
 namespace StoneLasley.Api.Posts;
@@ -11,6 +12,20 @@ public static class PostEndpoints
             ContentAreas.TryParse(area, out var contentArea)
                 ? Results.Ok(await reader.AreaAsync(contentArea, cancellationToken))
                 : Results.NotFound());
+
+        app.MapGet("/search", async (string? q, string? area, KeywordSearch search, CancellationToken cancellationToken) =>
+        {
+            ContentArea? contentArea = null;
+            if (!string.IsNullOrEmpty(area))
+            {
+                if (!ContentAreas.TryParse(area, out var parsed))
+                {
+                    return Results.NotFound();
+                }
+                contentArea = parsed;
+            }
+            return Results.Ok(await search.SearchAsync(q ?? "", contentArea, cancellationToken));
+        });
 
         app.MapGet("/areas/watches/facets", async (PostReader reader, CancellationToken cancellationToken) =>
             Results.Ok(await reader.WatchFacetsAsync(cancellationToken)));
