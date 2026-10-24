@@ -8,5 +8,10 @@ export async function GET(request: Request) {
   if (areaSlug && !area) {
     return Response.json({ error: "unknown area" }, { status: 404 });
   }
-  return Response.json(await getLatestPosts(area?.slug));
+  try {
+    return Response.json(await getLatestPosts(area?.slug));
+  } catch (error) {
+    console.error(error);
+    return Response.json({ error: "search unavailable" }, { status: 502 });
+  }
 }

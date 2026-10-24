@@ -4,7 +4,7 @@ test.describe("Search page", () => {
   test("every page has a search button in its header", async ({ page }) => {
     for (const path of ["/", "/recipes", "/ai-development/testing-at-the-seams"]) {
       await page.goto(path);
-      await expect(page.getByRole("banner").getByRole("button", { name: "Search" })).toBeVisible();
+      await expect(page.getByRole("banner").getByRole("link", { name: "Search" })).toBeVisible();
     }
   });
 

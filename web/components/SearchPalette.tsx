@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import type { PostSummary, SearchResult } from "@/lib/api";
-import { contentAreas, type AreaSlug } from "@/lib/areas";
+import { contentAreas, findArea, type AreaSlug } from "@/lib/areas";
 import { cn } from "@/lib/utils";
 import { HighlightedExcerpt } from "./SearchResults";
 
@@ -17,6 +18,7 @@ type Item = { key: string; label: string; href: string; render: React.ReactNode 
 /** The header's search button and the palette it opens (⌘K, Ctrl+K, or / when not typing). */
 export function SearchPalette() {
   const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLAnchorElement>(null);
   // Set once the shortcuts are listening, so tests (and only tests) can wait for hydration.
   const [ready, setReady] = useState(false);
 
@@ -30,7 +32,13 @@ export function SearchPalette() {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setOpen((wasOpen) => !wasOpen);
-      } else if (event.key === "/" && !typing) {
+      } else if (
+        event.key === "/" &&
+        !typing &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey
+      ) {
         event.preventDefault();
         setOpen(true);
       }
@@ -41,9 +49,14 @@ export function SearchPalette() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
+      {/* A link, so search still works without JavaScript; with it, the link opens the palette. */}
+      <Link
+        ref={trigger}
+        href="/search"
+        onClick={(event) => {
+          event.preventDefault();
+          setOpen(true);
+        }}
         aria-label="Search"
         aria-haspopup="dialog"
         data-ready={ready || undefined}
@@ -65,9 +78,18 @@ export function SearchPalette() {
           />
         </svg>
         <kbd className="bg-muted hidden rounded px-1.5 font-mono text-[11px] sm:inline">⌘K</kbd>
-      </button>
+      </Link>
       {/* Portalled to <body>: the header's backdrop blur would otherwise trap a fixed overlay inside it. */}
-      {open && createPortal(<Palette onClose={() => setOpen(false)} />, document.body)}
+      {open &&
+        createPortal(
+          <Palette
+            onClose={() => {
+              setOpen(false);
+              trigger.current?.focus();
+            }}
+          />,
+          document.body
+        )}
     </>
   );
 }
@@ -79,21 +101,41 @@ function Palette({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [area, setArea] = useState<AreaSlug | null>(null);
   const [active, setActive] = useState(0);
-  const [latest, setLatest] = useState<PostSummary[]>([]);
-  const [result, setResult] = useState<SearchResult | null>(null);
+  // Each response remembers what it answered, so nothing from an older query or chip is ever shown.
+  const [latest, setLatest] = useState<{ area: AreaSlug | null; posts: PostSummary[] } | null>(
+    null
+  );
+  const [result, setResult] = useState<{
+    term: string;
+    area: AreaSlug | null;
+    data: SearchResult;
+  } | null>(null);
+  const [failed, setFailed] = useState<{ term: string; area: AreaSlug | null } | null>(null);
 
   const term = query.trim();
   const searching = term.length >= MIN_QUERY_LENGTH;
+  const current = result && result.term === term && result.area === area ? result.data : null;
+  const unavailable =
+    failed !== null && failed.term === (searching ? term : "") && failed.area === area;
 
   useEffect(() => input.current?.focus(), []);
+
+  // Modal: the page behind doesn't scroll.
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
 
   // Latest Posts for the empty state, per chip.
   useEffect(() => {
     const controller = new AbortController();
     fetch(`/api/latest${area ? `?area=${area}` : ""}`, { signal: controller.signal })
-      .then((response) => response.json())
-      .then(setLatest)
-      .catch(() => {});
+      .then(json<PostSummary[]>)
+      .then((posts) => setLatest({ area, posts }))
+      .catch((error) => onFailure(error, () => setFailed({ term: "", area })));
     return () => controller.abort();
   }, [area]);
 
@@ -105,12 +147,12 @@ function Palette({ onClose }: { onClose: () => void }) {
       const params = new URLSearchParams({ q: term });
       if (area) params.set("area", area);
       fetch(`/api/search?${params}`, { signal: controller.signal })
-        .then((response) => response.json())
-        .then((data: SearchResult) => {
-          setResult(data);
+        .then(json<SearchResult>)
+        .then((data) => {
+          setResult({ term, area, data });
           setActive(0);
         })
-        .catch(() => {});
+        .catch((error) => onFailure(error, () => setFailed({ term, area })));
     }, DEBOUNCE_MS);
     return () => {
       clearTimeout(timer);
@@ -119,7 +161,7 @@ function Palette({ onClose }: { onClose: () => void }) {
   }, [term, area, searching]);
 
   const allResultsHref = `/search?${new URLSearchParams({ q: term, ...(area ? { area } : {}) })}`;
-  const hits = searching && result ? result.results : [];
+  const hits = searching && current ? current.results : [];
   const groups = contentAreas
     .map((a) => ({ area: a, hits: hits.filter((hit) => hit.area === a.slug) }))
     .filter((group) => group.hits.length > 0);
@@ -149,19 +191,24 @@ function Palette({ onClose }: { onClose: () => void }) {
           render: <span className="font-medium">All results for “{term}”</span>,
         },
       ]
-    : latest.map((post) => ({
+    : (latest?.area === area ? latest.posts : []).map((post) => ({
         key: post.id,
         label: post.title,
         href: `/${post.area}/${post.slug}`,
         render: (
           <>
             <span className="font-medium">{post.title}</span>
-            <span className="text-muted-foreground ml-2 text-xs">
-              {contentAreas.find((a) => a.slug === post.area)?.name}
-            </span>
+            <span className="text-muted-foreground ml-2 text-xs">{findArea(post.area)?.name}</span>
           </>
         ),
       }));
+
+  const activeIndex = Math.min(active, items.length - 1);
+
+  // Keep the highlighted row on screen as ↑/↓ move through a long list.
+  useEffect(() => {
+    document.getElementById(`${listId}-${activeIndex}`)?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex, listId]);
 
   const go = (item: Item | undefined) => {
     if (!item) return;
@@ -171,9 +218,8 @@ function Palette({ onClose }: { onClose: () => void }) {
 
   const chips: (AreaSlug | null)[] = [null, ...contentAreas.map((a) => a.slug)];
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Escape") {
-      onClose();
-    } else if (event.key === "ArrowDown") {
+    if (event.nativeEvent.isComposing) return; // an IME is still composing; Enter confirms the text
+    if (event.key === "ArrowDown") {
       event.preventDefault();
       setActive((i) => Math.min(i + 1, items.length - 1));
     } else if (event.key === "ArrowUp") {
@@ -181,7 +227,7 @@ function Palette({ onClose }: { onClose: () => void }) {
       setActive((i) => Math.max(i - 1, 0));
     } else if (event.key === "Enter") {
       event.preventDefault();
-      go(items[active]);
+      go(items[activeIndex]);
     } else if (event.key === "Tab") {
       event.preventDefault();
       const i = chips.indexOf(area);
@@ -198,8 +244,7 @@ function Palette({ onClose }: { onClose: () => void }) {
         key={item.key}
         id={optionId(i)}
         role="option"
-        aria-selected={i === active}
-        aria-label={item.label}
+        aria-selected={i === activeIndex}
         onMouseEnter={() => setActive(i)}
         onMouseDown={(event) => event.preventDefault()}
         onClick={() => go(item)}
@@ -223,6 +268,16 @@ function Palette({ onClose }: { onClose: () => void }) {
         aria-modal="true"
         aria-label="Search"
         onMouseDown={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            onClose();
+          } else if (event.key === "Tab" && event.target !== input.current) {
+            // Focus stays in the dialog: Tab from anywhere else returns to the search box.
+            event.preventDefault();
+            input.current?.focus();
+          }
+        }}
         className="bg-popover border-border flex h-full w-full flex-col overflow-hidden border shadow-2xl sm:h-auto sm:w-[min(40rem,92vw)] sm:rounded-xl"
       >
         <input
@@ -231,7 +286,7 @@ function Palette({ onClose }: { onClose: () => void }) {
           aria-label="Search Posts"
           aria-expanded="true"
           aria-controls={listId}
-          aria-activedescendant={items.length ? optionId(active) : undefined}
+          aria-activedescendant={items.length ? optionId(activeIndex) : undefined}
           aria-autocomplete="list"
           value={query}
           onChange={(event) => {
@@ -259,7 +314,7 @@ function Palette({ onClose }: { onClose: () => void }) {
                 chip === area ? "bg-foreground text-background" : "bg-muted text-muted-foreground"
               )}
             >
-              {chip ? contentAreas.find((a) => a.slug === chip)?.name : "All"}
+              {chip ? findArea(chip)?.name : "All"}
             </button>
           ))}
         </div>
@@ -273,7 +328,7 @@ function Palette({ onClose }: { onClose: () => void }) {
           {!searching && (
             <li role="presentation">
               <div className="text-muted-foreground px-5 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase">
-                {area ? `Latest in ${contentAreas.find((a) => a.slug === area)?.name}` : "Latest"}
+                {area ? `Latest in ${findArea(area)?.name}` : "Latest"}
               </div>
               <ul role="group" aria-label="Latest">
                 {items.map(option)}
@@ -281,11 +336,16 @@ function Palette({ onClose }: { onClose: () => void }) {
             </li>
           )}
 
-          {searching && result && hits.length === 0 && (
+          {unavailable && (
+            <li role="presentation" className="px-5 py-6 text-center text-sm">
+              Search is unavailable right now.
+            </li>
+          )}
+
+          {searching && current && hits.length === 0 && (
             <li role="presentation" className="px-5 py-6 text-center text-sm">
               <p>
-                No Posts match “{term}”
-                {area && <> in {contentAreas.find((a) => a.slug === area)?.name}</>}.
+                No Posts match “{term}”{area && <> in {findArea(area)?.name}</>}.
               </p>
               <p className="text-muted-foreground mt-1 text-xs">
                 {area ? "Press Tab to widen the Content Area." : "Try fewer words."}
@@ -325,4 +385,15 @@ function Palette({ onClose }: { onClose: () => void }) {
       </div>
     </div>
   );
+}
+
+async function json<T>(response: Response): Promise<T> {
+  if (!response.ok) throw new Error(`${response.url} answered ${response.status}`);
+  return response.json();
+}
+
+// An aborted request was replaced by a newer one, so it isn't a failure.
+function onFailure(error: unknown, record: () => void) {
+  if (error instanceof DOMException && error.name === "AbortError") return;
+  record();
 }
