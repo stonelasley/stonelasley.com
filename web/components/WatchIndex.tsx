@@ -24,10 +24,21 @@ export function WatchIndex({ posts, facets }: WatchIndexProps) {
   const model = params.get("model") ?? "";
   const decade = params.get("decade") ?? "";
 
+  // Models offered are the chosen make's, so make + model can't combine into an empty list.
+  const models = make
+    ? [
+        ...new Set(posts.flatMap(({ watch }) => (watch?.make === make ? [watch.modelName] : []))),
+      ].sort()
+    : facets.modelNames;
+
   const setFilter = (name: string, value: string) => {
     const next = new URLSearchParams(params);
     if (value) next.set(name, value);
     else next.delete(name);
+    if (name === "make" && value) {
+      const kept = posts.some(({ watch }) => watch?.make === value && watch.modelName === model);
+      if (!kept) next.delete("model");
+    }
     const query = next.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   };
@@ -64,7 +75,7 @@ export function WatchIndex({ posts, facets }: WatchIndexProps) {
             onChange={(e) => setFilter("model", e.target.value)}
           >
             <option value="">All models</option>
-            {facets.modelNames.map((m) => (
+            {models.map((m) => (
               <option key={m}>{m}</option>
             ))}
           </select>

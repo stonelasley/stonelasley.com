@@ -38,7 +38,7 @@ export function WatchSpecs({ watch }: WatchSpecsProps) {
         {rows
           .filter((row): row is [string, string] => row[1] !== null)
           .map(([term, value]) => (
-            <div key={term} role="group" aria-label={term} className="flex justify-between gap-4">
+            <div key={term} className="flex justify-between gap-4">
               <dt className="text-muted-foreground">{term}</dt>
               <dd className="text-right font-medium">{value}</dd>
             </div>

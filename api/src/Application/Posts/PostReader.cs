@@ -8,7 +8,11 @@ public sealed record PostSummary(
     string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, WatchSummary? Watch);
 
 /// <summary>What the Watches index shows and filters on.</summary>
-public sealed record WatchSummary(WatchMake Make, string Reference, string ModelName, IReadOnlyList<int> Decades);
+public sealed record WatchSummary(WatchMake Make, string Reference, string ModelName, IReadOnlyList<int> Decades)
+{
+    public static WatchSummary? Of(Watch? watch, int currentYear) =>
+        watch is null ? null : new WatchSummary(watch.Make, watch.Reference, watch.ModelName, watch.Decades(currentYear));
+}
 
 public sealed record WatchFacets(IReadOnlyList<string> Makes, IReadOnlyList<string> ModelNames, IReadOnlyList<int> Decades);
 
@@ -31,7 +35,7 @@ public sealed class PostReader(ID1Database database, TimeProvider clock)
             [area.Slug()],
             cancellationToken);
         return [.. rows.Select(row => new PostSummary(
-            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Summarise(PostColumns.WatchFromRow(row))))];
+            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), WatchSummary.Of(PostColumns.WatchFromRow(row), clock.GetUtcNow().Year)))];
     }
 
     public async Task<PostDetail?> FindAsync(ContentArea area, string slug, CancellationToken cancellationToken)
@@ -59,9 +63,6 @@ public sealed class PostReader(ID1Database database, TimeProvider clock)
             [.. watches.Select(w => w.ModelName).Distinct().Order(StringComparer.Ordinal)],
             [.. watches.SelectMany(w => w.Decades).Distinct().Order()]);
     }
-
-    private WatchSummary? Summarise(Watch? watch) =>
-        watch is null ? null : new WatchSummary(watch.Make, watch.Reference, watch.ModelName, watch.Decades(clock.GetUtcNow().Year));
 
     public async Task<AreaDetail> AreaAsync(ContentArea area, CancellationToken cancellationToken)
     {

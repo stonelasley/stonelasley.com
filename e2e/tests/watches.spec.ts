@@ -1,4 +1,10 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
+
+// The <dd> that follows the <dt> naming a spec.
+const spec = (specs: Locator, term: string) =>
+  specs
+    .locator("dt", { hasText: new RegExp(`^${term}$`) })
+    .locator("xpath=following-sibling::dd[1]");
 
 const listed = (page: Page) => page.getByRole("main").getByRole("article").getByRole("link");
 
@@ -18,8 +24,7 @@ test.describe("Watches", () => {
       ["Case material", "Oystersteel"],
       ["Water resistance", "300 m (984 ft)"],
     ]) {
-      const row = specs.getByRole("group", { name: term });
-      await expect(row.getByRole("definition")).toHaveText(value);
+      await expect(spec(specs, term)).toHaveText(value);
     }
   });
 
@@ -27,10 +32,8 @@ test.describe("Watches", () => {
     await page.goto("/watches/rolex-submariner-date-126610ln");
 
     const specs = page.getByRole("region", { name: "Specifications" });
-    await expect(
-      specs.getByRole("group", { name: "Production" }).getByRole("definition")
-    ).toHaveText("2020–present (in production)");
-    await expect(specs.getByRole("group", { name: "Calibre" })).toHaveCount(0);
+    await expect(spec(specs, "Production")).toHaveText("2020–present (in production)");
+    await expect(specs.locator("dt", { hasText: "Calibre" })).toHaveCount(0);
   });
 
   test("the index filters by make, model name and decade", async ({ page }) => {
@@ -47,6 +50,17 @@ test.describe("Watches", () => {
 
     await page.getByLabel("Decade").selectOption("1980");
     await expect(listed(page)).toHaveText(["Rolex Submariner Date 16610"]);
+  });
+
+  test("choosing a make narrows the models to that make's", async ({ page }) => {
+    await page.goto("/watches?model=Submariner+Date");
+
+    await page.getByLabel("Make").selectOption("Patek Philippe");
+
+    const models = await page.getByLabel("Model").locator("option").allTextContents();
+    expect(models).toEqual(["All models", "Nautilus"]);
+    await expect(page.getByLabel("Model")).toHaveValue("");
+    await expect(listed(page)).toHaveText(["Patek Philippe Nautilus 5711"]);
   });
 
   test("a filtered index link can be shared", async ({ page }) => {
