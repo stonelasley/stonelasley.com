@@ -12,6 +12,23 @@ public sealed class SearchOptions
 
     public int Limit { get; set; } = 50;
 
+    public VectorOptions Vector { get; set; } = new();
+
+    public sealed class VectorOptions
+    {
+        /// <summary>Chunks fetched per query before they're rolled up into Posts.</summary>
+        public int TopK { get; set; } = 50;
+
+        /// <summary>Chunks scoring below this cosine similarity are dropped, so off-topic queries return nothing.</summary>
+        public double CosineFloor { get; set; } = 0.6;
+
+        /// <summary>Partition of the index this environment writes and reads. Tests use one per run.</summary>
+        public string? Namespace { get; set; }
+
+        /// <summary>Use the in-process fake embedder and index (fork PRs and E2E, which have no Cloudflare access).</summary>
+        public bool Fake { get; set; }
+    }
+
     public sealed class Bm25Weights
     {
         public double Title { get; set; } = 10;

@@ -31,7 +31,8 @@ public static class PostEndpoints
             return Results.Ok(await reader.LatestAsync(contentArea, limit ?? 5, cancellationToken));
         });
 
-        app.MapGet("/search", async (string? q, string? area, KeywordSearch search, CancellationToken cancellationToken) =>
+        // mode=keyword (default) or vector; hybrid fusion arrives with #42.
+        app.MapGet("/search", async (string? q, string? area, string? mode, KeywordSearch keyword, VectorSearch vector, CancellationToken cancellationToken) =>
         {
             ContentArea? contentArea = null;
             if (!string.IsNullOrEmpty(area))
@@ -42,7 +43,12 @@ public static class PostEndpoints
                 }
                 contentArea = parsed;
             }
-            return Results.Ok(await search.SearchAsync(q ?? "", contentArea, cancellationToken));
+            return mode switch
+            {
+                null or "" or "keyword" => Results.Ok(await keyword.SearchAsync(q ?? "", contentArea, cancellationToken)),
+                "vector" => Results.Ok(await vector.SearchAsync(q ?? "", contentArea, cancellationToken)),
+                _ => Results.ValidationProblem(new Dictionary<string, string[]> { ["mode"] = ["'mode' must be keyword or vector."] }),
+            };
         });
 
         app.MapGet("/areas/watches/facets", async (PostReader reader, CancellationToken cancellationToken) =>

@@ -63,3 +63,5 @@ dotnet test api/tests/Api.FunctionalTests    # API in WebApplicationFactory agai
 ```
 
 The functional tests start their own `wrangler dev` on a free port, with migrations applied to a throwaway local D1. Run `npm install` at the root first so `wrangler` is available.
+
+Vectorize and Workers AI have no local simulation. Most tests use the API's in-process vector fake; `VectorSearchTests` and `VectorIndexMaintenanceTests` bind them remotely to the `posts-v1-ci` index, in a namespace per run that's deleted by id afterwards. That needs a Cloudflare login (`wrangler login` locally, `CLOUDFLARE_API_TOKEN` in CI). Without one, set `SL_FAKE_VECTORS=1`: the Worker runs `--local` and those tests are skipped, as on fork PRs.

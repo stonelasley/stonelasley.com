@@ -16,7 +16,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure();
+builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddOptions<SearchOptions>().BindConfiguration(SearchOptions.SectionName);
 builder.Services.AddOptions<IngestOptions>()
     .BindConfiguration(IngestOptions.SectionName)
