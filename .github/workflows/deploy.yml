@@ -107,6 +107,9 @@ jobs:
           INGEST_TOKEN: ${{ secrets.PREVIEW_INGEST_TOKEN }}
           REVALIDATE_SECRET: ${{ secrets.PREVIEW_REVALIDATE_SECRET }}
           VERCEL_BYPASS: ${{ steps.bypass.outputs.secret }}
+          ADMIN_TOKEN: ${{ secrets.PREVIEW_ADMIN_TOKEN }}
+          SESSION_KEY: ${{ secrets.PREVIEW_ACCESS_SESSION_KEY }}
+          TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}
         run: |
           set -euo pipefail
           az extension add --name containerapp --upgrade --only-show-errors
@@ -115,6 +118,9 @@ jobs:
             "ingest-token=$INGEST_TOKEN"
             "revalidate-secret=$REVALIDATE_SECRET"
             "vercel-bypass=$VERCEL_BYPASS"
+            "admin-token=$ADMIN_TOKEN"
+            "session-key=$SESSION_KEY"
+            "turnstile-secret=$TURNSTILE_SECRET"
           )
           env_vars=(
             "Worker__BaseUrl=$WORKER_URL"
@@ -122,6 +128,9 @@ jobs:
             "Ingest__Token=secretref:ingest-token"
             "Revalidation__Secret=secretref:revalidate-secret"
             "Revalidation__ProtectionBypass=secretref:vercel-bypass"
+            "Admin__Token=secretref:admin-token"
+            "Access__SessionKey=secretref:session-key"
+            "Turnstile__SecretKey=secretref:turnstile-secret"
             "Images__BaseUrl=https://img-preview.stonelasley.com/"
             "Site__NoIndex=true"
           )
@@ -152,6 +161,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           # Read by `vercel build` (prebuild warm-up and every prerendered page) and again at runtime.
           API_URL: ${{ steps.api.outputs.url }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
           REVALIDATE_SECRET: ${{ secrets.PREVIEW_REVALIDATE_SECRET }}
         run: |
           set -euo pipefail

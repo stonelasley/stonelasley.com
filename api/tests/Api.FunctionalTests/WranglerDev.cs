@@ -11,6 +11,12 @@ public sealed class WranglerDev : IAsyncDisposable
 {
     public const string Secret = "functional-test-secret";
 
+    /// <summary>
+    /// Without Cloudflare access (fork PRs) set SL_FAKE_VECTORS=1: the Worker runs fully local and the API uses
+    /// its in-process vector fake. Otherwise Vectorize and Workers AI are bound remotely to the ci index.
+    /// </summary>
+    public static bool FakeVectors => Environment.GetEnvironmentVariable("SL_FAKE_VECTORS") == "1";
+
     private readonly Process _process;
     private readonly string _persistDirectory;
 
@@ -42,7 +48,7 @@ public sealed class WranglerDev : IAsyncDisposable
         var port = FreePort();
         var process = StartWrangler(
             workerDirectory,
-            $"dev --ip 127.0.0.1 --port {port} --persist-to \"{persistDirectory}\" --var WORKER_SECRET:{Secret} --show-interactive-dev-session=false");
+            $"dev {(FakeVectors ? "--local " : "")}--ip 127.0.0.1 --port {port} --persist-to \"{persistDirectory}\" --var WORKER_SECRET:{Secret} --show-interactive-dev-session=false");
         var dev = new WranglerDev(process, persistDirectory, new Uri($"http://127.0.0.1:{port}"));
 
         try

@@ -1,0 +1,5 @@
+# Made-up Clients for the E2E suite. Real Clients live only in the private content repo.
+- id: 01JBX5Q7Z9K3M8N2P4R6T0V1WA
+  name: Alex Example
+- id: 01JBX5Q7Z9K3M8N2P4R6T0V1WB
+  name: Sam Sample

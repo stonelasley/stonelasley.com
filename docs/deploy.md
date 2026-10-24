@@ -48,7 +48,13 @@ Post images live in R2 under `images/{sha256}{ext}`. Readers load them straight 
 
 The spec flagged one assumption as unverified: that R2 custom domains need the zone on Cloudflare (#23). It's now **verified**. On 2026-10-24 `wrangler r2 bucket domain add stonelasley-images-preview --domain img-preview.stonelasley.com --zone-id <stonelasley.com>` connected the domain (ownership active, SSL pending). An object put with `wrangler r2 object put --remote` was then served at `https://img-preview.stonelasley.com/checks/custom-domain.txt` with `200`, `content-type: text/plain`, `server: cloudflare`, about 30 s after SSL finished provisioning. Before that it answered `403` with Cloudflare error 1014. The check object was deleted afterwards.
 
+Images in Private Posts go to the same public bucket. Their keys are content hashes, so the URLs can't be guessed, but nothing checks access on them. This is an accepted risk: a Private Post's text is protected, but an image link someone shares will still load.
+
 Locally, and in E2E, the Worker serves `/public/images/*` when `SERVE_IMAGES=true`, standing in for the custom domain.
+
+## Vector search
+
+Each environment's Worker binds its own Vectorize index (`posts-v1-preview`, `posts-v1-prod`; `posts-v1-ci` for local dev and tests) and Workers AI (`@cf/baai/bge-base-en-v1.5`, 768 dimensions). Every index already has a metadata index on `area`. Vector ids are `{postUlid}:{chunkIndex}`, and D1 keeps each Post's chunk count (`posts.vector_chunks`) so updates and deletes remove old vectors by id. Vectorize writes took 90 to 110 s to become queryable when measured on 2026-10-24.
 
 ## Cold start
 

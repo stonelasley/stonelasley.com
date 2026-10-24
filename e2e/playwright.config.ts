@@ -7,6 +7,7 @@ import { defineConfig, devices } from "@playwright/test";
  * See https://playwright.dev/docs/test-configuration.
  */
 import {
+  adminToken,
   apiPort,
   apiUrl,
   ingestToken,
@@ -44,7 +45,7 @@ export default defineConfig({
       command: [
         `rm -rf "${d1State}"`,
         `npx wrangler d1 migrations apply DB --local --persist-to "${d1State}"`,
-        `npx wrangler dev --ip 127.0.0.1 --port ${workerPort} --persist-to "${d1State}" --var WORKER_SECRET:${workerSecret} --var SERVE_IMAGES:true --show-interactive-dev-session=false`,
+        `npx wrangler dev --local --ip 127.0.0.1 --port ${workerPort} --persist-to "${d1State}" --var WORKER_SECRET:${workerSecret} --var SERVE_IMAGES:true --show-interactive-dev-session=false`,
       ].join(" && "),
       cwd: "../worker",
       // The Worker answers 401 without the secret, which Playwright counts as up.
@@ -63,6 +64,12 @@ export default defineConfig({
         Ingest__Token: ingestToken,
         // The Worker serves images locally, standing in for the R2 custom domain.
         Images__BaseUrl: `http://127.0.0.1:${workerPort}/public/`,
+        // The Worker runs fully local (--local), so vectors use the API's deterministic fake.
+        Search__Vector__Fake: "true",
+        Admin__Token: adminToken,
+        Access__SessionKey: "e2e-session-key-0123456789abcdef0123",
+        // No Turnstile widget is rendered without a site key, so the API accepts any token here.
+        Turnstile__Fake: "true",
         // The site isn't up yet during the seeding ingest; that revalidation just logs a warning.
         Revalidation__Url: `http://localhost:${webPort}/api/revalidate`,
         Revalidation__Secret: revalidateSecret,

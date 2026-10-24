@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Container } from "./Container";
 import { ThemeToggle } from "./ThemeToggle";
+import { SearchPalette } from "./SearchPalette";
 import { SocialNav } from "./SocialNav";
 import { siteConfig } from "@/site.config";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ export function Header() {
             </nav>
           </div>
           <div className="flex items-center gap-4">
+            <SearchPalette />
             <div className="hidden md:block">
               <SocialNav />
             </div>

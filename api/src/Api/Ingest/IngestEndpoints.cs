@@ -1,4 +1,5 @@
 using StoneLasley.Application.Ingest;
+using StoneLasley.Domain.Access;
 using StoneLasley.Domain.Posts;
 
 namespace StoneLasley.Api.Ingest;
@@ -8,7 +9,8 @@ public static class IngestEndpoints
     /// <param name="Posts">ULID → content hash for every Post in the content repo.</param>
     /// <param name="Intros">Content Area slug → intro Markdown. When present it replaces every intro, so an area
     /// left out loses its intro; when absent, intros are left alone.</param>
-    public sealed record ManifestRequest(Dictionary<string, string> Posts, Dictionary<string, string>? Intros);
+    /// <param name="Clients">The content repo's clients file (YAML). When present it replaces every Client.</param>
+    public sealed record ManifestRequest(Dictionary<string, string> Posts, Dictionary<string, string>? Intros, string? Clients);
 
     /// <param name="Markdown">The Post file, frontmatter and body.</param>
     /// <param name="Images">Each image the Markdown references relatively, by that path, as base64.</param>
@@ -18,7 +20,7 @@ public static class IngestEndpoints
 
     public static IEndpointRouteBuilder MapIngest(this IEndpointRouteBuilder app)
     {
-        var ingest = app.MapGroup("/ingest").AddEndpointFilter<RequireIngestToken>();
+        var ingest = app.MapGroup("/ingest").AddEndpointFilter(RequireBearerToken.For<IngestOptions>(options => options.Token));
 
         ingest.MapPost("/manifest", async (ManifestRequest request, IngestService service, CancellationToken cancellationToken, bool dryRun = false, bool includeDrafts = false) =>
         {
@@ -31,7 +33,17 @@ public static class IngestEndpoints
                 }
                 intros![area] = intro;
             }
-            return Results.Ok(await service.StartAsync(request.Posts, intros, dryRun, includeDrafts, cancellationToken));
+            IReadOnlyList<Client>? clients = null;
+            if (request.Clients is not null)
+            {
+                var parsed = ClientsFile.Parse(request.Clients);
+                if (parsed.Errors.Count > 0)
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["clients"] = [.. parsed.Errors] });
+                }
+                clients = parsed.Clients;
+            }
+            return Results.Ok(await service.StartAsync(request.Posts, intros, clients, dryRun, includeDrafts, cancellationToken));
         });
 
         ingest.MapPut("/runs/{runId}/posts/{postId}", async (string runId, string postId, UploadRequest request, IngestService service, CancellationToken cancellationToken) =>

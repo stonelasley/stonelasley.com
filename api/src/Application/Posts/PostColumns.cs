@@ -32,11 +32,7 @@ internal static class PostColumns
             ? JsonSerializer.Deserialize<Watch>(column.GetString()!, Json)
             : null;
 
-    public static string Audience(Audience audience) => audience switch
-    {
-        Domain.Posts.Audience.Public => PublicAudience,
-        _ => throw new ArgumentOutOfRangeException(nameof(audience), audience, null),
-    };
+    public static string Audience(Audience audience) => audience.Stored;
 
     public static string Status(PostStatus status) => status switch
     {
