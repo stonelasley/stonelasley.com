@@ -29,7 +29,12 @@ public class SearchEvalTests
     [OneTimeSetUp]
     public async Task SeedCorpusAsync()
     {
-        Assume.That(WranglerDev.FakeVectors, Is.False, "The eval measures the real embedding model.");
+        if (WranglerDev.FakeVectors)
+        {
+            // An Inconclusive result would let the check pass; a run that can't measure must fail.
+            Report.Status("infra", "SL_FAKE_VECTORS=1: the eval needs the real embedding model and index");
+            Assert.Fail("INFRA: the eval needs the real embedding model; unset SL_FAKE_VECTORS.");
+        }
         _api = new ApiFactory().WithRealVectors();
         _client = _api.CreateIngestClient();
         try

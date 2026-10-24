@@ -13,7 +13,7 @@ v1 search fuses the keyword leg (FTS5, bm25) and the vector leg (bge-base-en-v1.
 | hybrid, 0.6 | 0.868   | 0.937 | 0.950      | 0.710      | 5 of 5                         |
 | hybrid, 0.7 | 0.879   | 1.000 | 0.957      | 0.670      | 3 of 5                         |
 
-At 0.6, the vector leg returns weak matches for nearly every query. Fusion lets them push exact answers down, so hybrid only ties keyword overall and fails the eval's gate. At 0.7, hybrid beats both legs overall, matches keyword on exact queries, and returns less noise for queries with no answer. Its scores per query type fall within the gate's 0.05 of the best single leg.
+At 0.6, the vector leg returns weak matches for nearly every query. Fusion lets them push exact answers down, so hybrid only ties keyword overall and fails the eval's gate. At 0.7, hybrid beats both legs overall, matches keyword on exact queries, and returns less noise for queries with no answer. Its scores per query type fall within the gate's 0.05 of the best single leg as it ships. The floor applies to both, though: the same 0.7 that helps hybrid weakens the vector leg (0.685 overall, 0.472 conceptual), so the per-type check is easier to pass than it looks. Against the vector leg at 0.6, hybrid trails on conceptual queries by 0.117 (0.670 against 0.787). We accept that: at 0.6 that leg is worst overall and misses exact references, and it is never served on its own.
 
 ## Considered Options
 

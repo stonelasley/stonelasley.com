@@ -26,6 +26,8 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Anything in the API can change ranking (options binding, appsettings, ingest, the read path), so every
+      # source change runs the eval; only web/, e2e/, docs and the like skip it.
       - name: Decide whether to run
         id: scope
         env:
@@ -36,7 +38,7 @@ jobs:
             echo "Fork PRs get no Cloudflare secrets; skipping." | tee -a "$GITHUB_STEP_SUMMARY"
             echo "run=false" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event_name }}" = "pull_request" ] && ! git diff --name-only "$BASE"...HEAD | grep -qE \
-              '^(api/src/Domain/(Search|Posts)/|api/src/Application/(Search|Ingest)/|api/src/Infrastructure/Worker/|api/src/Api/Posts/|worker/src/|worker/migrations/|worker/wrangler\.jsonc|api/tests/Api\.FunctionalTests/SearchEval/|\.github/workflows/search-eval\.yml)'; then
+              '^(api/src/|api/Directory\.|api/global\.json|worker/src/|worker/migrations/|worker/wrangler\.jsonc|api/tests/Api\.FunctionalTests/SearchEval/|\.github/workflows/search-eval\.yml)'; then
             echo "No search, ranking, ingest or eval paths changed; skipping." | tee -a "$GITHUB_STEP_SUMMARY"
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
