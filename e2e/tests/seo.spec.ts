@@ -36,6 +36,12 @@ test.describe("SEO", () => {
     expect(jsonLd.description).toBe("A fixture Post for the end-to-end suite.");
   });
 
+  test("the home page has a canonical URL", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", site);
+  });
+
   test("an area index has a canonical URL", async ({ page }) => {
     await page.goto("/watches");
 
