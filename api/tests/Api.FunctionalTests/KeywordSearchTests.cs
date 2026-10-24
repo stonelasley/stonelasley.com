@@ -19,7 +19,7 @@ public class KeywordSearchTests
 
     private static async Task<SearchResponse> SearchAsync(HttpClient client, string query, string? area = null) =>
         (await client.GetFromJsonAsync<SearchResponse>(
-            $"/search?q={Uri.EscapeDataString(query)}" + (area is null ? "" : $"&area={area}")))!;
+            $"/search?mode=keyword&q={Uri.EscapeDataString(query)}" + (area is null ? "" : $"&area={area}")))!;
 
     [Test]
     public async Task Finds_a_post_by_a_word_in_its_body_with_a_highlighted_excerpt()
@@ -112,7 +112,7 @@ public class KeywordSearchTests
         await using var api = new ApiFactory();
         using var client = api.CreateClient();
 
-        var response = await client.GetAsync($"/search?q={Uri.EscapeDataString(query)}");
+        var response = await client.GetAsync($"/search?mode=keyword&q={Uri.EscapeDataString(query)}");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }

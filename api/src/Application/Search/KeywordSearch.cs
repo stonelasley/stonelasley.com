@@ -31,10 +31,18 @@ public sealed class KeywordSearch(ID1Database database, IOptions<SearchOptions> 
         {
             return new SearchResult(query, areaSlug, [], new Dictionary<string, int>());
         }
+        var hits = await RankAsync(match, areaSlug, cancellationToken);
+        var matched = await MatchedAreasAsync(match, cancellationToken);
+        return new SearchResult(query, areaSlug, hits, matched.Values.GroupBy(a => a).OrderBy(g => g.Key, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Count()));
+    }
+
+    /// <summary>Hits in bm25 order, with highlighted snippets, within one Content Area or all.</summary>
+    public async Task<IReadOnlyList<SearchHit>> RankAsync(string match, string? areaSlug, CancellationToken cancellationToken)
+    {
 
         var weights = options.Value.Bm25;
-        var areaFilter = area is null ? "" : "AND p.area = ?";
-        object?[] filterParams = area is null ? [match] : [match, areaSlug];
+        var areaFilter = areaSlug is null ? "" : "AND p.area = ?";
+        object?[] filterParams = areaSlug is null ? [match] : [match, areaSlug];
         var rows = await database.QueryAsync(
             $"""
             SELECT p.id, p.title, p.slug, p.area, p.date,
@@ -47,22 +55,22 @@ public sealed class KeywordSearch(ID1Database database, IOptions<SearchOptions> 
             [.. filterParams, weights.Title, weights.Structured, weights.Tags, weights.Body, options.Value.Limit],
             cancellationToken);
 
-        var counts = await database.QueryAsync(
+        return [.. rows.Select(row => new SearchHit(
+            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Highlights(Text(row, "snippet"))))];
+    }
+
+    /// <summary>Every matching Post's Content Area, across all areas, for per-area counts.</summary>
+    public async Task<IReadOnlyDictionary<string, string>> MatchedAreasAsync(string match, CancellationToken cancellationToken)
+    {
+        var rows = await database.QueryAsync(
             $"""
-            SELECT p.area, count(*) AS n
+            SELECT p.id, p.area
             FROM posts_fts JOIN posts p ON p.id = posts_fts.post_id
             WHERE posts_fts MATCH ? AND {Readable}
-            GROUP BY p.area
             """,
             [match],
             cancellationToken);
-
-        return new SearchResult(
-            query,
-            areaSlug,
-            [.. rows.Select(row => new SearchHit(
-                Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Highlights(Text(row, "snippet"))))],
-            counts.ToDictionary(row => Text(row, "area"), row => row.GetProperty("n").GetInt32()));
+        return rows.ToDictionary(row => Text(row, "id"), row => Text(row, "area"));
     }
 
     private static List<HighlightPart> Highlights(string snippet)

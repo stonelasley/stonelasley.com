@@ -31,8 +31,8 @@ public static class PostEndpoints
             return Results.Ok(await reader.LatestAsync(contentArea, limit ?? 5, cancellationToken));
         });
 
-        // mode=keyword (default) or vector; hybrid fusion arrives with #42.
-        app.MapGet("/search", async (string? q, string? area, string? mode, KeywordSearch keyword, VectorSearch vector, CancellationToken cancellationToken) =>
+        // mode=hybrid|keyword|vector overrides Search:Mode, which v1 sets from the eval.
+        app.MapGet("/search", async (string? q, string? area, string? mode, Searcher searcher, CancellationToken cancellationToken) =>
         {
             ContentArea? contentArea = null;
             if (!string.IsNullOrEmpty(area))
@@ -43,12 +43,16 @@ public static class PostEndpoints
                 }
                 contentArea = parsed;
             }
-            return mode switch
+            SearchMode? searchMode = null;
+            if (!string.IsNullOrEmpty(mode))
             {
-                null or "" or "keyword" => Results.Ok(await keyword.SearchAsync(q ?? "", contentArea, cancellationToken)),
-                "vector" => Results.Ok(await vector.SearchAsync(q ?? "", contentArea, cancellationToken)),
-                _ => Results.ValidationProblem(new Dictionary<string, string[]> { ["mode"] = ["'mode' must be keyword or vector."] }),
-            };
+                if (!Enum.TryParse<SearchMode>(mode, ignoreCase: true, out var parsedMode) || !Enum.IsDefined(parsedMode) || int.TryParse(mode, out _))
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["mode"] = ["'mode' must be hybrid, keyword or vector."] });
+                }
+                searchMode = parsedMode;
+            }
+            return Results.Ok(await searcher.SearchAsync(q ?? "", contentArea, searchMode, cancellationToken));
         });
 
         app.MapGet("/areas/watches/facets", async (PostReader reader, CancellationToken cancellationToken) =>
