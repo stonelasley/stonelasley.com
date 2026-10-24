@@ -22,6 +22,7 @@ const postSummarySchema = z.object({
   tags: z.array(z.string()),
   excerpt: z.string(), // opening prose as plain text
   watch: watchSummarySchema.nullable(),
+  draft: z.boolean().default(false), // only on preview, which shows Drafts
 });
 
 const ingredientSchema = z.object({

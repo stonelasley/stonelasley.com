@@ -4,6 +4,7 @@ using StoneLasley.Api.Ingest;
 using StoneLasley.Api.Posts;
 using StoneLasley.Application;
 using StoneLasley.Application.Access;
+using StoneLasley.Application.Posts;
 using StoneLasley.Application.Search;
 using StoneLasley.Domain.Posts;
 using StoneLasley.Infrastructure;
@@ -29,6 +30,7 @@ builder.Services.AddOptions<AccessOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 builder.Services.AddAccessRateLimit();
+builder.Services.AddOptions<SiteOptions>().BindConfiguration(SiteOptions.SectionName);
 builder.Services.AddOptions<IngestOptions>()
     .BindConfiguration(IngestOptions.SectionName)
     .ValidateDataAnnotations()

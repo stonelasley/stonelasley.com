@@ -7,11 +7,15 @@ import { apiUrl, fixtures, ingestToken, repoRoot, revalidateSecret } from "../st
 
 // Ingest through the real CLI, the way the content repo's CI will.
 function ingest(directory: string) {
-  execFileSync("dotnet", ["run", "--project", "api/src/Cli", "--", "ingest", directory], {
-    cwd: repoRoot,
-    env: { ...process.env, SL_API_URL: apiUrl, SL_INGEST_TOKEN: ingestToken },
-    stdio: "pipe",
-  });
+  execFileSync(
+    "dotnet",
+    ["run", "--project", "api/src/Cli", "--", "ingest", directory, "--include-drafts"],
+    {
+      cwd: repoRoot,
+      env: { ...process.env, SL_API_URL: apiUrl, SL_INGEST_TOKEN: ingestToken },
+      stdio: "pipe",
+    }
+  );
 }
 
 const newPost = `---
