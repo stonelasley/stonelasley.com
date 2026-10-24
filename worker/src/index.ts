@@ -2,6 +2,10 @@ export interface Env {
   DB: D1Database;
   IMAGES: R2Bucket;
   VECTORS: VectorizeIndex;
+  // While re-indexing (#44): the index being built, and which version each binding holds.
+  VECTORS_BUILD?: VectorizeIndex;
+  ACTIVE_INDEX_VERSION?: string;
+  BUILD_INDEX_VERSION?: string;
   AI: Ai;
   WORKER_SECRET: string;
   // Local only: serve images publicly at /public/images/*, standing in for the R2 custom domain.
@@ -147,13 +151,17 @@ async function vectors(request: Request, operation: string, env: Env): Promise<R
   if (!body) {
     return Response.json({ error: "invalid json" }, { status: 400 });
   }
+  const index = pickIndex(env, body.version as string | undefined);
+  if (!index) {
+    return Response.json({ error: `no index bound for version ${body.version}` }, { status: 409 });
+  }
   try {
     switch (operation) {
       case "upsert":
-        return Response.json(await env.VECTORS.upsert(body.vectors as VectorizeVector[]));
+        return Response.json(await index.upsert(body.vectors as VectorizeVector[]));
       case "query":
         return Response.json(
-          await env.VECTORS.query(body.vector as number[], {
+          await index.query(body.vector as number[], {
             topK: body.topK as number,
             filter: body.filter as VectorizeVectorMetadataFilter | undefined,
             namespace: body.namespace as string | undefined,
@@ -161,15 +169,23 @@ async function vectors(request: Request, operation: string, env: Env): Promise<R
           })
         );
       case "delete":
-        return Response.json(await env.VECTORS.deleteByIds(body.ids as string[]));
+        return Response.json(await index.deleteByIds(body.ids as string[]));
       case "get":
-        return Response.json(await env.VECTORS.getByIds(body.ids as string[]));
+        return Response.json(await index.getByIds(body.ids as string[]));
       default:
         return Response.json({ error: "not found" }, { status: 404 });
     }
   } catch (error) {
     return Response.json({ error: String(error) }, { status: 500 });
   }
+}
+
+// The index a version lives in. Without ACTIVE_INDEX_VERSION (local dev, tests) everything uses VECTORS.
+function pickIndex(env: Env, version: string | undefined): VectorizeIndex | undefined {
+  if (!env.ACTIVE_INDEX_VERSION || !version || version === env.ACTIVE_INDEX_VERSION)
+    return env.VECTORS;
+  if (version === env.BUILD_INDEX_VERSION) return env.VECTORS_BUILD;
+  return undefined;
 }
 
 async function readJson<T>(request: Request): Promise<T | null> {

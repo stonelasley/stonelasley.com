@@ -112,6 +112,8 @@ jobs:
           TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}
         run: |
           set -euo pipefail
+          # The API reads the index version the Worker binds as active (#44).
+          INDEX_VERSION=$(node -e 'const t=require("fs").readFileSync("worker/wrangler.jsonc","utf8"); console.log(t.match(/"preview"[\s\S]*?"ACTIVE_INDEX_VERSION":\s*"([^"]+)"/)[1])')
           az extension add --name containerapp --upgrade --only-show-errors
           secrets=(
             "worker-secret=$WORKER_SECRET"
@@ -134,6 +136,7 @@ jobs:
             "Images__BaseUrl=https://img-preview.stonelasley.com/"
             "Site__NoIndex=true"
             "Site__ShowDrafts=true"
+            "Search__Vector__IndexVersion=$INDEX_VERSION"
           )
           if az containerapp show -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --only-show-errors >/dev/null 2>&1; then
             az containerapp secret set -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --secrets "${secrets[@]}" --only-show-errors >/dev/null
@@ -153,6 +156,16 @@ jobs:
         run: node web/scripts/warm-api.mjs
         env:
           API_URL: ${{ steps.api.outputs.url }}
+
+      # After a version bump, adopt the index re-index.yml built (404 when there's nothing to promote).
+      - name: Promote a finished index build
+        env:
+          ADMIN_TOKEN: ${{ secrets.PREVIEW_ADMIN_TOKEN }}
+        run: |
+          version=$(node -e 'const t=require("fs").readFileSync("worker/wrangler.jsonc","utf8"); console.log(t.match(/"preview"[\s\S]*?"ACTIVE_INDEX_VERSION":\s*"([^"]+)"/)[1])')
+          status=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ steps.api.outputs.url }}/admin/vectors/promote?version=$version" -H "Authorization: Bearer $ADMIN_TOKEN")
+          echo "promote $version: $status"
+          [ "$status" = 204 ] || [ "$status" = 404 ]
 
       - name: Build and deploy the site
         id: site

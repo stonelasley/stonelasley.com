@@ -37,6 +37,7 @@
       ],
       "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "stonelasley-images-preview" }],
       "vectorize": [{ "binding": "VECTORS", "index_name": "posts-v1-preview" }],
+      "vars": { "ACTIVE_INDEX_VERSION": "v1" },
       "ai": { "binding": "AI" }
     },
     "production": {
@@ -53,6 +54,7 @@
       ],
       "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "stonelasley-images-prod" }],
       "vectorize": [{ "binding": "VECTORS", "index_name": "posts-v1-prod" }],
+      "vars": { "ACTIVE_INDEX_VERSION": "v1" },
       "ai": { "binding": "AI" }
     }
   }
