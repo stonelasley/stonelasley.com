@@ -22,14 +22,15 @@ The AppHost hands the same `worker-secret` parameter to the API and the Worker, 
 
 ## Endpoints
 
-| Route                                 | Auth         | Does                                                                     |
-| ------------------------------------- | ------------ | ------------------------------------------------------------------------ |
-| `GET /health`                         | none         | Healthy only when `SELECT 1` reaches D1 through the Worker               |
-| `GET /areas/{area}/posts`             | none         | Public, published Posts in a Content Area, newest first                  |
-| `GET /areas/{area}/posts/{slug}`      | none         | One public, published Post with its Markdown body                        |
-| `POST /ingest/manifest`               | ingest token | `{ posts: { ulid: hash } }` → `{ runId, requested }`, new or changed IDs |
-| `PUT /ingest/runs/{run}/posts/{ulid}` | ingest token | `{ markdown }`: parses, validates and stages one requested Post          |
-| `POST /ingest/runs/{run}/commit`      | ingest token | Applies every staged Post in one statement                               |
+| Route                                 | Auth         | Does                                                                                                                                                                                                    |
+| ------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /health`                         | none         | Healthy only when `SELECT 1` reaches D1 through the Worker                                                                                                                                              |
+| `GET /areas/{area}`                   | none         | `{ slug, intro }`: the area's intro Markdown, or null                                                                                                                                                   |
+| `GET /areas/{area}/posts`             | none         | Public, published Posts in a Content Area, newest first                                                                                                                                                 |
+| `GET /areas/{area}/posts/{slug}`      | none         | One public, published Post with its Markdown body (and `recipe` typed core in Recipes)                                                                                                                  |
+| `POST /ingest/manifest`               | ingest token | `{ posts: { ulid: hash }, intros?: { area: markdown } }` → `{ runId, requested }`, new or changed IDs. `?dryRun=true`, `?includeDrafts=true`                                                            |
+| `PUT /ingest/runs/{run}/posts/{ulid}` | ingest token | `{ markdown }`: parses, validates and stages one requested Post. 400 lists every error                                                                                                                  |
+| `POST /ingest/runs/{run}/commit`      | ingest token | Validates the set (slugs unique per area), then in one transaction upserts staged Posts and deletes Posts missing from the manifest. Returns `{ dryRun, upserted, deleted }`; a dry run writes no Posts |
 
 The ingest token is a bearer token (`Ingest__Token`), separate from the Worker secret.
 
@@ -37,8 +38,10 @@ The ingest token is a bearer token (`Ingest__Token`), separate from the Worker s
 
 ```bash
 SL_API_URL=http://localhost:5180 SL_INGEST_TOKEN=local-ingest-token \
-  dotnet run --project api/src/Cli -- ingest e2e/fixtures/content
+  dotnet run --project api/src/Cli -- ingest e2e/fixtures/content [--dry-run] [--include-drafts]
 ```
+
+The manifest is the whole content set: any stored Post missing from it is deleted. `_areas/{area}.md` files are sent as Content Area intros, and nothing under a `_` folder is read as a Post. `sl ingest` refuses an empty directory for that reason. Without `--include-drafts`, `status: draft` Posts are not stored, and a published Post turned Draft is removed.
 
 On macOS the first run asks for Keychain access to the ASP.NET Core dev certificate. Choose "Always Allow", or the AppHost exits with `User canceled the operation`.
 

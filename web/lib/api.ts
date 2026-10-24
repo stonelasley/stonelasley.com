@@ -1,3 +1,5 @@
+import http from "node:http";
+import https from "node:https";
 import { z } from "zod";
 import { contentAreas, type AreaSlug } from "./areas";
 
@@ -12,12 +14,40 @@ const postSummarySchema = z.object({
   tags: z.array(z.string()),
 });
 
+const ingredientSchema = z.object({
+  quantity: z.number().nullable(),
+  unit: z.string().nullable(),
+  name: z.string(),
+  note: z.string().nullable(),
+  optional: z.boolean(),
+});
+
+// The Recipe typed core, with total time and °F derived by the API.
+const recipeSchema = z.object({
+  prepTimeMin: z.number(),
+  cookTimeMin: z.number(),
+  totalTimeMin: z.number(),
+  servings: z.number(),
+  difficulty: z.enum(["Easy", "Medium", "Veteran"]),
+  ovenTempC: z.number().nullable(),
+  ovenTempF: z.number().nullable(),
+  ingredients: z.array(ingredientSchema),
+});
+
 const postSchema = postSummarySchema.extend({
   body: z.string(), // Markdown
+  recipe: recipeSchema.nullable(),
+});
+
+const areaSchema = z.object({
+  slug: z.string(),
+  intro: z.string().nullable(), // Markdown
 });
 
 export type PostSummary = z.infer<typeof postSummarySchema>;
 export type Post = z.infer<typeof postSchema>;
+export type Recipe = z.infer<typeof recipeSchema>;
+export type Ingredient = z.infer<typeof ingredientSchema>;
 
 function apiUrl(): string {
   if (process.env.VERCEL && !process.env.API_URL) {
@@ -26,15 +56,40 @@ function apiUrl(): string {
   return (process.env.API_URL ?? "http://localhost:5180").replace(/\/$/, "");
 }
 
+// Plain node:http, not fetch. Next caches every fetch made while prerendering a static page and reuses it
+// in later builds (and Vercel keeps that cache across deployments), so a rebuild after an ingest would
+// render the old content. Pages stay static either way; revalidation re-renders them from fresh API data.
+function request(url: string): Promise<{ status: number; body: string }> {
+  const client = url.startsWith("https:") ? https : http;
+  return new Promise((resolve, reject) => {
+    const req = client.get(
+      url,
+      { headers: { accept: "application/json" }, timeout: 30_000 },
+      (res) => {
+        let body = "";
+        res.setEncoding("utf8");
+        res.on("data", (chunk) => (body += chunk));
+        res.on("end", () => resolve({ status: res.statusCode ?? 0, body }));
+      }
+    );
+    req.on("timeout", () => req.destroy(new Error(`GET ${url} timed out`)));
+    req.on("error", reject);
+  });
+}
+
 async function get<T>(path: string, schema: z.ZodType<T>): Promise<T | null> {
-  const response = await fetch(`${apiUrl()}${path}`);
+  const response = await request(`${apiUrl()}${path}`);
   if (response.status === 404) {
     return null;
   }
-  if (!response.ok) {
-    throw new Error(`GET ${path} failed: ${response.status} ${await response.text()}`);
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`GET ${path} failed: ${response.status} ${response.body}`);
   }
-  return schema.parse(await response.json());
+  try {
+    return schema.parse(JSON.parse(response.body));
+  } catch (error) {
+    throw new Error(`GET ${path} returned an unexpected body`, { cause: error });
+  }
 }
 
 /** Public Posts in one Content Area, newest first. */
@@ -54,4 +109,10 @@ export async function getAllPosts(): Promise<PostSummary[]> {
 
 export async function getPost(area: AreaSlug, slug: string): Promise<Post | null> {
   return get(`/areas/${area}/posts/${encodeURIComponent(slug)}`, postSchema);
+}
+
+/** A Content Area's intro from the content repo, if it has one. */
+export async function getAreaIntro(area: AreaSlug): Promise<string | null> {
+  const found = await get(`/areas/${area}`, areaSchema);
+  return found?.intro ?? null;
 }

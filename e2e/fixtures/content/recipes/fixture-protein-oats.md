@@ -7,6 +7,23 @@ date: 2026-09-20
 tags: [breakfast]
 audience: public
 status: published
+prepTimeMin: 5
+cookTimeMin: 10
+servings: 2
+difficulty: Easy
+ovenTempC: 200
+ingredients:
+  - { quantity: 80, unit: g, name: rolled oats }
+  - { quantity: 0.5, unit: cup, name: water }
+  - { quantity: 1, unit: scoop, name: whey protein, note: vanilla }
+  - { name: cinnamon, optional: true }
 ---
 
-Oats, whey and water. Stir.
+Stir the oats and water, cook, then fold in the whey.
+
+## Nutrition
+
+| Per serving | Amount |
+| ----------- | ------ |
+| Protein     | 30 g   |
+| Carbs       | 27 g   |

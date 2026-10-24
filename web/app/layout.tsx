@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { constructMetadata } from "@/lib/metadata";
 import { siteConfig } from "@/site.config";
+import { themeScript } from "@/lib/theme";
 import "./globals.css";
 import "@/styles/prose.css";
 
@@ -18,6 +19,10 @@ export default function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Sets the theme class before first paint; see lib/theme.ts */}
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="font-sans">
         {gtmId && (
           <>

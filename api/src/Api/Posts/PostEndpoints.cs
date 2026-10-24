@@ -7,6 +7,11 @@ public static class PostEndpoints
 {
     public static IEndpointRouteBuilder MapPosts(this IEndpointRouteBuilder app)
     {
+        app.MapGet("/areas/{area}", async (string area, PostReader reader, CancellationToken cancellationToken) =>
+            ContentAreas.TryParse(area, out var contentArea)
+                ? Results.Ok(await reader.AreaAsync(contentArea, cancellationToken))
+                : Results.NotFound());
+
         var posts = app.MapGroup("/areas/{area}/posts");
 
         posts.MapGet("/", async (string area, PostReader reader, CancellationToken cancellationToken) =>

@@ -1,5 +1,8 @@
 namespace StoneLasley.Application.Ingest;
 
+/// <summary>What a commit changed, or would change for a dry run.</summary>
+public sealed record CommitSummary(bool DryRun, IReadOnlyList<string> Upserted, IReadOnlyList<string> Deleted);
+
 /// <summary>
 /// How an ingest step ended. Endpoints map each case to an HTTP status.
 /// </summary>
@@ -9,7 +12,9 @@ public abstract record IngestOutcome
     {
     }
 
-    public sealed record Done : IngestOutcome;
+    public sealed record Uploaded : IngestOutcome;
+
+    public sealed record Committed(CommitSummary Summary) : IngestOutcome;
 
     public sealed record RunNotFound : IngestOutcome;
 
