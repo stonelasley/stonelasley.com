@@ -61,7 +61,7 @@ slug: testing-at-the-seams
 area: ai-development # recipes | watches | ai-development | training
 date: 2026-10-01
 tags: [testing]
-audience: public
+audience: public # or clients, or one Client's ULID (a Private Post)
 status: published # or draft
 ---
 ```
@@ -69,7 +69,8 @@ status: published # or draft
 - Parsing and validation live in `api/src/Domain/Posts/MarkdownPost.cs`.
 - Ingest is manifest → upload → commit (see `api/README.md`). `sl ingest <dir>` drives it.
 - `npm run build` runs `web/scripts/warm-api.mjs` first: it waits for `API_URL/health` with retries and a per-attempt timeout, and fails the build if the API never answers.
-- Fixture Posts for E2E live in `e2e/fixtures/content/`. Made-up content only: this repo is public.
+- Fixture Posts for E2E live in `e2e/fixtures/content/`. Made-up content only: this repo is public. Clients are declared in the content repo's `_clients.yaml` (ULID and display name); the fixture one uses made-up names.
+- Private Posts are never pre-rendered: `proxy.ts` sends visitors with the `sl_access` cookie to the dynamic `/unlocked/[area]/[slug]` route, which forwards the session to the API.
 - The Notion fetch script (`web/scripts/fetch-notion-content.js`) is no longer part of the build. It stays until the Notion migration (#54).
 
 ## Key Patterns

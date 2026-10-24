@@ -7,6 +7,7 @@ import { defineConfig, devices } from "@playwright/test";
  * See https://playwright.dev/docs/test-configuration.
  */
 import {
+  adminToken,
   apiPort,
   apiUrl,
   ingestToken,
@@ -65,6 +66,10 @@ export default defineConfig({
         Images__BaseUrl: `http://127.0.0.1:${workerPort}/public/`,
         // The Worker runs fully local (--local), so vectors use the API's deterministic fake.
         Search__Vector__Fake: "true",
+        Admin__Token: adminToken,
+        Access__SessionKey: "e2e-session-key-0123456789abcdef0123",
+        // No Turnstile widget is rendered without a site key, so the API accepts any token here.
+        Turnstile__Fake: "true",
         // The site isn't up yet during the seeding ingest; that revalidation just logs a warning.
         Revalidation__Url: `http://localhost:${webPort}/api/revalidate`,
         Revalidation__Secret: revalidateSecret,
