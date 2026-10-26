@@ -8,6 +8,11 @@ const legacyRedirects = [
   { source: "/blog", destination: "/ai-development" },
   { source: "/blog/:slug*", destination: "/ai-development" },
   { source: "/meal-prep", destination: "/recipes" },
+  // The v1 slug was cut off; the Post now has the full one.
+  {
+    source: "/recipes/lemon-blueberry-high-protein-banana-brea",
+    destination: "/recipes/lemon-blueberry-high-protein-banana-bread",
+  },
 ];
 
 const nextConfig: NextConfig = {
