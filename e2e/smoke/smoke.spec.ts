@@ -9,7 +9,7 @@ const legacyRecipes = [
   "hard-bbq-sauce",
   "mexican-muscle-cornbread",
   "high-protein-coconut-cream-balls",
-  "lemon-blueberry-high-protein-banana-brea",
+  "lemon-blueberry-high-protein-banana-bread",
   "buffed-up-protein-banana-bread",
 ];
 
@@ -17,6 +17,10 @@ const legacyRedirects = [
   { from: "/blog", to: "/ai-development" },
   { from: "/blog/learning-a-new-topic-with-keyword-mind-mapping", to: "/ai-development" },
   { from: "/meal-prep", to: "/recipes" },
+  {
+    from: "/recipes/lemon-blueberry-high-protein-banana-brea",
+    to: "/recipes/lemon-blueberry-high-protein-banana-bread",
+  },
 ];
 
 test("the home page renders", async ({ page }) => {
