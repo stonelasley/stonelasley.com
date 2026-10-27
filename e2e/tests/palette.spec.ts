@@ -26,6 +26,20 @@ test.describe("Command palette", () => {
     }
   });
 
+  // The theme's color utilities (bg-popover, text-muted-foreground, ...) exist only through @theme in
+  // globals.css; without it the palette rendered see-through.
+  for (const theme of ["light", "dark"]) {
+    test(`is opaque in the ${theme} theme`, async ({ page }) => {
+      await page.addInitScript((t) => localStorage.setItem("theme", t), theme);
+      await visit(page, "/recipes");
+      await page.keyboard.press("Meta+k");
+
+      const background = await palette(page).evaluate((el) => getComputedStyle(el).backgroundColor);
+      expect(background).not.toBe("rgba(0, 0, 0, 0)");
+      expect(background).not.toMatch(/rgba\(.*, 0(\.\d+)?\)$/);
+    });
+  }
+
   test("/ is ignored while typing in a field", async ({ page }) => {
     await visit(page, "/search");
     await page.getByRole("searchbox", { name: "Search" }).fill("a/b");
