@@ -8,10 +8,10 @@ namespace StoneLasley.Api.FunctionalTests;
 public class ImageTests
 {
     // A 1×1 PNG.
-    private static readonly byte[] Png = Convert.FromBase64String(
+    internal static readonly byte[] Png = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=");
 
-    private static string KeyOf(byte[] bytes, string ext = ".png") => $"images/{Convert.ToHexStringLower(SHA256.HashData(bytes))}{ext}";
+    internal static string KeyOf(byte[] bytes, string ext = ".png") => $"images/{Convert.ToHexStringLower(SHA256.HashData(bytes))}{ext}";
 
     private static async Task<(string Slug, HttpResponseMessage Upload)> IngestWithImageAsync(
         HttpClient client, byte[] image, string body = "![A dot](./dot.png)\n\nWords.")

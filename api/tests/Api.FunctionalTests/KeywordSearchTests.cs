@@ -5,7 +5,10 @@ namespace StoneLasley.Api.FunctionalTests;
 
 public sealed record HighlightPart(string Text, bool Match);
 
-public sealed record SearchHit(string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<HighlightPart> Excerpt);
+public sealed record SearchWatch(string Make, string Reference);
+
+public sealed record SearchHit(
+    string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<HighlightPart> Excerpt, string? Hero = null, SearchWatch? Watch = null);
 
 public sealed record SearchResponse(string Query, string? Area, IReadOnlyList<SearchHit> Results, IReadOnlyDictionary<string, int> Counts);
 

@@ -25,6 +25,37 @@ test.describe("Search page", () => {
     await expect(result.locator("time")).toHaveAttribute("datetime", "2026-10-01");
   });
 
+  test("a result shows its Post's hero beside it, loaded", async ({ page }) => {
+    await page.goto("/search?q=refactors");
+
+    const thumbnail = page
+      .getByRole("article")
+      .filter({ hasText: "Testing at the seams" })
+      .getByTestId("post-thumbnail");
+    await expect(thumbnail).toHaveAttribute("alt", "");
+    await expect(thumbnail).toHaveAttribute("src", /\/public\/images\/[0-9a-f]{64}\.png$/);
+    await expect
+      .poll(() =>
+        thumbnail.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)
+      )
+      .toBe(true);
+  });
+
+  test("a result without a hero gets a stand-in: a Watch's Reference, or the Content Area", async ({
+    page,
+  }) => {
+    await page.goto("/search?q=16610");
+    const watch = page.getByRole("article").first().getByTestId("post-thumbnail-standin");
+    await expect(watch).toContainText("16610");
+    await expect(watch).toContainText("Rolex");
+    await expect(watch).toHaveAttribute("aria-hidden", "true");
+
+    await page.goto("/search?q=oats");
+    await expect(
+      page.getByRole("article").first().getByTestId("post-thumbnail-standin")
+    ).toHaveText("Recipes");
+  });
+
   test("an exact Reference puts that Watch first", async ({ page }) => {
     await page.goto("/search?q=16610");
 

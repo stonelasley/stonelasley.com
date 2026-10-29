@@ -124,6 +124,17 @@ test.describe("Command palette", () => {
 
     await expect(palette(page).getByText("Latest", { exact: true })).toBeVisible();
     await expect(options(page).first()).toContainText("Testing at the seams");
+    await expect(options(page).first().getByTestId("post-thumbnail")).toBeVisible();
+  });
+
+  test("each result has a thumbnail, or a Watch's Reference in its place", async ({ page }) => {
+    await visit(page, "/");
+    await page.keyboard.press("Control+k");
+
+    await input(page).fill("16610");
+
+    const watch = options(page).filter({ hasText: "Rolex Submariner Date 16610" });
+    await expect(watch.getByTestId("post-thumbnail-standin")).toHaveText("16610");
   });
 
   test("results appear as you type, after a debounce and a minimum length, grouped by area", async ({

@@ -44,7 +44,7 @@ public sealed class Searcher(KeywordSearch keyword, VectorSearch vector, IOption
             .Take(options.Value.Limit)
             .Select(result => byKeyword.TryGetValue(result.Id, out var hit)
                 ? hit
-                : ToHit(byVector[result.Id]))
+                : byVector[result.Id].ToHit())
             .ToList();
 
         // Counts cover every area, whatever the filter: any Post either leg matched.
@@ -58,7 +58,4 @@ public sealed class Searcher(KeywordSearch keyword, VectorSearch vector, IOption
 
         return new SearchResult(query, areaSlug, results, counts);
     }
-
-    private static SearchHit ToHit(RankedPost post) =>
-        new(post.Id, post.Title, post.Slug, post.Area, post.Date, [new HighlightPart(post.Excerpt, false)]);
 }

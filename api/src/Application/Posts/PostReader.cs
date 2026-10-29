@@ -6,8 +6,8 @@ using StoneLasley.Domain.Posts;
 namespace StoneLasley.Application.Posts;
 
 public sealed record PostSummary(
-    string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, string Excerpt, WatchSummary? Watch,
-    bool Draft);
+    string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, string Excerpt, string? Hero,
+    WatchSummary? Watch, bool Draft);
 
 /// <summary>Site:ShowDrafts is on for preview only, where Drafts are reviewed in place with a badge.</summary>
 public sealed class SiteOptions
@@ -67,11 +67,12 @@ public sealed class PostReader(ID1Database database, TimeProvider clock, IOption
     private async Task<IReadOnlyList<PostSummary>> SummariesAsync(string where, IReadOnlyList<object?> parameters, CancellationToken cancellationToken)
     {
         var rows = await database.QueryAsync(
-            $"SELECT id, title, slug, area, date, tags, excerpt, watch, status FROM posts {where}",
+            $"SELECT id, title, slug, area, date, tags, excerpt, hero, watch, status FROM posts {where}",
             parameters,
             cancellationToken);
         return [.. rows.Select(row => new PostSummary(
-            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), WatchSummary.Of(PostColumns.WatchFromRow(row), clock.GetUtcNow().Year),
+            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), PostColumns.HeroFromRow(row),
+            WatchSummary.Of(PostColumns.WatchFromRow(row), clock.GetUtcNow().Year),
             Text(row, "status") == PostColumns.DraftStatus))];
     }
 

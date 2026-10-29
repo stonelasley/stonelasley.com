@@ -31,7 +31,7 @@ public sealed class VectorSearch(ID1Database database, IEmbedder embedder, IVect
         return new SearchResult(
             query,
             areaSlug,
-            [.. ranked.Select(post => new SearchHit(post.Id, post.Title, post.Slug, post.Area, post.Date, [new HighlightPart(post.Excerpt, false)]))],
+            [.. ranked.Select(post => post.ToHit())],
             counts);
     }
 
@@ -53,7 +53,7 @@ public sealed class VectorSearch(ID1Database database, IEmbedder embedder, IVect
 
         var rows = await database.QueryAsync(
             $"""
-            SELECT p.id, p.title, p.slug, p.area, p.date, c.text
+            SELECT p.id, p.title, p.slug, p.area, p.date, p.hero, p.watch, c.text
             FROM posts p JOIN post_chunks c ON c.post_id = p.id
             WHERE p.audience = '{PostColumns.PublicAudience}' AND p.status = '{PostColumns.PublishedStatus}'
               AND (p.id || ':' || c.idx) IN (SELECT value FROM json_each(?))
@@ -71,7 +71,8 @@ public sealed class VectorSearch(ID1Database database, IEmbedder embedder, IVect
                 {
                     var row = posts[match.PostId];
                     return new RankedPost(
-                        match.PostId, Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), match.Score, Opening(Text(row, "text")));
+                        match.PostId, Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), match.Score, Opening(Text(row, "text")),
+                        PostColumns.HeroFromRow(row), SearchWatch.Of(PostColumns.WatchFromRow(row)));
                 }),
         ];
     }
@@ -86,4 +87,8 @@ public sealed class VectorSearch(ID1Database database, IEmbedder embedder, IVect
     private static string Text(JsonElement row, string column) => row.GetProperty(column).GetString()!;
 }
 
-public sealed record RankedPost(string Id, string Title, string Slug, string Area, string Date, double Score, string Excerpt);
+public sealed record RankedPost(
+    string Id, string Title, string Slug, string Area, string Date, double Score, string Excerpt, string? Hero, SearchWatch? Watch)
+{
+    public SearchHit ToHit() => new(Id, Title, Slug, Area, Date, [new HighlightPart(Excerpt, false)], Hero, Watch);
+}

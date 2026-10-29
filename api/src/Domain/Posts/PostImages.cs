@@ -86,6 +86,13 @@ public static partial class PostImages
         });
     }
 
+    /// <summary>
+    /// The URL of the first image the Post ships with, from <paramref name="urls"/> keyed by normalised path; null when
+    /// it has none. Images linked from elsewhere don't count: the site resizes only what ingest stored.
+    /// </summary>
+    public static string? Hero(string markdown, IReadOnlyDictionary<string, string> urls) =>
+        References(markdown).Select(urls.GetValueOrDefault).FirstOrDefault(url => url is not null);
+
     public static string? ContentType(string path) => ContentTypes.GetValueOrDefault(Path.GetExtension(path));
 
     /// <summary><c>images/{sha256}{ext}</c>: identical bytes always land on the same key.</summary>
