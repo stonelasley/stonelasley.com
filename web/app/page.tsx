@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/components/Container";
 import { HomeHero, type HeroPhoto } from "@/components/HomeHero";
@@ -74,12 +76,36 @@ export default async function Home() {
       <section aria-labelledby="about" className="pb-24 md:pb-40">
         <Container>
           <div className="reveal grid gap-6 md:grid-cols-12">
-            <h2 id="about" className="text-title font-light md:col-span-4">
-              About
-            </h2>
-            <div className="space-y-4 md:col-span-7 md:col-start-6 md:pt-3">
-              {siteConfig.about.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
+            <div className="md:col-span-4">
+              <h2 id="about" className="text-title font-light">
+                About
+              </h2>
+              <Image
+                src={siteConfig.author.avatar}
+                alt={siteConfig.author.name}
+                width={120}
+                height={120}
+                className="mt-6 size-[120px] rounded-full object-cover"
+              />
+            </div>
+            <div className="flow-root space-y-4 md:col-span-7 md:col-start-6 md:pt-3">
+              {siteConfig.about.map((paragraph, index) => (
+                <Fragment key={paragraph}>
+                  {/* The stage shot sits beside the training paragraph. */}
+                  {index === 1 && (
+                    <figure className="mx-auto mb-6 w-full max-w-xs sm:float-right sm:mb-4 sm:ml-6 sm:w-48">
+                      <Image
+                        src="/images/about/stage.jpg"
+                        alt="Stone Lasley on stage at the NPC Idaho Cup"
+                        width={600}
+                        height={900}
+                        sizes="(min-width: 640px) 192px, 320px"
+                        className="rounded-md"
+                      />
+                    </figure>
+                  )}
+                  <p>{paragraph}</p>
+                </Fragment>
               ))}
             </div>
           </div>

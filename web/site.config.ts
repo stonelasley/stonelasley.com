@@ -6,13 +6,16 @@ export const siteConfig = {
   intro:
     "I run a software engineering org in Utah. I also compete in bodybuilding, collect mechanical watches, and cook to the gram.",
   about: [
-    "I'm a director of software engineering. Most of my week goes to people, planning and architecture, and I still design and write the systems myself.",
-    "Outside work I compete in open-class bodybuilding, which is why the recipes here are high in protein and every ingredient is weighed. The watch notes started with the two 116520 Daytonas I wear, one black dial and one white, and have grown one reference at a time.",
+    "I'm an AI leader, software builder, and lifelong optimizer. I help teams turn AI from an emerging technology into a practical advantage—adopting it thoughtfully, applying AI-assisted development effectively, and building scalable solutions that deliver meaningful results.",
+    "For me, AI isn't limited to work. I use it throughout my life to train smarter, improve my coaching, optimize my health, and make better decisions. I'm constantly experimenting with ways to combine AI, data, and disciplined habits to improve how I perform, create, and live.",
+    "This website is part of that experimentation. It's a live application where I test AI-driven development concepts, workflows, and approaches—including the idea of “zero-touch coding.” The application has been 100% coded by AI agents. My role has been to provide the vision, requirements, direction, and judgment while allowing the agents to handle the implementation. This approach to development is progressing quickly, and I'm still learning how to trust it, optimize it, and come to terms with what it means for the future of building software.",
+    "Most importantly, I'm a husband of 20 years and the proud father of a seven-year-old boy. When I'm not building, training, or exploring new ideas, I'm spending time with my family, experimenting with meal-prep recipes, or finding the next opportunity to improve. This site is where I share what I'm learning about AI leadership, personal optimization, fitness, health, and food.",
   ],
   url: "https://stonelasley.com",
   author: {
     name: "Stone C. Lasley",
     email: "website@lasley.io",
+    avatar: "/images/about/headshot.jpg",
   },
   home: {
     recentPosts: 3,
