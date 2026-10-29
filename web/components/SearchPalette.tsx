@@ -61,7 +61,7 @@ export function SearchPalette() {
         aria-label="Search"
         aria-haspopup="dialog"
         data-ready={ready || undefined}
-        className="border-border hover:bg-accent text-muted-foreground hover:text-foreground text-small flex h-9 items-center gap-2 rounded-md border px-2.5 transition-colors"
+        className="bg-muted hover:bg-accent text-muted-foreground hover:text-foreground text-small flex h-9 items-center gap-2 rounded-md px-2.5 transition-colors"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -78,9 +78,9 @@ export function SearchPalette() {
             d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
           />
         </svg>
-        <kbd className="bg-muted text-small hidden rounded px-1.5 font-sans sm:inline">⌘K</kbd>
+        <kbd className="text-small hidden font-sans sm:inline">⌘K</kbd>
       </Link>
-      {/* Portalled to <body>: the header's backdrop blur would otherwise trap a fixed overlay inside it. */}
+      {/* Portalled to <body>, so no ancestor's transform or filter can trap the fixed overlay. */}
       {open &&
         createPortal(
           <Palette
