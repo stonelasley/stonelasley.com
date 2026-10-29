@@ -37,6 +37,7 @@ next-env.d.ts
 # build time content
 web/content/*
 web/public/images/*
+!web/public/images/about/
 
 # playwright
 playwright-report/
