@@ -44,3 +44,39 @@ test.describe("Home Page", () => {
     });
   }
 });
+
+test.describe("Header", () => {
+  test("holds the wordmark, the Content Areas and search, and nothing else", async ({ page }) => {
+    await page.goto("/");
+    const header = page.getByRole("banner");
+
+    const names = await header.getByRole("link").allInnerTexts();
+    expect(names.map((n) => n.trim()).filter(Boolean)).toEqual([
+      "Stone C. Lasley",
+      "Recipes",
+      "Watches",
+      "AI & Development",
+      "Training",
+      "⌘K",
+    ]);
+    await expect(header.getByRole("radiogroup", { name: "Theme" })).toHaveCount(0);
+  });
+
+  test("on a phone, every Content Area is reachable from the header", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+
+    const nav = page.getByRole("navigation", { name: "Main navigation" });
+    for (const name of ["Recipes", "Watches", "AI & Development", "Training"]) {
+      await expect(nav.getByRole("link", { name })).toBeVisible();
+    }
+  });
+
+  test("the footer keeps the social links and the theme choice", async ({ page }) => {
+    await page.goto("/");
+    const footer = page.getByRole("contentinfo");
+
+    await expect(footer.getByRole("radiogroup", { name: "Theme" })).toBeVisible();
+    await expect(footer.getByRole("link", { name: /GitHub/i })).toBeVisible();
+  });
+});

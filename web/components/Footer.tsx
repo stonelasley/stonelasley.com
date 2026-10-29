@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Container } from "./Container";
 import { SocialNav } from "./SocialNav";
+import { ThemeToggle } from "./ThemeToggle";
 import { siteConfig } from "@/site.config";
 
 export function Footer() {
@@ -35,6 +36,8 @@ export function Footer() {
             <div>
               <h3 className="text-body mb-4 font-semibold">Connect</h3>
               <SocialNav />
+              <h3 className="text-body mt-8 mb-4 font-semibold">Theme</h3>
+              <ThemeToggle />
             </div>
           </div>
           <div className="border-border mt-8 border-t pt-8">
