@@ -12,7 +12,7 @@ export const siteConfig = {
   },
   social: {
     github: "https://github.com/stonelasley",
-    instagram: "https://instagram.com/sclarklasley",
+    instagram: "https://instagram.com/stoneclasley",
     whatsapp: "https://wa.link/8f2cuh",
     hevy: "https://hevy.com/user/stonelasley",
     email: "mailto:website@lasley.io",
