@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatQuantity, ingredientText } from "./recipe";
+import { formatQuantity, ingredientText, scaledQuantity } from "./recipe";
 
 describe("formatQuantity", () => {
   it.each([
@@ -45,5 +45,35 @@ describe("ingredientText", () => {
         { markOptional: true }
       )
     ).toBe("cinnamon (optional)");
+  });
+});
+
+describe("scaledQuantity", () => {
+  const ingredient = (quantity: number | null, unit: string | null) => ({
+    quantity,
+    unit,
+    name: "x",
+    note: null,
+    optional: false,
+  });
+
+  it.each([
+    [ingredient(80, "g"), 1, "80 g"],
+    [ingredient(80, "g"), 2, "160 g"],
+    [ingredient(60, "gram"), 1.5, "90 g"],
+    [ingredient(13, "gram"), 0.5, "6.5 g"],
+    [ingredient(3, "grams"), 0.5, "1.5 g"],
+    [ingredient(14, "g"), 0.5, "7 g"],
+    [ingredient(25, "g"), 0.5, "13 g"],
+    [ingredient(0.5, "cup"), 1, "½ cup"],
+    [ingredient(0.5, "cup"), 3, "1½ cup"],
+    [ingredient(1, "scoop"), 2.5, "2½ scoop"],
+    [ingredient(1, "each"), 1.5, "1½"],
+    [ingredient(1, "each"), 2, "2"],
+    [ingredient(0.33, "cup"), 1.5, "½ cup"],
+    [ingredient(0.6, "cup"), 1.5, "0.9 cup"],
+    [ingredient(null, null), 2, ""],
+  ])("shows %o at ×%s as %s", (item, factor, shown) => {
+    expect(scaledQuantity(item, factor)).toBe(shown);
   });
 });
