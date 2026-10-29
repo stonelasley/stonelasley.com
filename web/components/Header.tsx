@@ -51,7 +51,7 @@ export function Header() {
           </div>
           <div className="flex items-center gap-4">
             <SearchPalette />
-            <div className="hidden md:block">
+            <div className="hidden lg:block">
               <SocialNav />
             </div>
             <ThemeToggle />
