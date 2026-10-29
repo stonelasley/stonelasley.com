@@ -6,10 +6,11 @@ import { PostThumbnail } from "./PostThumbnail";
 
 interface PostTileProps {
   post: PostSummary;
+  headingLevel?: "h2" | "h3";
 }
 
 /** A Post in an area's grid: its hero, then a Watch's make and reference (or the tags), title, excerpt and date. */
-export function PostTile({ post }: PostTileProps) {
+export function PostTile({ post, headingLevel: Heading = "h2" }: PostTileProps) {
   const eyebrow = post.watch
     ? `${post.watch.make} · ${post.watch.reference}`
     : post.tags.slice(0, 3).join(" · ");
@@ -28,7 +29,7 @@ export function PostTile({ post }: PostTileProps) {
           {eyebrow}
         </div>
       )}
-      <h2 className="mb-1.5 text-xl font-semibold tracking-tight">
+      <Heading className="mb-1.5 text-xl font-semibold tracking-tight">
         {/* The link covers the card, so the image opens the Post too, with one link to announce. */}
         <Link
           href={`/${post.area}/${post.slug}`}
@@ -42,7 +43,7 @@ export function PostTile({ post }: PostTileProps) {
             <DraftBadge />
           </>
         )}
-      </h2>
+      </Heading>
       {post.excerpt && <p className="text-muted-foreground line-clamp-2">{post.excerpt}</p>}
       <time dateTime={post.date} className="text-muted-foreground mt-2 text-sm">
         {formatDate(post.date)}

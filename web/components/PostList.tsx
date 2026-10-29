@@ -3,9 +3,10 @@ import { PostTile } from "./PostTile";
 
 interface PostListProps {
   posts: PostSummary[];
+  headingLevel?: "h2" | "h3";
 }
 
-export function PostList({ posts }: PostListProps) {
+export function PostList({ posts, headingLevel }: PostListProps) {
   if (posts.length === 0) {
     return (
       <div className="py-12 text-center">
@@ -17,7 +18,7 @@ export function PostList({ posts }: PostListProps) {
   return (
     <div className="grid gap-x-7 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
       {posts.map((post) => (
-        <PostTile key={post.id} post={post} />
+        <PostTile key={post.id} post={post} headingLevel={headingLevel} />
       ))}
     </div>
   );

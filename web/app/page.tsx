@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Container } from "@/components/Container";
-import { PostCard } from "@/components/PostCard";
+import { PostList } from "@/components/PostList";
 import { InstagramFeed } from "@/components/InstagramFeed";
 import { getAllPosts } from "@/lib/api";
 import { contentAreas } from "@/lib/areas";
@@ -81,11 +81,7 @@ export default async function Home() {
             <div className="mb-12 flex items-center justify-between">
               <h2 className="text-3xl font-bold tracking-tight">Recent Posts</h2>
             </div>
-            <div className="grid gap-8 md:gap-12">
-              {recentPosts.map((post) => (
-                <PostCard key={post.id} post={post} headingLevel="h3" />
-              ))}
-            </div>
+            <PostList posts={recentPosts} headingLevel="h3" />
           </Container>
         </section>
       )}

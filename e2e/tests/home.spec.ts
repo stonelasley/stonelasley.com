@@ -14,6 +14,17 @@ test.describe("Home Page", () => {
     await expect(page.getByRole("link", { name: "Testing at the seams" })).toBeVisible();
   });
 
+  test("shows each recent Post's hero above it", async ({ page }) => {
+    await page.goto("/");
+
+    const card = page.getByRole("article").filter({ hasText: "Testing at the seams" });
+    await expect(card.getByRole("heading", { level: 3 })).toHaveText("Testing at the seams");
+    const hero = card.getByTestId("post-thumbnail");
+    await expect
+      .poll(() => hero.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0))
+      .toBe(true);
+  });
+
   for (const [name, path] of [
     ["Recipes", "/recipes"],
     ["Watches", "/watches"],
