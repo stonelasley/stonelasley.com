@@ -193,7 +193,9 @@ jobs:
           prod=(); [ "$PREVIEW" = true ] || prod=(--prod)
           npx vercel@latest pull --yes --environment=${{ inputs.environment }} --token="$VERCEL_TOKEN"
           npx vercel@latest build "${prod[@]}" --token="$VERCEL_TOKEN"
-          url=$(npx vercel@latest deploy --prebuilt "${prod[@]}" --token="$VERCEL_TOKEN" \
+          # One archive rather than hundreds of files: the free plan caps uploads at 5,000 a day, and each
+          # build changes most of its files, so a busy day of deploys otherwise hits it.
+          url=$(npx vercel@latest deploy --prebuilt --archive=tgz "${prod[@]}" --token="$VERCEL_TOKEN" \
             --env API_URL="$API_URL" --env REVALIDATE_SECRET="$REVALIDATE_SECRET")
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
