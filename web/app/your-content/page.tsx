@@ -21,10 +21,10 @@ export default async function YourContentPage() {
 
   return (
     <Container className="py-16 md:py-24">
-      <h1 className="mb-4 text-4xl font-bold tracking-tight">Your content</h1>
+      <h1 className="text-title mb-4 font-bold tracking-tight">Your content</h1>
       {content ? (
         <>
-          <p className="text-muted-foreground mb-12 text-lg">
+          <p className="text-muted-foreground text-body mb-12">
             Everything shared with {content.clientName}.
           </p>
           <PostList posts={content.posts} />

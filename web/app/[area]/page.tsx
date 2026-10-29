@@ -35,13 +35,13 @@ export default async function AreaPage({ params }: AreaPageProps) {
   return (
     <Container className="py-16 md:py-24">
       <div className="mb-12">
-        <h1 className="mb-4 text-4xl font-bold tracking-tight">{area.name}</h1>
+        <h1 className="text-title mb-4 font-bold tracking-tight">{area.name}</h1>
         {intro ? (
-          <Prose className="text-muted-foreground text-lg">
+          <Prose className="text-muted-foreground text-body">
             <div dangerouslySetInnerHTML={{ __html: await markdownToHtml(intro) }} />
           </Prose>
         ) : (
-          <p className="text-muted-foreground text-lg">{area.description}</p>
+          <p className="text-muted-foreground text-body">{area.description}</p>
         )}
       </div>
 

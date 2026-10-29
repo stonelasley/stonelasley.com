@@ -6,8 +6,12 @@ import { cn } from "@/lib/utils";
 // row (search's 64–96 px) are square; card (an area's grid, up to ~400 px wide) is 4:3.
 const VARIANTS = {
   compact: { aspect: 1, widths: [64, 96, 128, 192, 288], reference: "text-[10px] leading-tight" },
-  row: { aspect: 1, widths: [64, 96, 128, 192, 288], reference: "text-sm md:text-lg" },
-  card: { aspect: 3 / 4, widths: [320, 480, 640, 960, 1280], reference: "text-3xl tracking-tight" },
+  row: { aspect: 1, widths: [64, 96, 128, 192, 288], reference: "text-small md:text-body" },
+  card: {
+    aspect: 3 / 4,
+    widths: [320, 480, 640, 960, 1280],
+    reference: "text-heading tracking-tight",
+  },
 } as const;
 
 interface PostThumbnailProps {
@@ -62,11 +66,11 @@ export function PostThumbnail({
     ? "text-[10px] leading-tight"
     : watch
       ? variant === "row" && watch.reference.length > 6
-        ? "text-xs md:text-sm"
+        ? "text-small"
         : reference
       : variant === "card"
-        ? "text-xs tracking-widest"
-        : "text-[10px] tracking-wider md:text-xs";
+        ? "text-small"
+        : "text-small";
   return (
     <div
       aria-hidden="true"
@@ -79,7 +83,7 @@ export function PostThumbnail({
       <span
         className={cn(
           "max-w-full font-semibold break-all",
-          watch ? "text-foreground font-mono tracking-tight" : "uppercase",
+          watch ? "text-foreground tracking-tight tabular-nums" : "",
           textSize
         )}
       >
@@ -87,10 +91,7 @@ export function PostThumbnail({
       </span>
       {watch && !compact && (
         <span
-          className={cn(
-            "tracking-widest uppercase",
-            variant === "card" ? "mt-1.5 text-[11px]" : "mt-0.5 text-[9px] md:text-[10px]"
-          )}
+          className={cn("text-small", variant === "card" ? "mt-1.5" : "mt-0.5 hidden md:block")}
         >
           {watch.make}
         </span>

@@ -9,12 +9,12 @@ export async function InstagramFeed() {
   return (
     <section aria-labelledby="instagram" className="py-16 md:py-24">
       <div className="mb-8 flex items-center justify-between">
-        <h2 id="instagram" className="text-3xl font-bold tracking-tight">
+        <h2 id="instagram" className="text-heading font-bold tracking-tight">
           On Instagram
         </h2>
         <a
           href={siteConfig.social.instagram}
-          className="text-muted-foreground hover:text-foreground text-sm font-medium"
+          className="text-muted-foreground hover:text-foreground text-small font-medium"
         >
           Follow →
         </a>

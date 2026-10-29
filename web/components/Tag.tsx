@@ -9,7 +9,7 @@ interface TagProps {
 
 export function Tag({ tag, active = false, href }: TagProps) {
   const className = cn(
-    "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors",
+    "inline-flex items-center rounded-full px-3 py-1 text-small font-medium transition-colors",
     active
       ? "bg-foreground text-background"
       : "bg-secondary text-secondary-foreground hover:bg-secondary/80"

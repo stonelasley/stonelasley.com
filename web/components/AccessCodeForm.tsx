@@ -6,7 +6,7 @@ export function AccessCodeForm() {
   return (
     <form action="/access/unlock" method="post" className="space-y-4">
       <div className="space-y-2">
-        <label htmlFor="code" className="text-sm font-medium">
+        <label htmlFor="code" className="text-small font-medium">
           Access Code
         </label>
         <input
@@ -30,7 +30,7 @@ export function AccessCodeForm() {
       )}
       <button
         type="submit"
-        className="bg-foreground text-background hover:bg-foreground/90 rounded-md px-4 py-2 text-sm font-semibold"
+        className="bg-foreground text-background hover:bg-foreground/90 text-small rounded-md px-4 py-2 font-semibold"
       >
         Unlock
       </button>

@@ -43,7 +43,7 @@ export async function PostView({
       <Container className="py-16 md:py-24 print:py-0">
         <Link
           href={`/${area.slug}`}
-          className="text-muted-foreground hover:text-foreground no-print mb-8 inline-flex items-center gap-2 text-sm transition-colors"
+          className="text-muted-foreground hover:text-foreground no-print text-small mb-8 inline-flex items-center gap-2 transition-colors"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -61,13 +61,13 @@ export async function PostView({
         </Link>
 
         <header className="mb-12 max-w-3xl">
-          <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">{post.title}</h1>
+          <h1 className="text-title mb-4 font-bold tracking-tight">{post.title}</h1>
           {post.draft && (
             <p className="mb-4">
               <DraftBadge />
             </p>
           )}
-          <div className="text-muted-foreground text-sm">
+          <div className="text-muted-foreground text-small">
             <time dateTime={post.date}>{formatDate(post.date)}</time>
           </div>
           {post.tags.length > 0 && (
@@ -96,7 +96,7 @@ export async function PostView({
             </aside>
           </div>
         ) : (
-          <Prose className="max-w-3xl">
+          <Prose>
             <div dangerouslySetInnerHTML={{ __html: html }} />
           </Prose>
         )}

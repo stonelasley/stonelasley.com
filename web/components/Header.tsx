@@ -26,7 +26,7 @@ export function Header() {
           <div className="flex items-center gap-8">
             <Link
               href="/"
-              className="hover:text-muted-foreground text-xl font-bold tracking-tight transition-colors"
+              className="hover:text-muted-foreground text-heading font-bold tracking-tight transition-colors"
             >
               {siteConfig.name}
             </Link>
@@ -37,7 +37,7 @@ export function Header() {
                     <Link
                       href={item.href}
                       className={cn(
-                        "hover:text-foreground/80 text-sm font-medium transition-colors",
+                        "hover:text-foreground/80 text-small font-medium transition-colors",
                         isActive(item.href) ? "text-foreground" : "text-muted-foreground"
                       )}
                       aria-current={isActive(item.href) ? "page" : undefined}

@@ -24,7 +24,7 @@ export function RecipeFacts({ recipe }: RecipeDetailsProps) {
       aria-label="Recipe details"
       className="border-border bg-card space-y-6 rounded-lg border p-6 print:border-0 print:p-0"
     >
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm print:grid-cols-6">
+      <dl className="text-small grid grid-cols-2 gap-x-4 gap-y-3 print:grid-cols-6">
         {facts.map(([term, value]) => (
           <div key={term}>
             <dt className="text-muted-foreground">{term}</dt>
@@ -40,7 +40,7 @@ export function RecipeFacts({ recipe }: RecipeDetailsProps) {
 export function IngredientList({ recipe }: RecipeDetailsProps) {
   return (
     <section className="border-border bg-card mb-8 rounded-lg border p-6 print:border-0 print:p-0">
-      <h2 id="ingredients" className="mb-4 text-2xl font-semibold">
+      <h2 id="ingredients" className="text-heading mb-4 font-semibold">
         Ingredients
       </h2>
       <ul aria-labelledby="ingredients" className="space-y-2">
@@ -48,7 +48,7 @@ export function IngredientList({ recipe }: RecipeDetailsProps) {
           <li key={index} className="flex items-baseline gap-2">
             <span>{ingredientText(ingredient)}</span>{" "}
             {ingredient.optional && (
-              <span className="text-muted-foreground text-xs italic">optional</span>
+              <span className="text-muted-foreground text-small italic">optional</span>
             )}
           </li>
         ))}

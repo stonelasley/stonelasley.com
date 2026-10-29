@@ -61,7 +61,7 @@ export function SearchPalette() {
         aria-label="Search"
         aria-haspopup="dialog"
         data-ready={ready || undefined}
-        className="border-border hover:bg-accent text-muted-foreground hover:text-foreground flex h-9 items-center gap-2 rounded-md border px-2.5 text-sm transition-colors"
+        className="border-border hover:bg-accent text-muted-foreground hover:text-foreground text-small flex h-9 items-center gap-2 rounded-md border px-2.5 transition-colors"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -78,7 +78,7 @@ export function SearchPalette() {
             d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
           />
         </svg>
-        <kbd className="bg-muted hidden rounded px-1.5 font-mono text-[11px] sm:inline">⌘K</kbd>
+        <kbd className="bg-muted text-small hidden rounded px-1.5 font-sans sm:inline">⌘K</kbd>
       </Link>
       {/* Portalled to <body>: the header's backdrop blur would otherwise trap a fixed overlay inside it. */}
       {open &&
@@ -187,7 +187,7 @@ function Palette({ onClose }: { onClose: () => void }) {
                 />
                 <div className="min-w-0">
                   <div className="font-medium">{hit.title}</div>
-                  <div className="text-muted-foreground line-clamp-1 text-xs">
+                  <div className="text-muted-foreground text-small line-clamp-1">
                     <HighlightedExcerpt parts={hit.excerpt} />
                   </div>
                 </div>
@@ -218,7 +218,7 @@ function Palette({ onClose }: { onClose: () => void }) {
             />
             <div className="min-w-0">
               <span className="font-medium">{post.title}</span>
-              <span className="text-muted-foreground ml-2 text-xs">
+              <span className="text-muted-foreground text-small ml-2">
                 {findArea(post.area)?.name}
               </span>
             </div>
@@ -272,7 +272,7 @@ function Palette({ onClose }: { onClose: () => void }) {
         onMouseDown={(event) => event.preventDefault()}
         onClick={() => go(item)}
         className={cn(
-          "mx-2 cursor-pointer rounded-md px-3 py-2 text-sm",
+          "text-small mx-2 cursor-pointer rounded-md px-3 py-2",
           i === active && "bg-accent"
         )}
       >
@@ -318,9 +318,9 @@ function Palette({ onClose }: { onClose: () => void }) {
           }}
           onKeyDown={onKeyDown}
           placeholder="Search Posts…"
-          className="border-border w-full border-b bg-transparent px-5 py-4 text-lg outline-none"
+          className="border-border text-body w-full border-b bg-transparent px-5 py-4 outline-none"
         />
-        <div className="border-border flex flex-wrap gap-1.5 border-b px-4 py-2 text-xs">
+        <div className="border-border text-small flex flex-wrap gap-1.5 border-b px-4 py-2">
           {chips.map((chip) => (
             <button
               key={chip ?? "all"}
@@ -350,7 +350,7 @@ function Palette({ onClose }: { onClose: () => void }) {
         >
           {!searching && (
             <li role="presentation">
-              <div className="text-muted-foreground px-5 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase">
+              <div className="text-muted-foreground text-small px-5 pt-2 pb-1 font-semibold">
                 {area ? `Latest in ${findArea(area)?.name}` : "Latest"}
               </div>
               <ul role="group" aria-label="Latest">
@@ -360,17 +360,17 @@ function Palette({ onClose }: { onClose: () => void }) {
           )}
 
           {unavailable && (
-            <li role="presentation" className="px-5 py-6 text-center text-sm">
+            <li role="presentation" className="text-small px-5 py-6 text-center">
               Search is unavailable right now.
             </li>
           )}
 
           {searching && current && hits.length === 0 && (
-            <li role="presentation" className="px-5 py-6 text-center text-sm">
+            <li role="presentation" className="text-small px-5 py-6 text-center">
               <p>
                 No Posts match “{term}”{area && <> in {findArea(area)?.name}</>}.
               </p>
-              <p className="text-muted-foreground mt-1 text-xs">
+              <p className="text-muted-foreground text-small mt-1">
                 {area ? "Press Tab to widen the Content Area." : "Try fewer words."}
               </p>
             </li>
@@ -379,7 +379,7 @@ function Palette({ onClose }: { onClose: () => void }) {
           {searching &&
             groups.map((group) => (
               <li key={group.area.slug} role="presentation">
-                <div className="text-muted-foreground px-5 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase">
+                <div className="text-muted-foreground text-small px-5 pt-2 pb-1 font-semibold">
                   {group.area.name}
                 </div>
                 <ul role="group" aria-label={group.area.name}>
@@ -399,7 +399,7 @@ function Palette({ onClose }: { onClose: () => void }) {
           )}
         </ul>
 
-        <div className="border-border text-muted-foreground hidden gap-4 border-t px-4 py-2 text-[11px] sm:flex">
+        <div className="border-border text-muted-foreground text-small hidden gap-4 border-t px-4 py-2 sm:flex">
           <span>↑↓ move</span>
           <span>↵ open</span>
           <span>Tab Content Area</span>
