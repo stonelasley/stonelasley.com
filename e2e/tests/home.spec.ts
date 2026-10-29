@@ -25,6 +25,17 @@ test.describe("Home Page", () => {
       .toBe(true);
   });
 
+  test("every image on the page loads", async ({ page }) => {
+    await page.goto("/");
+
+    for (const image of await page.locator("main img").all()) {
+      await image.scrollIntoViewIfNeeded();
+      await expect
+        .poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0))
+        .toBe(true);
+    }
+  });
+
   for (const [name, path] of [
     ["Recipes", "/recipes"],
     ["Watches", "/watches"],
