@@ -3,7 +3,7 @@ import { Container } from "@/components/Container";
 import { DraftBadge } from "@/components/DraftBadge";
 import { Prose } from "@/components/Prose";
 import { Tag } from "@/components/Tag";
-import { IngredientList, RecipeFacts } from "@/components/RecipeDetails";
+import { RecipeDetails } from "@/components/RecipeDetails";
 import { WatchSpecs } from "@/components/WatchSpecs";
 import type { Post } from "@/lib/api";
 import type { ContentArea } from "@/lib/areas";
@@ -81,25 +81,10 @@ export async function PostView({
 
         {post.watch && <WatchSpecs watch={post.watch} />}
 
-        {recipe ? (
-          <div className="grid gap-8 md:grid-cols-3 print:flex print:flex-col">
-            <div className="md:col-span-2">
-              <IngredientList recipe={recipe} />
-              <Prose>
-                <div dangerouslySetInnerHTML={{ __html: html }} />
-              </Prose>
-            </div>
-            <aside className="md:col-span-1 print:order-first">
-              <div className="sticky top-24 print:static">
-                <RecipeFacts recipe={recipe} />
-              </div>
-            </aside>
-          </div>
-        ) : (
-          <Prose>
-            <div dangerouslySetInnerHTML={{ __html: html }} />
-          </Prose>
-        )}
+        {recipe && <RecipeDetails recipe={recipe} />}
+        <Prose>
+          <div dangerouslySetInnerHTML={{ __html: html }} />
+        </Prose>
       </Container>
     </article>
   );
