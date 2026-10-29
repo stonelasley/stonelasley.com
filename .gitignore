@@ -8,6 +8,7 @@ coverage/
 
 # next.js
 /web/.next/
+/.next/
 /web/out/
 
 # production
@@ -48,3 +49,6 @@ test-results/
 .wrangler/
 .dev.vars
 .wrangler-state/
+
+# claude code agent worktrees
+.claude/worktrees/
