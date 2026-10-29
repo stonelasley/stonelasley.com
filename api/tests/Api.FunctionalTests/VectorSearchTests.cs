@@ -29,21 +29,28 @@ internal static class Vectors
     public static Task<SearchResponse?> SearchAsync(HttpClient client, string query, string? area = null) =>
         client.GetFromJsonAsync<SearchResponse>($"/search?mode=vector&q={Uri.EscapeDataString(query)}" + (area is null ? "" : $"&area={area}"));
 
+    /// <summary>
+    /// Reads until <paramref name="done"/> or the deadline. Vectorize sometimes answers a read with a 500, so a failed
+    /// read is tried again like an unfinished one, and only the last one's failure is thrown.
+    /// </summary>
     public static async Task<T> EventuallyAsync<T>(Func<Task<T>> read, Func<T, bool> done)
     {
         var deadline = DateTime.UtcNow + Visible;
-        T value;
-        do
+        while (true)
         {
-            value = await read();
-            if (done(value))
+            try
             {
-                return value;
+                var value = await read();
+                if (done(value) || DateTime.UtcNow >= deadline)
+                {
+                    return value;
+                }
+            }
+            catch (HttpRequestException) when (DateTime.UtcNow < deadline)
+            {
             }
             await Task.Delay(2000);
         }
-        while (DateTime.UtcNow < deadline);
-        return value;
     }
 
     /// <summary>Which of a Post's first <paramref name="n"/> chunk ids the index holds.</summary>
@@ -51,6 +58,7 @@ internal static class Vectors
     {
         using var worker = Testing.WorkerClient();
         var response = await worker.PostAsJsonAsync("/vectors/get", new { ids = Enumerable.Range(0, n).Select(i => $"{postId}:{i}") });
+        response.EnsureSuccessStatusCode();
         var vectors = await response.Content.ReadFromJsonAsync<List<StoredVector>>();
         return [.. vectors!.Select(v => v.Id).Order(StringComparer.Ordinal)];
     }
