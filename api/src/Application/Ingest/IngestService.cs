@@ -36,10 +36,12 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
 
         // A public, published Post missing from the keyword or vector index counts as changed, so the next full ingest
         // indexes Posts stored before the index existed (or left out by a failure).
+        // So does one stored before heroes were (hero still NULL).
         var storedPosts = $"""
             SELECT id, content_hash FROM posts
-            WHERE NOT (audience = '{PostColumns.PublicAudience}' AND status = '{PostColumns.PublishedStatus}')
-               OR (id IN (SELECT post_id FROM posts_fts) AND vector_chunks IS NOT NULL)
+            WHERE hero IS NOT NULL
+              AND (NOT (audience = '{PostColumns.PublicAudience}' AND status = '{PostColumns.PublishedStatus}')
+                   OR (id IN (SELECT post_id FROM posts_fts) AND vector_chunks IS NOT NULL))
             """;
         var known = includeDrafts
             ? storedPosts
@@ -103,14 +105,15 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
         {
             return new IngestOutcome.Invalid(stored.Errors);
         }
+        var hero = PostImages.Hero(post.Body, stored.Urls) ?? "";
         post = post with { Body = PostImages.Rewrite(post.Body, stored.Urls) };
 
         await database.QueryAsync(
             """
             INSERT OR REPLACE INTO ingest_staged_posts
-              (run_id, id, area, slug, title, date, tags, audience, status, body, excerpt, recipe, watch,
+              (run_id, id, area, slug, title, date, tags, audience, status, body, excerpt, hero, recipe, watch,
                search_structured, search_body, content_hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 runId,
@@ -124,6 +127,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
                 PostColumns.Status(post.Status),
                 post.Body,
                 post.Excerpt,
+                hero,
                 PostColumns.RecipeJson(post.Recipe),
                 PostColumns.WatchJson(post.Watch),
                 SearchText.Structured(post),
@@ -211,8 +215,8 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
                 "UPDATE posts SET slug = '~' || id WHERE id IN (SELECT value FROM json_each(?))", [JsonSerializer.Serialize(upserted)]));
             statements.Add(new D1Statement(
                 $"""
-                INSERT INTO posts (id, area, slug, title, date, tags, audience, status, body, excerpt, recipe, watch, content_hash, updated_at)
-                SELECT id, area, slug, title, date, tags, audience, status, body, excerpt, recipe, watch, content_hash, {Now}
+                INSERT INTO posts (id, area, slug, title, date, tags, audience, status, body, excerpt, hero, recipe, watch, content_hash, updated_at)
+                SELECT id, area, slug, title, date, tags, audience, status, body, excerpt, hero, recipe, watch, content_hash, {Now}
                 FROM ingest_staged_posts
                 WHERE run_id = ? AND id IN (SELECT value FROM json_each(?))
                 ON CONFLICT (id) DO UPDATE SET
@@ -225,6 +229,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
                   status = excluded.status,
                   body = excluded.body,
                   excerpt = excluded.excerpt,
+                  hero = excluded.hero,
                   recipe = excluded.recipe,
                   watch = excluded.watch,
                   content_hash = excluded.content_hash,

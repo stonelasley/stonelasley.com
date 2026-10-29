@@ -9,7 +9,17 @@ namespace StoneLasley.Application.Search;
 /// <summary>One run of an excerpt: matched words are highlighted, the rest is plain text.</summary>
 public sealed record HighlightPart(string Text, bool Match);
 
-public sealed record SearchHit(string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<HighlightPart> Excerpt);
+/// <summary>
+/// One result. <paramref name="Hero"/> is the image beside it; a Watch without one is stood in for by its make and
+/// reference, so <paramref name="Watch"/> carries those.
+/// </summary>
+public sealed record SearchHit(
+    string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<HighlightPart> Excerpt, string? Hero, SearchWatch? Watch);
+
+public sealed record SearchWatch(WatchMake Make, string Reference)
+{
+    public static SearchWatch? Of(Watch? watch) => watch is null ? null : new SearchWatch(watch.Make, watch.Reference);
+}
 
 public sealed record SearchResult(string Query, string? Area, IReadOnlyList<SearchHit> Results, IReadOnlyDictionary<string, int> Counts);
 
@@ -45,7 +55,7 @@ public sealed class KeywordSearch(ID1Database database, IOptions<SearchOptions> 
         object?[] filterParams = areaSlug is null ? [match] : [match, areaSlug];
         var rows = await database.QueryAsync(
             $"""
-            SELECT p.id, p.title, p.slug, p.area, p.date,
+            SELECT p.id, p.title, p.slug, p.area, p.date, p.hero, p.watch,
                    snippet(posts_fts, -1, char(2), char(3), '…', 24) AS snippet
             FROM posts_fts JOIN posts p ON p.id = posts_fts.post_id
             WHERE posts_fts MATCH ? AND {Readable} {areaFilter}
@@ -56,7 +66,8 @@ public sealed class KeywordSearch(ID1Database database, IOptions<SearchOptions> 
             cancellationToken);
 
         return [.. rows.Select(row => new SearchHit(
-            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Highlights(Text(row, "snippet"))))];
+            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Highlights(Text(row, "snippet")),
+            PostColumns.HeroFromRow(row), SearchWatch.Of(PostColumns.WatchFromRow(row))))];
     }
 
     /// <summary>Every matching Post's Content Area, across all areas, for per-area counts.</summary>

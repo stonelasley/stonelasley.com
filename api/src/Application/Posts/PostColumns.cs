@@ -32,6 +32,12 @@ internal static class PostColumns
             ? JsonSerializer.Deserialize<Watch>(column.GetString()!, Json)
             : null;
 
+    /// <summary>The hero image URL, or null for a Post with none ('') or not yet ingested with one (NULL).</summary>
+    public static string? HeroFromRow(JsonElement row) =>
+        row.TryGetProperty("hero", out var column) && column.ValueKind == JsonValueKind.String && column.GetString() is { Length: > 0 } url
+            ? url
+            : null;
+
     public static string Audience(Audience audience) => audience.Stored;
 
     public static string Status(PostStatus status) => status switch

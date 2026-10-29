@@ -146,6 +146,18 @@ jobs:
               --min-replicas 0 --max-replicas 1 --cpu 0.25 --memory 0.5Gi \
               --secrets "${secrets[@]}" --env-vars "${env_vars[@]}" --only-show-errors >/dev/null
           fi
+          # The old revision answers /health until the new one is ready, and a site built against it can miss
+          # fields the new API added. Single-revision mode moves traffic once the latest revision is ready.
+          revision=$(az containerapp show -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --query properties.latestRevisionName -o tsv)
+          for _ in $(seq 60); do
+            ready=$(az containerapp show -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --query properties.latestReadyRevisionName -o tsv)
+            [ "$ready" = "$revision" ] && break
+            sleep 5
+          done
+          if [ "$ready" != "$revision" ]; then
+            echo "::error::API revision $revision wasn't ready after 5 minutes (still serving $ready)."
+            exit 1
+          fi
           fqdn=$(az containerapp show -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" --query properties.configuration.ingress.fqdn -o tsv)
           # Production is reached on its custom domain (api.stonelasley.com) once one is bound.
           echo "url=${PUBLIC_API_URL:-https://$fqdn}" >> "$GITHUB_OUTPUT"

@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import type { PostSummary, SearchResult } from "@/lib/api";
 import { contentAreas, findArea, type AreaSlug } from "@/lib/areas";
 import { cn } from "@/lib/utils";
+import { PostThumbnail } from "./PostThumbnail";
 import { HighlightedExcerpt } from "./SearchResults";
 
 // Each keystroke-triggered query costs an embedding and a Worker call, so both are part of the spec.
@@ -175,12 +176,22 @@ function Palette({ onClose }: { onClose: () => void }) {
             label: hit.title,
             href: `/${hit.area}/${hit.slug}`,
             render: (
-              <>
-                <div className="font-medium">{hit.title}</div>
-                <div className="text-muted-foreground line-clamp-1 text-xs">
-                  <HighlightedExcerpt parts={hit.excerpt} />
+              <div className="flex items-center gap-3">
+                <PostThumbnail
+                  hero={hit.hero}
+                  area={hit.area}
+                  watch={hit.watch}
+                  sizes="44px"
+                  compact
+                  className="size-11 rounded-md"
+                />
+                <div className="min-w-0">
+                  <div className="font-medium">{hit.title}</div>
+                  <div className="text-muted-foreground line-clamp-1 text-xs">
+                    <HighlightedExcerpt parts={hit.excerpt} />
+                  </div>
                 </div>
-              </>
+              </div>
             ),
           }))
         ),
@@ -196,10 +207,22 @@ function Palette({ onClose }: { onClose: () => void }) {
         label: post.title,
         href: `/${post.area}/${post.slug}`,
         render: (
-          <>
-            <span className="font-medium">{post.title}</span>
-            <span className="text-muted-foreground ml-2 text-xs">{findArea(post.area)?.name}</span>
-          </>
+          <div className="flex items-center gap-3">
+            <PostThumbnail
+              hero={post.hero}
+              area={post.area}
+              watch={post.watch}
+              sizes="44px"
+              compact
+              className="size-11 rounded-md"
+            />
+            <div className="min-w-0">
+              <span className="font-medium">{post.title}</span>
+              <span className="text-muted-foreground ml-2 text-xs">
+                {findArea(post.area)?.name}
+              </span>
+            </div>
+          </div>
         ),
       }));
 

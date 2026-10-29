@@ -21,6 +21,7 @@ const postSummarySchema = z.object({
   date: z.string(), // YYYY-MM-DD
   tags: z.array(z.string()),
   excerpt: z.string(), // opening prose as plain text
+  hero: z.string().nullable(), // the first image stored with the Post
   watch: watchSummarySchema.nullable(),
   draft: z.boolean().default(false), // only on preview, which shows Drafts
 });
@@ -61,7 +62,7 @@ const watchSchema = z.object({
   waterResistanceFt: z.number().nullable(),
 });
 
-const postSchema = postSummarySchema.omit({ watch: true }).extend({
+const postSchema = postSummarySchema.omit({ watch: true, hero: true }).extend({
   audiencePublic: z.boolean().default(true), // false for a Private Post
   body: z.string(), // Markdown
   recipe: recipeSchema.nullable(),
@@ -227,6 +228,9 @@ const searchResultSchema = z.object({
       date: z.string(),
       // Matched words are flagged, so the page can highlight them without rendering HTML from the API.
       excerpt: z.array(z.object({ text: z.string(), match: z.boolean() })),
+      hero: z.string().nullable(),
+      // What a Watch's stand-in shows until it has a hero.
+      watch: z.object({ make: z.string(), reference: z.string() }).nullable(),
     })
   ),
   counts: z.record(z.string(), z.number()),
