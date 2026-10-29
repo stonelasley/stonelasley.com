@@ -2,7 +2,16 @@ name: Deploy
 
 # Preview on PRs, production on merges to master. The ordered stages live in deploy-environment.yml.
 on:
+  # A PR that touches none of these (docs, agent skills) has nothing new to preview, so it skips the deploy.
   pull_request:
+    paths:
+      - "web/**"
+      - "api/**"
+      - "worker/**"
+      - "e2e/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy*.yml"
   push:
     branches: [master]
   workflow_dispatch:
