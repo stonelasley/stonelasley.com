@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Container } from "./Container";
-import { ThemeToggle } from "./ThemeToggle";
 import { SearchPalette } from "./SearchPalette";
-import { SocialNav } from "./SocialNav";
 import { siteConfig } from "@/site.config";
 import { cn } from "@/lib/utils";
 
@@ -19,42 +17,43 @@ export function Header() {
     return pathname?.startsWith(href);
   };
 
+  // The wordmark is the way home, so the bar lists only the Content Areas.
+  const areas = siteConfig.nav.main.filter((item) => item.href !== "/");
+
   return (
-    <header className="border-border bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur print:hidden">
+    <header className="bg-background sticky top-0 z-50 w-full print:hidden">
       <Container>
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link
-              href="/"
-              className="hover:text-muted-foreground text-xl font-bold tracking-tight transition-colors"
-            >
-              {siteConfig.name}
-            </Link>
-            <nav aria-label="Main navigation" className="hidden md:block">
-              <ul className="flex items-center gap-6">
-                {siteConfig.nav.main.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        "hover:text-foreground/80 text-sm font-medium transition-colors",
-                        isActive(item.href) ? "text-foreground" : "text-muted-foreground"
-                      )}
-                      aria-current={isActive(item.href) ? "page" : undefined}
-                    >
-                      {item.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </div>
-          <div className="flex items-center gap-4">
+        {/* Phone: wordmark and search, then the areas on a row of their own. From md: one row. */}
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-1 py-3 md:h-16 md:flex-nowrap md:py-0">
+          <Link
+            href="/"
+            className="hover:text-muted-foreground text-body font-semibold tracking-tight transition-colors"
+          >
+            {siteConfig.name}
+          </Link>
+          <nav
+            aria-label="Main navigation"
+            className="order-last -mx-2 w-full overflow-x-auto md:order-none md:mx-0 md:w-auto"
+          >
+            <ul className="flex items-center gap-1 md:gap-4">
+              {areas.map((item) => (
+                <li key={item.href} className="shrink-0">
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      "hover:text-foreground text-small block px-2 py-2 font-medium whitespace-nowrap transition-colors md:px-0",
+                      isActive(item.href) ? "text-foreground" : "text-muted-foreground"
+                    )}
+                    aria-current={isActive(item.href) ? "page" : undefined}
+                  >
+                    {item.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <div className="ml-auto">
             <SearchPalette />
-            <div className="hidden lg:block">
-              <SocialNav />
-            </div>
-            <ThemeToggle />
           </div>
         </div>
       </Container>

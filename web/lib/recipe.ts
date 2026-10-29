@@ -30,3 +30,21 @@ export function ingredientText(ingredient: Ingredient, { markOptional = false } 
   if (markOptional && ingredient.optional) text += " (optional)";
   return text;
 }
+
+const GRAMS = new Set(["g", "gram", "grams"]);
+
+/**
+ * An ingredient's quantity at a batch scale, the way a cook reads it off the scale or the cup: grams as "g", whole
+ * from 10 g up and to one decimal below; other units in cook's fractions; "each" as a bare count. Empty when the
+ * ingredient has no quantity ("to taste").
+ */
+export function scaledQuantity(ingredient: Ingredient, factor: number): string {
+  if (ingredient.quantity == null) return "";
+  const value = ingredient.quantity * factor;
+  if (ingredient.unit && GRAMS.has(ingredient.unit)) {
+    const grams = value >= 10 ? Math.round(value) : Math.round(value * 10) / 10;
+    return `${grams} g`;
+  }
+  const amount = formatQuantity(Math.round(value * 100) / 100);
+  return ingredient.unit && ingredient.unit !== "each" ? `${amount} ${ingredient.unit}` : amount;
+}

@@ -1,79 +1,144 @@
 import Link from "next/link";
 import { Container } from "@/components/Container";
-import { PostList } from "@/components/PostList";
+import { HomeHero, type HeroPhoto } from "@/components/HomeHero";
 import { InstagramFeed } from "@/components/InstagramFeed";
-import { getAllPosts } from "@/lib/api";
-import { contentAreas } from "@/lib/areas";
+import { getAllPosts, type PostSummary } from "@/lib/api";
+import { resizedImage, resizedSrcSet } from "@/lib/images";
+import { formatDate } from "@/lib/utils";
 import { siteConfig } from "@/site.config";
 import { constructMetadata } from "@/lib/metadata";
 
 export const metadata = constructMetadata({ path: "/" });
 
+// How many recent Posts with a photo the opening draws from.
+const HERO_POOL = 6;
+const WIDE = [960, 1440, 1920, 2560];
+const NARROW = [480, 768, 1080];
+
+type WithHero = PostSummary & { hero: string };
+
+function heroPhoto(post: WithHero): HeroPhoto {
+  return {
+    href: `/${post.area}/${post.slug}`,
+    title: post.title,
+    wide: {
+      src: resizedImage(post.hero, 1920, 1 / 2),
+      srcSet: resizedSrcSet(post.hero, WIDE, 1 / 2),
+    },
+    narrow: {
+      src: resizedImage(post.hero, 768, 3 / 4),
+      srcSet: resizedSrcSet(post.hero, NARROW, 3 / 4),
+    },
+  };
+}
+
 export default async function Home() {
-  const recentPosts = (await getAllPosts()).slice(0, siteConfig.home.recentPosts);
+  const withHero = (await getAllPosts()).filter((post): post is WithHero => post.hero != null);
+  const exhibits = withHero.slice(0, siteConfig.home.recentPosts);
 
   return (
     <>
-      {/* Hero Section */}
-      <section className="border-border border-b py-20 md:py-32">
+      <section className="pt-2 pb-24 md:pb-40">
         <Container>
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">{siteConfig.name}</h1>
-            <p className="text-muted-foreground mt-6 text-lg leading-8">{siteConfig.description}</p>
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              {contentAreas.map((area) => (
-                <Link
-                  key={area.slug}
-                  href={`/${area.slug}`}
-                  className="border-border bg-background hover:bg-accent rounded-md border px-6 py-3 text-sm font-semibold transition-colors"
-                >
-                  {area.name}
-                </Link>
+          {withHero.length > 0 && <HomeHero photos={withHero.slice(0, HERO_POOL).map(heroPhoto)} />}
+          <h1 className="rise text-display mt-4 font-extralight md:mt-2">{siteConfig.name}</h1>
+          <div className="mt-6 grid gap-6 md:mt-8 md:grid-cols-12 md:items-start">
+            <p className="rise md:text-heading leading-snug [--d:80ms] md:col-span-7 md:leading-snug">
+              {siteConfig.intro}
+            </p>
+            <Link
+              href="/watches"
+              className="rise bg-action text-action-foreground inline-flex h-12 items-center justify-self-start px-6 font-semibold transition [--d:120ms] hover:brightness-110 active:scale-[0.98] md:col-span-5 md:justify-self-end"
+            >
+              Read the watch notes
+            </Link>
+          </div>
+        </Container>
+      </section>
+
+      {exhibits.length > 0 && (
+        <section aria-labelledby="recent" className="pb-24 md:pb-40">
+          <Container>
+            <h2 id="recent" className="reveal text-title mb-12 font-light md:mb-20">
+              Recent notes
+            </h2>
+            <div className="space-y-24 md:space-y-40">
+              {exhibits.map((post, index) => (
+                <Exhibit key={post.id} post={post} flip={index % 2 === 1} />
+              ))}
+            </div>
+          </Container>
+        </section>
+      )}
+
+      <section aria-labelledby="about" className="pb-24 md:pb-40">
+        <Container>
+          <div className="reveal grid gap-6 md:grid-cols-12">
+            <h2 id="about" className="text-title font-light md:col-span-4">
+              About
+            </h2>
+            <div className="space-y-4 md:col-span-7 md:col-start-6 md:pt-3">
+              {siteConfig.about.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
               ))}
             </div>
           </div>
         </Container>
       </section>
 
-      {/* About Section */}
-      <section className="border-border border-b py-16 md:py-24">
-        <Container>
-          <div className="mx-auto max-w-3xl">
-            <div>
-              <h2 className="mb-4 text-2xl font-bold tracking-tight">About</h2>
-              <div className="prose prose-zinc dark:prose-invert">
-                <p>
-                  I&apos;m a software leader and builder with a passion for creating elegant
-                  solutions to complex problems. With years of experience leading engineering teams,
-                  I focus on clean architecture, scalable systems, and empowering teams to do their
-                  best work.
-                </p>
-                <p>
-                  When I&apos;m not coding or leading teams, you&apos;ll find me in the gym,
-                  experimenting with meal prep recipes, or exploring the latest in software
-                  engineering practices. This site is where I share my thoughts on technology,
-                  leadership, fitness, and food.
-                </p>
-              </div>
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      {/* Recent Posts */}
-      {recentPosts.length > 0 && (
-        <section className="border-border border-b py-16 md:py-24">
-          <Container>
-            <div className="mb-12 flex items-center justify-between">
-              <h2 className="text-3xl font-bold tracking-tight">Recent Posts</h2>
-            </div>
-            <PostList posts={recentPosts} headingLevel="h3" />
-          </Container>
-        </section>
-      )}
       <Container>
         <InstagramFeed />
       </Container>
     </>
+  );
+}
+
+/**
+ * A recent Post as a lit exhibit: a large photograph, and beside it the Watch's reference at size, then the title.
+ * The photograph links too, but out of the tab order, so the title is the one link announced.
+ */
+function Exhibit({ post, flip }: { post: WithHero; flip: boolean }) {
+  const href = `/${post.area}/${post.slug}`;
+  return (
+    <article className="group reveal grid gap-6 md:grid-cols-12 md:items-end md:gap-12">
+      <Link
+        href={href}
+        tabIndex={-1}
+        aria-hidden="true"
+        className={
+          flip
+            ? "block overflow-hidden md:col-span-8 md:col-start-5"
+            : "block overflow-hidden md:col-span-8"
+        }
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- Cloudflare resizes these (lib/images.ts) */}
+        <img
+          src={resizedImage(post.hero, 1280, 3 / 4)}
+          srcSet={resizedSrcSet(post.hero, [640, 960, 1280, 1920], 3 / 4)}
+          sizes="(min-width: 768px) 66vw, 100vw"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="bg-muted aspect-[4/3] w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+          data-testid="post-thumbnail"
+        />
+      </Link>
+      <div className={flip ? "md:col-span-4 md:col-start-1 md:row-start-1" : "md:col-span-4"}>
+        {post.watch && (
+          <p className="text-title font-extralight tabular-nums" aria-hidden="true">
+            {post.watch.reference}
+          </p>
+        )}
+        <h3 className="text-heading mt-3 font-medium">
+          <Link href={href} className="group-hover:underline">
+            {post.title}
+          </Link>
+        </h3>
+        {post.excerpt && <p className="mt-3 line-clamp-3">{post.excerpt}</p>}
+        <time dateTime={post.date} className="text-muted-foreground text-small mt-3 block">
+          {formatDate(post.date)}
+        </time>
+      </div>
+    </article>
   );
 }

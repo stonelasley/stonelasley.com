@@ -24,12 +24,8 @@ export function PostTile({ post, headingLevel: Heading = "h2" }: PostTileProps) 
         sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw"
         className="mb-4 aspect-[4/3] w-full rounded-xl"
       />
-      {eyebrow && (
-        <div className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wider uppercase">
-          {eyebrow}
-        </div>
-      )}
-      <Heading className="mb-1.5 text-xl font-semibold tracking-tight">
+      {eyebrow && <div className="text-muted-foreground text-small mb-1.5">{eyebrow}</div>}
+      <Heading className="text-heading mb-1.5 font-semibold tracking-tight">
         {/* The link covers the card, so the image opens the Post too, with one link to announce. */}
         <Link
           href={`/${post.area}/${post.slug}`}
@@ -45,7 +41,7 @@ export function PostTile({ post, headingLevel: Heading = "h2" }: PostTileProps) 
         )}
       </Heading>
       {post.excerpt && <p className="text-muted-foreground line-clamp-2">{post.excerpt}</p>}
-      <time dateTime={post.date} className="text-muted-foreground mt-2 text-sm">
+      <time dateTime={post.date} className="text-muted-foreground text-small mt-2">
         {formatDate(post.date)}
       </time>
     </article>

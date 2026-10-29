@@ -13,13 +13,43 @@ test.describe("Recipes", () => {
   test("a Recipe lists its ingredients apart from the body", async ({ page }) => {
     await page.goto(recipe);
 
-    const ingredients = page.getByRole("list", { name: "Ingredients" }).getByRole("listitem");
+    const ingredients = page.getByRole("table", { name: "Ingredients" }).getByRole("row");
     await expect(ingredients).toHaveText([
-      "80 g rolled oats",
-      "½ cup water",
-      "1 scoop whey protein (vanilla)",
+      "80 grolled oats",
+      "½ cupwater",
+      "1 scoopwhey proteinvanilla",
       "cinnamon optional",
     ]);
+  });
+
+  test("scaling the batch scales every quantity and the servings", async ({ page }) => {
+    await page.goto(recipe);
+    const ingredients = page.getByRole("table", { name: "Ingredients" });
+    const servings = page
+      .getByRole("region", { name: "Recipe details" })
+      .getByRole("definition")
+      .nth(3);
+    await expect(servings).toHaveText("2");
+
+    await page.getByRole("button", { name: "Larger batch" }).click();
+    await page.getByRole("button", { name: "Larger batch" }).click();
+
+    await expect(page.getByRole("group", { name: "Batch" }).getByRole("status")).toHaveText("2×");
+    await expect(ingredients.getByRole("row", { name: /rolled oats/ })).toContainText("160 g");
+    await expect(ingredients.getByRole("row", { name: /water/ })).toContainText("1 cup");
+    await expect(
+      ingredients
+        .getByRole("row", { name: /cinnamon/ })
+        .getByRole("cell")
+        .first()
+    ).toHaveText("");
+    await expect(servings).toHaveText("4");
+
+    await page.getByRole("button", { name: "Smaller batch" }).click();
+    await page.getByRole("button", { name: "Smaller batch" }).click();
+    await page.getByRole("button", { name: "Smaller batch" }).click();
+    await expect(ingredients.getByRole("row", { name: /rolled oats/ })).toContainText("40 g");
+    await expect(page.getByRole("button", { name: "Smaller batch" })).toBeDisabled();
   });
 
   test("a Recipe shows its times, servings, difficulty and oven temperature", async ({ page }) => {
@@ -48,7 +78,7 @@ test.describe("Recipes", () => {
   test("nutrition in the body renders as a table", async ({ page }) => {
     await page.goto(recipe);
 
-    const table = page.getByRole("table");
+    const table = page.getByRole("table").filter({ hasText: "Per serving" });
     await expect(table.getByRole("row", { name: "Per serving Amount" })).toBeVisible();
     await expect(table.getByRole("row", { name: "Protein 30 g" })).toBeVisible();
   });
@@ -82,7 +112,7 @@ test.describe("Recipes", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: "Fixture protein oats" })
     ).toBeVisible();
-    await expect(page.getByRole("list", { name: "Ingredients" })).toBeVisible();
+    await expect(page.getByRole("table", { name: "Ingredients" })).toBeVisible();
     await expect(page.getByRole("banner")).toBeHidden();
     await expect(page.getByRole("contentinfo")).toBeHidden();
     await expect(page.getByRole("button", { name: "Print recipe" })).toBeHidden();

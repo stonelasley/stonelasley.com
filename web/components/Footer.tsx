@@ -1,29 +1,30 @@
 import Link from "next/link";
 import { Container } from "./Container";
 import { SocialNav } from "./SocialNav";
+import { ThemeToggle } from "./ThemeToggle";
 import { siteConfig } from "@/site.config";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-border bg-background mt-auto border-t print:hidden">
+    <footer className="bg-muted/40 mt-auto print:hidden">
       <Container>
         <div className="py-12 md:py-16">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             <div>
-              <h3 className="mb-4 text-lg font-semibold">{siteConfig.name}</h3>
-              <p className="text-muted-foreground max-w-xs text-sm">{siteConfig.description}</p>
+              <h3 className="text-body mb-4 font-semibold">{siteConfig.name}</h3>
+              <p className="text-muted-foreground text-small max-w-xs">{siteConfig.description}</p>
             </div>
             <div>
-              <h3 className="mb-4 text-lg font-semibold">Navigation</h3>
+              <h3 className="text-body mb-4 font-semibold">Navigation</h3>
               <nav aria-label="Footer navigation">
                 <ul className="space-y-2">
                   {siteConfig.nav.main.map((item) => (
                     <li key={item.href}>
                       <Link
                         href={item.href}
-                        className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+                        className="text-muted-foreground hover:text-foreground text-small transition-colors"
                       >
                         {item.name}
                       </Link>
@@ -33,12 +34,14 @@ export function Footer() {
               </nav>
             </div>
             <div>
-              <h3 className="mb-4 text-lg font-semibold">Connect</h3>
+              <h3 className="text-body mb-4 font-semibold">Connect</h3>
               <SocialNav />
+              <h3 className="text-body mt-8 mb-4 font-semibold">Theme</h3>
+              <ThemeToggle />
             </div>
           </div>
-          <div className="border-border mt-8 border-t pt-8">
-            <p className="text-muted-foreground text-center text-sm md:text-left">
+          <div className="mt-12">
+            <p className="text-muted-foreground text-small text-center md:text-left">
               &copy; {currentYear} {siteConfig.name}. All rights reserved.
             </p>
           </div>

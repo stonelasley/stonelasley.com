@@ -3,8 +3,9 @@
 export function PrintButton() {
   return (
     <button
+      type="button"
       onClick={() => window.print()}
-      className="border-border bg-background hover:bg-accent no-print w-full rounded-md border px-4 py-2 text-sm font-medium transition-colors"
+      className="bg-muted hover:bg-accent no-print text-small h-11 rounded-md px-4 font-medium transition-colors active:scale-95"
     >
       Print recipe
     </button>

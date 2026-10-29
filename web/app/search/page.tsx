@@ -37,7 +37,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <Container className="py-16 md:py-24">
-      <h1 className="mb-8 text-4xl font-bold tracking-tight">Search</h1>
+      <h1 className="text-title mb-8 font-bold tracking-tight">Search</h1>
 
       <form action="/search" method="get" role="search" className="mb-8 flex max-w-2xl gap-2">
         <label htmlFor="q" className="sr-only">
@@ -56,7 +56,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         {area && <input type="hidden" name="area" value={area.slug} />}
         <button
           type="submit"
-          className="bg-foreground text-background hover:bg-foreground/90 rounded-md px-4 py-2 text-sm font-semibold"
+          className="bg-foreground text-background hover:bg-foreground/90 text-small rounded-md px-4 py-2 font-semibold"
         >
           Search
         </button>
@@ -76,7 +76,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                   href={searchHref(query, tab.slug)}
                   aria-current={current ? "page" : undefined}
                   className={cn(
-                    "rounded-full px-3 py-1 text-sm font-medium",
+                    "text-small rounded-full px-3 py-1 font-medium",
                     current
                       ? "bg-foreground text-background"
                       : "bg-secondary text-secondary-foreground"
