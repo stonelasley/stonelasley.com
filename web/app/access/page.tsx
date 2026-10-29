@@ -21,7 +21,7 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
 
   return (
     <Container className="max-w-xl py-16 md:py-24">
-      <h1 className="mb-4 text-4xl font-bold tracking-tight">Access</h1>
+      <h1 className="text-title mb-4 font-bold tracking-tight">Access</h1>
       <p className="text-muted-foreground mb-8">
         Coaching Clients: enter the Access Code Stone gave you. You only need to do this once on
         each device.

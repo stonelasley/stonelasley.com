@@ -10,7 +10,7 @@ interface WatchIndexProps {
 }
 
 const selectClass =
-  "border-border bg-background rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
+  "border-border bg-background rounded-md border px-3 py-2 text-small focus:outline-none focus:ring-2 focus:ring-ring";
 
 /**
  * The Watches index with make, model name and decade filters. The list is pre-rendered; filtering happens
@@ -54,7 +54,7 @@ export function WatchIndex({ posts, facets }: WatchIndexProps) {
   return (
     <>
       <div role="search" aria-label="Filter Watches" className="mb-12 flex flex-wrap gap-4">
-        <label className="flex flex-col gap-1 text-sm font-medium">
+        <label className="text-small flex flex-col gap-1 font-medium">
           Make
           <select
             className={selectClass}
@@ -67,7 +67,7 @@ export function WatchIndex({ posts, facets }: WatchIndexProps) {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
+        <label className="text-small flex flex-col gap-1 font-medium">
           Model
           <select
             className={selectClass}
@@ -80,7 +80,7 @@ export function WatchIndex({ posts, facets }: WatchIndexProps) {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
+        <label className="text-small flex flex-col gap-1 font-medium">
           Decade
           <select
             className={selectClass}

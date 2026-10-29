@@ -34,7 +34,7 @@ export function WatchSpecs({ watch }: WatchSpecsProps) {
       aria-label="Specifications"
       className="border-border bg-card mb-12 max-w-3xl rounded-lg border p-6"
     >
-      <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+      <dl className="text-small grid gap-x-6 gap-y-3 sm:grid-cols-2">
         {rows
           .filter((row): row is [string, string] => row[1] !== null)
           .map(([term, value]) => (

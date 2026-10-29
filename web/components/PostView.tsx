@@ -3,7 +3,7 @@ import { Container } from "@/components/Container";
 import { DraftBadge } from "@/components/DraftBadge";
 import { Prose } from "@/components/Prose";
 import { Tag } from "@/components/Tag";
-import { IngredientList, RecipeFacts } from "@/components/RecipeDetails";
+import { RecipeDetails } from "@/components/RecipeDetails";
 import { WatchSpecs } from "@/components/WatchSpecs";
 import type { Post } from "@/lib/api";
 import type { ContentArea } from "@/lib/areas";
@@ -43,7 +43,7 @@ export async function PostView({
       <Container className="py-16 md:py-24 print:py-0">
         <Link
           href={`/${area.slug}`}
-          className="text-muted-foreground hover:text-foreground no-print mb-8 inline-flex items-center gap-2 text-sm transition-colors"
+          className="text-muted-foreground hover:text-foreground no-print text-small mb-8 inline-flex items-center gap-2 transition-colors"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -61,13 +61,13 @@ export async function PostView({
         </Link>
 
         <header className="mb-12 max-w-3xl">
-          <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">{post.title}</h1>
+          <h1 className="text-title mb-4 font-bold tracking-tight">{post.title}</h1>
           {post.draft && (
             <p className="mb-4">
               <DraftBadge />
             </p>
           )}
-          <div className="text-muted-foreground text-sm">
+          <div className="text-muted-foreground text-small">
             <time dateTime={post.date}>{formatDate(post.date)}</time>
           </div>
           {post.tags.length > 0 && (
@@ -81,25 +81,10 @@ export async function PostView({
 
         {post.watch && <WatchSpecs watch={post.watch} />}
 
-        {recipe ? (
-          <div className="grid gap-8 md:grid-cols-3 print:flex print:flex-col">
-            <div className="md:col-span-2">
-              <IngredientList recipe={recipe} />
-              <Prose>
-                <div dangerouslySetInnerHTML={{ __html: html }} />
-              </Prose>
-            </div>
-            <aside className="md:col-span-1 print:order-first">
-              <div className="sticky top-24 print:static">
-                <RecipeFacts recipe={recipe} />
-              </div>
-            </aside>
-          </div>
-        ) : (
-          <Prose className="max-w-3xl">
-            <div dangerouslySetInnerHTML={{ __html: html }} />
-          </Prose>
-        )}
+        {recipe && <RecipeDetails recipe={recipe} />}
+        <Prose>
+          <div dangerouslySetInnerHTML={{ __html: html }} />
+        </Prose>
       </Container>
     </article>
   );

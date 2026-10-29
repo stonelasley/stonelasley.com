@@ -22,11 +22,11 @@ export function SearchResults({ results }: SearchResultsProps) {
             className="size-16 rounded-lg md:size-24"
           />
           <div className="min-w-0 space-y-2">
-            <div className="text-muted-foreground flex gap-3 text-xs font-medium tracking-wider uppercase">
+            <div className="text-muted-foreground text-small flex gap-3">
               <span>{findArea(hit.area)?.name}</span>
               <time dateTime={hit.date}>{formatDate(hit.date)}</time>
             </div>
-            <h2 className="text-xl font-semibold tracking-tight">
+            <h2 className="text-heading font-semibold tracking-tight">
               <Link href={`/${hit.area}/${hit.slug}`} className="hover:underline">
                 {hit.title}
               </Link>
