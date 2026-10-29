@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Container } from "@/components/Container";
 import { PostList } from "@/components/PostList";
 import { InstagramFeed } from "@/components/InstagramFeed";
@@ -40,34 +39,21 @@ export default async function Home() {
       <section className="border-border border-b py-16 md:py-24">
         <Container>
           <div className="mx-auto max-w-3xl">
-            <div className="flex flex-col gap-8 md:flex-row md:items-start">
-              {siteConfig.author.avatar && (
-                <div className="shrink-0">
-                  <Image
-                    src={siteConfig.author.avatar}
-                    alt={siteConfig.author.name}
-                    width={120}
-                    height={120}
-                    className="rounded-full"
-                  />
-                </div>
-              )}
-              <div>
-                <h2 className="mb-4 text-2xl font-bold tracking-tight">About</h2>
-                <div className="prose prose-zinc dark:prose-invert">
-                  <p>
-                    I&apos;m a software leader and builder with a passion for creating elegant
-                    solutions to complex problems. With years of experience leading engineering
-                    teams, I focus on clean architecture, scalable systems, and empowering teams to
-                    do their best work.
-                  </p>
-                  <p>
-                    When I&apos;m not coding or leading teams, you&apos;ll find me in the gym,
-                    experimenting with meal prep recipes, or exploring the latest in software
-                    engineering practices. This site is where I share my thoughts on technology,
-                    leadership, fitness, and food.
-                  </p>
-                </div>
+            <div>
+              <h2 className="mb-4 text-2xl font-bold tracking-tight">About</h2>
+              <div className="prose prose-zinc dark:prose-invert">
+                <p>
+                  I&apos;m a software leader and builder with a passion for creating elegant
+                  solutions to complex problems. With years of experience leading engineering teams,
+                  I focus on clean architecture, scalable systems, and empowering teams to do their
+                  best work.
+                </p>
+                <p>
+                  When I&apos;m not coding or leading teams, you&apos;ll find me in the gym,
+                  experimenting with meal prep recipes, or exploring the latest in software
+                  engineering practices. This site is where I share my thoughts on technology,
+                  leadership, fitness, and food.
+                </p>
               </div>
             </div>
           </div>

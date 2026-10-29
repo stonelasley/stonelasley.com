@@ -5,7 +5,6 @@ export const siteConfig = {
   author: {
     name: "Stone C. Lasley",
     email: "website@lasley.io",
-    avatar: "/images/avatar.jpg", // You'll need to add this image
   },
   home: {
     recentPosts: 3,
