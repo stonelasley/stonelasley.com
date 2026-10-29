@@ -182,7 +182,7 @@ function Palette({ onClose }: { onClose: () => void }) {
                   area={hit.area}
                   watch={hit.watch}
                   sizes="44px"
-                  compact
+                  variant="compact"
                   className="size-11 rounded-md"
                 />
                 <div className="min-w-0">
@@ -213,7 +213,7 @@ function Palette({ onClose }: { onClose: () => void }) {
               area={post.area}
               watch={post.watch}
               sizes="44px"
-              compact
+              variant="compact"
               className="size-11 rounded-md"
             />
             <div className="min-w-0">
