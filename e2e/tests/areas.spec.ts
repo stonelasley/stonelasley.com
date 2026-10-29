@@ -20,6 +20,40 @@ test.describe("Content Areas", () => {
     ).toBeVisible();
   });
 
+  test("an area index shows each Post's hero above it, loaded", async ({ page }) => {
+    await page.goto("/ai-development");
+
+    const card = page.getByRole("article").filter({ hasText: "Testing at the seams" });
+    const hero = card.getByTestId("post-thumbnail");
+    await expect(hero).toHaveAttribute("alt", "");
+    await expect(hero).toHaveAttribute("src", /\/public\/images\/[0-9a-f]{64}\.png$/);
+    await expect
+      .poll(() => hero.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0))
+      .toBe(true);
+    // One link per card, so the whole card opens the Post.
+    await expect(card.getByRole("link")).toHaveCount(1);
+  });
+
+  test("a Post without a hero gets a stand-in: a Watch's Reference, or the Content Area", async ({
+    page,
+  }) => {
+    await page.goto("/watches");
+    const watch = page
+      .getByRole("article")
+      .filter({ hasText: "Rolex Submariner Date 16610" })
+      .getByTestId("post-thumbnail-standin");
+    await expect(watch).toContainText("16610");
+    await expect(watch).toContainText("Rolex");
+
+    await page.goto("/recipes");
+    await expect(
+      page
+        .getByRole("article")
+        .filter({ hasText: "Fixture protein oats" })
+        .getByTestId("post-thumbnail-standin")
+    ).toHaveText("Recipes");
+  });
+
   test("each Content Area has an index", async ({ page }) => {
     for (const [path, name] of [
       ["/recipes", "Recipes"],

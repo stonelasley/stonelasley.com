@@ -16,6 +16,12 @@ describe("resizedImage", () => {
     );
   });
 
+  it("crops to an aspect ratio", () => {
+    expect(resizedImage(hero, 640, 3 / 4)).toBe(
+      "https://img.stonelasley.com/cdn-cgi/image/width=640,height=480,fit=cover,format=auto/images/abc123.png"
+    );
+  });
+
   it("leaves images from other hosts alone", () => {
     expect(resizedImage("http://127.0.0.1:8787/public/images/abc123.png", 96)).toBe(
       "http://127.0.0.1:8787/public/images/abc123.png"
@@ -31,6 +37,13 @@ describe("resizedSrcSet", () => {
     expect(resizedSrcSet(hero, [96, 192])).toBe(
       "https://img.stonelasley.com/cdn-cgi/image/width=96,height=96,fit=cover,format=auto/images/abc123.png 96w, " +
         "https://img.stonelasley.com/cdn-cgi/image/width=192,height=192,fit=cover,format=auto/images/abc123.png 192w"
+    );
+  });
+
+  it("crops every size to the aspect ratio", () => {
+    expect(resizedSrcSet(hero, [320, 640], 3 / 4)).toBe(
+      "https://img.stonelasley.com/cdn-cgi/image/width=320,height=240,fit=cover,format=auto/images/abc123.png 320w, " +
+        "https://img.stonelasley.com/cdn-cgi/image/width=640,height=480,fit=cover,format=auto/images/abc123.png 640w"
     );
   });
 
