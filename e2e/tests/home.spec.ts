@@ -11,7 +11,9 @@ test.describe("Home Page", () => {
   test("should list the most recent Posts", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByRole("link", { name: "Testing at the seams" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 3 }).getByRole("link", { name: "Testing at the seams" })
+    ).toBeVisible();
   });
 
   test("shows each recent Post's hero above it", async ({ page }) => {
@@ -23,6 +25,39 @@ test.describe("Home Page", () => {
     await expect
       .poll(() => hero.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0))
       .toBe(true);
+  });
+
+  test("opens on a recent Post's photograph, with the name and one action", async ({ page }) => {
+    await page.goto("/");
+
+    const hero = page.getByTestId("home-hero");
+    await expect
+      .poll(() => hero.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0))
+      .toBe(true);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Stone C. Lasley");
+    await expect(page.getByRole("link", { name: "Read the watch notes" })).toHaveAttribute(
+      "href",
+      "/watches"
+    );
+  });
+
+  test("swapping in the visit's photograph doesn't shift the layout", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    const shift = await page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          let total = 0;
+          new PerformanceObserver((list) => {
+            for (const entry of list.getEntries() as (PerformanceEntry & { value: number })[]) {
+              total += entry.value;
+            }
+          }).observe({ type: "layout-shift", buffered: true });
+          setTimeout(() => resolve(total), 500);
+        })
+    );
+    expect(shift).toBeLessThan(0.05);
   });
 
   for (const [name, path] of [

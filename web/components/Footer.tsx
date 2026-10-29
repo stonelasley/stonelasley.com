@@ -8,7 +8,7 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-border bg-background mt-auto border-t print:hidden">
+    <footer className="bg-muted/40 mt-auto print:hidden">
       <Container>
         <div className="py-12 md:py-16">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
@@ -40,7 +40,7 @@ export function Footer() {
               <ThemeToggle />
             </div>
           </div>
-          <div className="border-border mt-8 border-t pt-8">
+          <div className="mt-12">
             <p className="text-muted-foreground text-small text-center md:text-left">
               &copy; {currentYear} {siteConfig.name}. All rights reserved.
             </p>
