@@ -8,6 +8,13 @@ test.describe("Home Page", () => {
     await expect(page.locator("h1")).toBeVisible();
   });
 
+  test("says under the name what Stone does", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(page.getByText(/I run a software engineering org in Utah/)).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "About" })).toBeVisible();
+  });
+
   test("should list the most recent Posts", async ({ page }) => {
     await page.goto("/");
 

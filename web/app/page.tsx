@@ -19,7 +19,7 @@ export default async function Home() {
         <Container>
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">{siteConfig.name}</h1>
-            <p className="text-muted-foreground mt-6 text-lg leading-8">{siteConfig.description}</p>
+            <p className="text-muted-foreground mt-6 text-lg leading-8">{siteConfig.intro}</p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               {contentAreas.map((area) => (
                 <Link
@@ -42,18 +42,9 @@ export default async function Home() {
             <div>
               <h2 className="mb-4 text-2xl font-bold tracking-tight">About</h2>
               <div className="prose prose-zinc dark:prose-invert">
-                <p>
-                  I&apos;m a software leader and builder with a passion for creating elegant
-                  solutions to complex problems. With years of experience leading engineering teams,
-                  I focus on clean architecture, scalable systems, and empowering teams to do their
-                  best work.
-                </p>
-                <p>
-                  When I&apos;m not coding or leading teams, you&apos;ll find me in the gym,
-                  experimenting with meal prep recipes, or exploring the latest in software
-                  engineering practices. This site is where I share my thoughts on technology,
-                  leadership, fitness, and food.
-                </p>
+                {siteConfig.about.map((paragraph) => (
+                  <p key={paragraph}>{paragraph}</p>
+                ))}
               </div>
             </div>
           </div>
