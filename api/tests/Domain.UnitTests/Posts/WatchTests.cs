@@ -70,6 +70,37 @@ public class WatchTests
         watch.InProduction.ShouldBeFalse();
     }
 
+    [TestCase("Omega", WatchMake.Omega)]
+    [TestCase("Audemars Piguet", WatchMake.AudemarsPiguet)]
+    [TestCase("Vacheron Constantin", WatchMake.VacheronConstantin)]
+    [TestCase("A. Lange & Söhne", WatchMake.ALangeAndSohne)]
+    [TestCase("Tudor", WatchMake.Tudor)]
+    [TestCase("Cartier", WatchMake.Cartier)]
+    [TestCase("Grand Seiko", WatchMake.GrandSeiko)]
+    [TestCase("IWC", WatchMake.Iwc)]
+    [TestCase("Jaeger-LeCoultre", WatchMake.JaegerLeCoultre)]
+    [TestCase("Breitling", WatchMake.Breitling)]
+    [TestCase("Seiko", WatchMake.Seiko)]
+    [TestCase("Swatch", WatchMake.Swatch)]
+    [TestCase("Breguet", WatchMake.Breguet)]
+    [TestCase("F.P. Journe", WatchMake.FPJourne)]
+    [TestCase("Casio", WatchMake.Casio)]
+    [TestCase("Glycine", WatchMake.Glycine)]
+    [TestCase("Panerai", WatchMake.Panerai)]
+    [TestCase("DIW", WatchMake.Diw)]
+    [TestCase("Artisans de Genève", WatchMake.ArtisansDeGeneve)]
+    [TestCase("Richard Mille", WatchMake.RichardMille)]
+    [TestCase("Blancpain", WatchMake.Blancpain)]
+    [TestCase("Zenith", WatchMake.Zenith)]
+    [TestCase("Longines", WatchMake.Longines)]
+    public void Parses_a_make_by_its_written_name(string name, WatchMake make)
+    {
+        var watch = Parse(ValidWatch.Replace("make: Rolex", $"make: {name}")).Watch.ShouldNotBeNull();
+
+        watch.Make.ShouldBe(make);
+        make.Name().ShouldBe(name);
+    }
+
     [Test]
     public void A_watch_with_a_start_and_no_end_is_still_in_production()
     {
@@ -104,7 +135,7 @@ public class WatchTests
         watch.Decades(currentYear: 2026).ShouldBeEmpty();
     }
 
-    [TestCase("make: Rolex", "make: Omega", "'make' must be one of: Rolex, Patek Philippe.")]
+    [TestCase("make: Rolex", "make: Timex", "'make' must be one of: Rolex, Patek Philippe, Omega, Audemars Piguet, Vacheron Constantin, A. Lange & Söhne, Tudor, Cartier, Grand Seiko, IWC, Jaeger-LeCoultre, Breitling, Seiko, Swatch, Breguet, F.P. Journe, Casio, Glycine, Panerai, DIW, Artisans de Genève, Richard Mille, Blancpain, Zenith, Longines.")]
     [TestCase("reference: \"16610\"", "reference: ''", "'reference' is required.")]
     [TestCase("modelName: Submariner Date", "modelName: ''", "'modelName' is required.")]
     [TestCase("productionStart: 1988", "productionStart: eighties", "'productionStart' must be a year.")]
