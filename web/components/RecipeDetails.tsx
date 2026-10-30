@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
 import type { Recipe } from "@/lib/api";
-import { formatQuantity, scaledQuantity } from "@/lib/recipe";
+import { formatQuantity, scaledQuantity, type Units } from "@/lib/recipe";
+import { chooseUnits, readUnits, subscribeToUnits } from "@/lib/units";
+import { cn } from "@/lib/utils";
 import { PrintButton } from "./PrintButton";
 
 interface RecipeDetailsProps {
@@ -13,13 +15,21 @@ const MIN_BATCH = 0.5;
 const MAX_BATCH = 4;
 const STEP = 0.5;
 
+const unitOptions: { value: Units; label: string }[] = [
+  { value: "metric", label: "Metric" },
+  { value: "imperial", label: "Imperial" },
+];
+
 /**
- * What a cook decides on and shops from: times, servings, difficulty and oven, a batch scale, and the ingredients at
- * that scale. The server renders one batch, so the page reads the same without JavaScript; printing prints the
- * current scale.
+ * What a cook decides on and shops from: times, servings, difficulty and oven, a batch scale and units, and the
+ * ingredients at that scale in those units. The server renders one batch in metric, so the page reads the same
+ * without JavaScript; printing prints the current scale and units.
  */
 export function RecipeDetails({ recipe }: RecipeDetailsProps) {
   const [batch, setBatch] = useState(1);
+  // The server can't see localStorage, so it renders metric and this catches up on hydration.
+  const units = useSyncExternalStore(subscribeToUnits, readUnits, () => "metric" as const);
+  const unitButtons = useRef<(HTMLButtonElement | null)[]>([]);
 
   const facts: [string, string][] = [
     ["Prep", `${recipe.prepTimeMin} min`],
@@ -34,6 +44,17 @@ export function RecipeDetails({ recipe }: RecipeDetailsProps) {
 
   const step = (direction: 1 | -1) =>
     setBatch((current) => Math.min(MAX_BATCH, Math.max(MIN_BATCH, current + direction * STEP)));
+
+  // Radio-group keyboard pattern, as in ThemeToggle: one tab stop; arrow keys move and select.
+  const onUnitsKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const move = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+    if (!move) return;
+    event.preventDefault();
+    const current = unitOptions.findIndex((option) => option.value === units);
+    const next = (current + move + unitOptions.length) % unitOptions.length;
+    chooseUnits(unitOptions[next].value);
+    unitButtons.current[next]?.focus();
+  };
 
   return (
     <div className="mb-12 max-w-[68ch] space-y-8">
@@ -76,6 +97,39 @@ export function RecipeDetails({ recipe }: RecipeDetailsProps) {
               +
             </button>
           </div>
+          <div className="flex items-center gap-3">
+            <span id="units-label" className="font-medium">
+              Units
+            </span>
+            <div
+              role="radiogroup"
+              aria-labelledby="units-label"
+              onKeyDown={onUnitsKeyDown}
+              className="bg-muted flex rounded-md p-0.5"
+            >
+              {unitOptions.map((option, index) => (
+                <button
+                  key={option.value}
+                  ref={(button) => {
+                    unitButtons.current[index] = button;
+                  }}
+                  type="button"
+                  role="radio"
+                  aria-checked={units === option.value}
+                  tabIndex={units === option.value ? 0 : -1}
+                  onClick={() => chooseUnits(option.value)}
+                  className={cn(
+                    "h-11 rounded px-3 font-medium transition-colors",
+                    units === option.value
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <PrintButton />
         </div>
       </section>
@@ -89,7 +143,7 @@ export function RecipeDetails({ recipe }: RecipeDetailsProps) {
             {recipe.ingredients.map((ingredient, index) => (
               <tr key={index} className="odd:bg-muted/60 print:odd:bg-transparent">
                 <td className="w-28 py-2.5 pr-4 pl-3 text-right align-top font-semibold whitespace-nowrap tabular-nums">
-                  {scaledQuantity(ingredient, batch)}
+                  {scaledQuantity(ingredient, batch, units)}
                 </td>
                 <td className="py-2.5 pr-3 align-top">
                   {ingredient.name}
