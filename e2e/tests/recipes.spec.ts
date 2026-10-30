@@ -52,6 +52,37 @@ test.describe("Recipes", () => {
     await expect(page.getByRole("button", { name: "Smaller batch" })).toBeDisabled();
   });
 
+  test("imperial shows weights in ounces, and the choice survives a reload", async ({ page }) => {
+    await page.goto(recipe);
+    const ingredients = page.getByRole("table", { name: "Ingredients" });
+    const units = page.getByRole("radiogroup", { name: "Units" });
+    await expect(units.getByRole("radio", { name: "Metric" })).toHaveAttribute(
+      "aria-checked",
+      "true"
+    );
+    await expect(ingredients.getByRole("row", { name: /rolled oats/ })).toContainText("80 g");
+
+    await units.getByRole("radio", { name: "Imperial" }).click();
+    await expect(ingredients.getByRole("row", { name: /rolled oats/ })).toContainText("2¾ oz");
+    await expect(ingredients.getByRole("row", { name: /water/ })).toContainText("½ cup");
+
+    await page.getByRole("button", { name: "Larger batch" }).click();
+    await page.getByRole("button", { name: "Larger batch" }).click();
+    await expect(ingredients.getByRole("row", { name: /rolled oats/ })).toContainText("5¾ oz");
+
+    await page.reload();
+    await expect(units.getByRole("radio", { name: "Imperial" })).toHaveAttribute(
+      "aria-checked",
+      "true"
+    );
+    await expect(ingredients.getByRole("row", { name: /rolled oats/ })).toContainText("2¾ oz");
+
+    await units.getByRole("radio", { name: "Imperial" }).focus();
+    await page.keyboard.press("ArrowLeft");
+    await expect(units.getByRole("radio", { name: "Metric" })).toBeFocused();
+    await expect(ingredients.getByRole("row", { name: /rolled oats/ })).toContainText("80 g");
+  });
+
   test("a Recipe shows its times, servings, difficulty and oven temperature", async ({ page }) => {
     await page.goto(recipe);
 
