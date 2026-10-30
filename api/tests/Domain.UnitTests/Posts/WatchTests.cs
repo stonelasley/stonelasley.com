@@ -93,6 +93,19 @@ public class WatchTests
     [TestCase("Blancpain", WatchMake.Blancpain)]
     [TestCase("Zenith", WatchMake.Zenith)]
     [TestCase("Longines", WatchMake.Longines)]
+    [TestCase("True North", WatchMake.TrueNorth)]
+    [TestCase("Christopher Ward", WatchMake.ChristopherWard)]
+    [TestCase("Yema", WatchMake.Yema)]
+    [TestCase("Baltic", WatchMake.Baltic)]
+    [TestCase("Furlan Marri", WatchMake.FurlanMarri)]
+    [TestCase("anOrdain", WatchMake.AnOrdain)]
+    [TestCase("Serica", WatchMake.Serica)]
+    [TestCase("Lorier", WatchMake.Lorier)]
+    [TestCase("Studio Underd0g", WatchMake.StudioUnderdog)]
+    [TestCase("Kurono Tokyo", WatchMake.KuronoTokyo)]
+    [TestCase("Atelier Wen", WatchMake.AtelierWen)]
+    [TestCase("Monta", WatchMake.Monta)]
+    [TestCase("Venezianico", WatchMake.Venezianico)]
     public void Parses_a_make_by_its_written_name(string name, WatchMake make)
     {
         var watch = Parse(ValidWatch.Replace("make: Rolex", $"make: {name}")).Watch.ShouldNotBeNull();
@@ -135,7 +148,7 @@ public class WatchTests
         watch.Decades(currentYear: 2026).ShouldBeEmpty();
     }
 
-    [TestCase("make: Rolex", "make: Timex", "'make' must be one of: Rolex, Patek Philippe, Omega, Audemars Piguet, Vacheron Constantin, A. Lange & Söhne, Tudor, Cartier, Grand Seiko, IWC, Jaeger-LeCoultre, Breitling, Seiko, Swatch, Breguet, F.P. Journe, Casio, Glycine, Panerai, DIW, Artisans de Genève, Richard Mille, Blancpain, Zenith, Longines.")]
+    [TestCase("make: Rolex", "make: Timex", "'make' must be one of: Rolex, Patek Philippe, Omega, Audemars Piguet, Vacheron Constantin, A. Lange & Söhne, Tudor, Cartier, Grand Seiko, IWC, Jaeger-LeCoultre, Breitling, Seiko, Swatch, Breguet, F.P. Journe, Casio, Glycine, Panerai, DIW, Artisans de Genève, Richard Mille, Blancpain, Zenith, Longines, True North, Christopher Ward, Yema, Baltic, Furlan Marri, anOrdain, Serica, Lorier, Studio Underd0g, Kurono Tokyo, Atelier Wen, Monta, Venezianico.")]
     [TestCase("reference: \"16610\"", "reference: ''", "'reference' is required.")]
     [TestCase("modelName: Submariner Date", "modelName: ''", "'modelName' is required.")]
     [TestCase("productionStart: 1988", "productionStart: eighties", "'productionStart' must be a year.")]
