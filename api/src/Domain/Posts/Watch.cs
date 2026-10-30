@@ -32,6 +32,19 @@ public enum WatchMake
     Blancpain,
     Zenith,
     Longines,
+    TrueNorth,
+    ChristopherWard,
+    Yema,
+    Baltic,
+    FurlanMarri,
+    AnOrdain,
+    Serica,
+    Lorier,
+    StudioUnderdog,
+    KuronoTokyo,
+    AtelierWen,
+    Monta,
+    Venezianico,
 }
 
 public static class WatchMakes
@@ -63,6 +76,19 @@ public static class WatchMakes
         [WatchMake.Blancpain] = "Blancpain",
         [WatchMake.Zenith] = "Zenith",
         [WatchMake.Longines] = "Longines",
+        [WatchMake.TrueNorth] = "True North",
+        [WatchMake.ChristopherWard] = "Christopher Ward",
+        [WatchMake.Yema] = "Yema",
+        [WatchMake.Baltic] = "Baltic",
+        [WatchMake.FurlanMarri] = "Furlan Marri",
+        [WatchMake.AnOrdain] = "anOrdain",
+        [WatchMake.Serica] = "Serica",
+        [WatchMake.Lorier] = "Lorier",
+        [WatchMake.StudioUnderdog] = "Studio Underd0g",
+        [WatchMake.KuronoTokyo] = "Kurono Tokyo",
+        [WatchMake.AtelierWen] = "Atelier Wen",
+        [WatchMake.Monta] = "Monta",
+        [WatchMake.Venezianico] = "Venezianico",
     };
 
     public static IReadOnlyCollection<string> All => Names.Values;
