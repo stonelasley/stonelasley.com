@@ -3,7 +3,8 @@ namespace StoneLasley.Domain.Posts;
 /// <summary>
 /// Splits a Post into the passages the vector leg embeds: one per H2 section, with long sections broken at
 /// paragraph boundaries. Every chunk starts with the Post title and its section heading, so a passage keeps its
-/// context once it stands alone. Changing this changes every vector, so it is part of the index version (#44).
+/// context once it stands alone. HTML comments are left out, as they are from the keyword index. Changing this
+/// changes every vector, so it is part of the index version (#44).
 /// </summary>
 public static class Chunker
 {
@@ -41,7 +42,7 @@ public static class Chunker
     {
         string? heading = null;
         var paragraphs = new List<string>();
-        foreach (var block in body.ReplaceLineEndings("\n").Split("\n\n").Select(b => b.Trim()).Where(b => b.Length > 0))
+        foreach (var block in SearchText.WithoutComments(body).ReplaceLineEndings("\n").Split("\n\n").Select(b => b.Trim()).Where(b => b.Length > 0))
         {
             if (block.StartsWith("## ", StringComparison.Ordinal))
             {
