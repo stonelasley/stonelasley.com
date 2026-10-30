@@ -55,4 +55,12 @@ public class ChunkerTests
 
         Chunker.Split("T", huge).ShouldBe([$"T\n\n{huge}"]);
     }
+
+    [Test]
+    public void Leaves_html_comments_out_of_chunks()
+    {
+        var chunks = Chunker.Split("T", "Intro.\n\n<!-- IMAGE 1: no logos -->\n\n## S\n\n<!--\nmulti\n\nline\n-->\n\nBody.");
+
+        chunks.ShouldBe(["T\n\nIntro.", "T — S\n\nBody."]);
+    }
 }

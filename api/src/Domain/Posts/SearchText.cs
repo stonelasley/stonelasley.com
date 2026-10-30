@@ -40,15 +40,21 @@ public static partial class SearchText
             .Distinct();
     }
 
-    /// <summary>The Markdown body as plain words: syntax gone, code kept as text.</summary>
+    /// <summary>The Markdown body as plain words: syntax and HTML comments gone, code kept as text.</summary>
     public static string Body(string markdown)
     {
-        var text = Fence().Replace(markdown, "");
+        var text = Fence().Replace(WithoutComments(markdown), "");
         text = Image().Replace(text, "$1");
         text = Link().Replace(text, "$1");
         text = Syntax().Replace(text, " ");
         return Clean(text);
     }
+
+    /// <summary>
+    /// The Markdown with its HTML comments removed. Readers never see them (marked passes them through to the HTML
+    /// as comments), and authoring tooling leaves image placeholders and generation prompts in them (#85).
+    /// </summary>
+    public static string WithoutComments(string markdown) => Comment().Replace(markdown, "");
 
     /// <summary>
     /// Each word of the query quoted and OR-joined, so nothing a reader types is read as FTS5 syntax. Null when
@@ -62,6 +68,9 @@ public static partial class SearchText
 
     // Control characters are what snippet() marks matches with, so indexed text must never contain them.
     private static string Clean(string text) => Whitespace().Replace(Control().Replace(text, " "), " ").Trim();
+
+    [GeneratedRegex(@"<!--[\s\S]*?-->")]
+    private static partial Regex Comment();
 
     [GeneratedRegex(@"\p{Cc}")]
     private static partial Regex Control();
