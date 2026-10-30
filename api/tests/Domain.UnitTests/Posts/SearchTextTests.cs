@@ -85,6 +85,13 @@ public class SearchTextTests
     }
 
     [Test]
+    public void Leaves_html_comments_out_of_the_body()
+    {
+        SearchText.Body("Before.\n\n<!-- IMAGE 1: a dial, no logos.\nPrompt: studio illustration -->\n\nAfter <!-- inline --> text.")
+            .ShouldBe("Before. After text.");
+    }
+
+    [Test]
     public void Caps_a_query_at_twenty_terms()
     {
         var match = SearchText.MatchExpression(string.Join(' ', Enumerable.Range(1, 40).Select(i => $"w{i}")))!;
