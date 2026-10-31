@@ -129,6 +129,13 @@ public class WatchTests
     [TestCase("Doxa", WatchMake.Doxa)]
     [TestCase("Favre Leuba", WatchMake.FavreLeuba)]
     [TestCase("Eberhard & Co.", WatchMake.Eberhard)]
+    [TestCase("CIGA Design", WatchMake.CigaDesign)]
+    [TestCase("echo/neutra", WatchMake.EchoNeutra)]
+    [TestCase("Scurfa", WatchMake.Scurfa)]
+    [TestCase("Von Doren", WatchMake.VonDoren)]
+    [TestCase("Asterisk", WatchMake.Asterisk)]
+    [TestCase("Oris", WatchMake.Oris)]
+    [TestCase("Ginault", WatchMake.Ginault)]
     public void Parses_a_make_by_its_written_name(string name, WatchMake make)
     {
         var watch = Parse(ValidWatch.Replace("make: Rolex", $"make: {name}")).Watch.ShouldNotBeNull();
