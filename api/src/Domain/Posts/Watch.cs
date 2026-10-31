@@ -68,6 +68,13 @@ public enum WatchMake
     Doxa,
     FavreLeuba,
     Eberhard,
+    CigaDesign,
+    EchoNeutra,
+    Scurfa,
+    VonDoren,
+    Asterisk,
+    Oris,
+    Ginault,
 }
 
 public static class WatchMakes
@@ -135,6 +142,13 @@ public static class WatchMakes
         [WatchMake.Doxa] = "Doxa",
         [WatchMake.FavreLeuba] = "Favre Leuba",
         [WatchMake.Eberhard] = "Eberhard & Co.",
+        [WatchMake.CigaDesign] = "CIGA Design",
+        [WatchMake.EchoNeutra] = "echo/neutra",
+        [WatchMake.Scurfa] = "Scurfa",
+        [WatchMake.VonDoren] = "Von Doren",
+        [WatchMake.Asterisk] = "Asterisk",
+        [WatchMake.Oris] = "Oris",
+        [WatchMake.Ginault] = "Ginault",
     };
 
     public static IReadOnlyCollection<string> All => Names.Values;
