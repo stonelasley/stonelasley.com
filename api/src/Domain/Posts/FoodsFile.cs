@@ -33,6 +33,17 @@ public sealed record Macros(decimal Protein, decimal Carbs, decimal Fat)
 /// </summary>
 public sealed class Foods
 {
+    /// <summary>Units every food converts by, in grams: Recipes write grams as <c>g</c> or <c>gram</c>.</summary>
+    public static readonly IReadOnlyDictionary<string, decimal> MetricUnits = new Dictionary<string, decimal>
+    {
+        ["g"] = 1,
+        ["gram"] = 1,
+        ["grams"] = 1,
+        ["kg"] = 1000,
+        ["kilogram"] = 1000,
+        ["kilograms"] = 1000,
+    };
+
     private readonly Dictionary<string, Food> foods = new(StringComparer.OrdinalIgnoreCase);
 
     public Foods(IEnumerable<Food> declared)
@@ -47,7 +58,7 @@ public sealed class Foods
     }
 
     /// <summary>
-    /// The ingredient's food and its weight in grams: <c>g</c> and <c>kg</c> always convert, any other unit by the
+    /// The ingredient's food and its weight in grams: grams and kilograms always convert, any other unit by the
     /// food's units, and no unit by its <c>each</c>. Null when the food or unit isn't declared, or the ingredient has
     /// no quantity.
     /// </summary>
@@ -57,14 +68,10 @@ public sealed class Foods
         {
             return null;
         }
-        decimal? grams = ingredient.Unit?.Trim().ToLowerInvariant() switch
-        {
-            "g" => quantity,
-            "kg" => quantity * 1000,
-            var unit when food.Units.TryGetValue(unit ?? "each", out var perUnit) => quantity * perUnit,
-            _ => null,
-        };
-        return grams is { } weight ? (food, weight) : null;
+        var unit = ingredient.Unit?.Trim().ToLowerInvariant() ?? "each";
+        return MetricUnits.TryGetValue(unit, out var perUnit) || food.Units.TryGetValue(unit, out perUnit)
+            ? (food, quantity * perUnit)
+            : null;
     }
 }
 
@@ -120,9 +127,9 @@ public static class FoodsFile
             foreach (var (unit, grams) in entry.Units ?? [])
             {
                 var key = unit.Trim().ToLowerInvariant();
-                if (key is "" or "g" or "kg")
+                if (key.Length == 0 || Foods.MetricUnits.ContainsKey(key))
                 {
-                    errors.Add($"Food {name}: unit '{unit}' can't be declared; g and kg always convert.");
+                    errors.Add($"Food {name}: unit '{unit}' can't be declared; grams and kilograms always convert.");
                 }
                 else if (grams is not > 0)
                 {

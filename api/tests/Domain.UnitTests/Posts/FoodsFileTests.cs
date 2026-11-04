@@ -38,6 +38,7 @@ public class FoodsFileTests
     [TestCase("- name: oats\n  protein: 60\n  carbs: 50\n  fat: 1", "Food oats: protein, carbs and fat add up to more than 100 g")]
     [TestCase("- name: oats\n  aliases: ['']\n  protein: 1\n  carbs: 1\n  fat: 1", "Food oats: aliases must not be empty.")]
     [TestCase("- name: oats\n  protein: 1\n  carbs: 1\n  fat: 1\n  units: { g: 2 }", "Food oats: unit 'g' can't be declared")]
+    [TestCase("- name: oats\n  protein: 1\n  carbs: 1\n  fat: 1\n  units: { gram: 2 }", "Food oats: unit 'gram' can't be declared")]
     [TestCase("- name: oats\n  protein: 1\n  carbs: 1\n  fat: 1\n  units: { cup: 0 }", "Food oats: unit 'cup' must weigh more than 0 g.")]
     [TestCase("- name: oats\n  protein: 1\n  carbs: 1\n  fat: 1\n  units: { cup: 80, Cup: 90 }", "Food oats: unit 'cup' is declared more than once.")]
     [TestCase("- name: oats\n  protein: 1\n  carbs: 1\n  fat: 1\n- name: OATS\n  protein: 1\n  carbs: 1\n  fat: 1", "'OATS' is declared more than once.")]
@@ -57,6 +58,8 @@ public class FoodsFileTests
     ]);
 
     [TestCase(40, "g", 40)]
+    [TestCase(40, "gram", 40)]
+    [TestCase(40, "Grams", 40)]
     [TestCase(0.5, "kg", 500)]
     [TestCase(2, "cup", 160)]
     [TestCase(2, "Cup", 160)]
