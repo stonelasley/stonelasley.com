@@ -8,10 +8,8 @@ public static partial class MarkdownPost
     {
         var count = errors.Count;
 
-        if (!WatchMakes.TryParse(frontmatter.Make?.Trim(), out var make))
-        {
-            errors.Add($"'make' must be one of: {string.Join(", ", WatchMakes.All)}.");
-        }
+        // Whether the make is declared is checked at ingest, against the content repo's makes file.
+        var make = Required(frontmatter.Make, "make", errors);
         var reference = Required(frontmatter.Reference, "reference", errors);
         var modelName = Required(frontmatter.ModelName, "modelName", errors);
 
@@ -51,7 +49,7 @@ public static partial class MarkdownPost
 
         return errors.Count > count
             ? null
-            : new Watch(make, reference!, modelName!, variants, start, end, diameter, Blank(frontmatter.Calibre), Blank(frontmatter.CaseMaterial), waterResistance);
+            : new Watch(make!, reference!, modelName!, variants, start, end, diameter, Blank(frontmatter.Calibre), Blank(frontmatter.CaseMaterial), waterResistance);
     }
 
     private static string? Required(string? text, string field, List<string> errors)

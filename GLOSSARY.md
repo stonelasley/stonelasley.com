@@ -27,6 +27,10 @@ _Avoid_: Watch catalog entry (no catalog exists yet)
 A manufacturer's model number identifying one watch design, such as Rolex 16610. Close variants of it may be covered by the same Watch.
 _Avoid_: Model (when meaning the number), SKU
 
+**Make**:
+The company a Watch's Reference is from, such as Patek Philippe, written the way the content repo's makes file names it. A Post may use one of the make's aliases instead; it is stored under the name.
+_Avoid_: Brand, manufacturer
+
 ## Access
 
 **Client**:

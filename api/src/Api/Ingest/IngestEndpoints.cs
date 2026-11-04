@@ -10,7 +10,8 @@ public static class IngestEndpoints
     /// <param name="Intros">Content Area slug → intro Markdown. When present it replaces every intro, so an area
     /// left out loses its intro; when absent, intros are left alone.</param>
     /// <param name="Clients">The content repo's clients file (YAML). When present it replaces every Client.</param>
-    public sealed record ManifestRequest(Dictionary<string, string> Posts, Dictionary<string, string>? Intros, string? Clients);
+    /// <param name="Makes">The content repo's makes file (YAML). When present it replaces every watch make.</param>
+    public sealed record ManifestRequest(Dictionary<string, string> Posts, Dictionary<string, string>? Intros, string? Clients, string? Makes = null);
 
     /// <param name="Markdown">The Post file, frontmatter and body.</param>
     /// <param name="Images">Each image the Markdown references relatively, by that path, as base64.</param>
@@ -43,7 +44,17 @@ public static class IngestEndpoints
                 }
                 clients = parsed.Clients;
             }
-            return Results.Ok(await service.StartAsync(request.Posts, intros, clients, dryRun, includeDrafts, cancellationToken));
+            IReadOnlyList<WatchMake>? makes = null;
+            if (request.Makes is not null)
+            {
+                var parsed = MakesFile.Parse(request.Makes);
+                if (parsed.Errors.Count > 0)
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["makes"] = [.. parsed.Errors] });
+                }
+                makes = parsed.Makes;
+            }
+            return Results.Ok(await service.StartAsync(request.Posts, intros, clients, makes, dryRun, includeDrafts, cancellationToken));
         });
 
         ingest.MapPut("/runs/{runId}/posts/{postId}", async (string runId, string postId, UploadRequest request, IngestService service, CancellationToken cancellationToken) =>

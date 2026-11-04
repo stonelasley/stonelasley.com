@@ -20,7 +20,7 @@ public static partial class SearchText
         {
             { Watch: { } watch } =>
             [
-                watch.Make.Name(), watch.Reference, watch.ModelName, .. watch.Variants, watch.Calibre,
+                watch.Make, watch.Reference, watch.ModelName, .. watch.Variants, watch.Calibre,
                 .. new[] { watch.Reference }.Concat(watch.Variants).SelectMany(SplitParts),
             ],
             { Recipe: { } recipe } => recipe.Ingredients.SelectMany(i => new[] { i.Name, i.Note }),

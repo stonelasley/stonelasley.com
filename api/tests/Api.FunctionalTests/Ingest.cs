@@ -16,11 +16,12 @@ public static class Ingest
         IReadOnlyDictionary<string, string> markdownById,
         bool dryRun = false,
         bool includeDrafts = false,
-        string? clients = null)
+        string? clients = null,
+        string? makes = null)
     {
         var response = await client.PostAsJsonAsync(
             $"/ingest/manifest?dryRun={dryRun}&includeDrafts={includeDrafts}",
-            new { posts = markdownById.ToDictionary(p => p.Key, p => TestPosts.Hash(p.Value)), clients });
+            new { posts = markdownById.ToDictionary(p => p.Key, p => TestPosts.Hash(p.Value)), clients, makes });
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<ManifestResponse>())!;
     }

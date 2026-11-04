@@ -32,7 +32,7 @@ public class WatchTests
     {
         var watch = Parse(ValidWatch).Watch.ShouldNotBeNull();
 
-        watch.Make.ShouldBe(WatchMake.Rolex);
+        watch.Make.ShouldBe("Rolex");
         watch.Reference.ShouldBe("16610");
         watch.ModelName.ShouldBe("Submariner Date");
         watch.Variants.ShouldBe(["16610LV", "16610T"]);
@@ -64,77 +64,10 @@ public class WatchTests
 
         var watch = Parse(minimal).Watch.ShouldNotBeNull();
 
-        watch.Make.ShouldBe(WatchMake.PatekPhilippe);
+        watch.Make.ShouldBe("Patek Philippe");
         watch.Variants.ShouldBeEmpty();
         watch.ProductionStart.ShouldBeNull();
         watch.InProduction.ShouldBeFalse();
-    }
-
-    [TestCase("Omega", WatchMake.Omega)]
-    [TestCase("Audemars Piguet", WatchMake.AudemarsPiguet)]
-    [TestCase("Vacheron Constantin", WatchMake.VacheronConstantin)]
-    [TestCase("A. Lange & Söhne", WatchMake.ALangeAndSohne)]
-    [TestCase("Tudor", WatchMake.Tudor)]
-    [TestCase("Cartier", WatchMake.Cartier)]
-    [TestCase("Grand Seiko", WatchMake.GrandSeiko)]
-    [TestCase("IWC", WatchMake.Iwc)]
-    [TestCase("Jaeger-LeCoultre", WatchMake.JaegerLeCoultre)]
-    [TestCase("Breitling", WatchMake.Breitling)]
-    [TestCase("Seiko", WatchMake.Seiko)]
-    [TestCase("Swatch", WatchMake.Swatch)]
-    [TestCase("Breguet", WatchMake.Breguet)]
-    [TestCase("F.P. Journe", WatchMake.FPJourne)]
-    [TestCase("Casio", WatchMake.Casio)]
-    [TestCase("Glycine", WatchMake.Glycine)]
-    [TestCase("Panerai", WatchMake.Panerai)]
-    [TestCase("DIW", WatchMake.Diw)]
-    [TestCase("Artisans de Genève", WatchMake.ArtisansDeGeneve)]
-    [TestCase("Richard Mille", WatchMake.RichardMille)]
-    [TestCase("Blancpain", WatchMake.Blancpain)]
-    [TestCase("Zenith", WatchMake.Zenith)]
-    [TestCase("Longines", WatchMake.Longines)]
-    [TestCase("True North", WatchMake.TrueNorth)]
-    [TestCase("Christopher Ward", WatchMake.ChristopherWard)]
-    [TestCase("Yema", WatchMake.Yema)]
-    [TestCase("Baltic", WatchMake.Baltic)]
-    [TestCase("Furlan Marri", WatchMake.FurlanMarri)]
-    [TestCase("anOrdain", WatchMake.AnOrdain)]
-    [TestCase("Serica", WatchMake.Serica)]
-    [TestCase("Lorier", WatchMake.Lorier)]
-    [TestCase("Studio Underd0g", WatchMake.StudioUnderdog)]
-    [TestCase("Kurono Tokyo", WatchMake.KuronoTokyo)]
-    [TestCase("Atelier Wen", WatchMake.AtelierWen)]
-    [TestCase("Monta", WatchMake.Monta)]
-    [TestCase("Venezianico", WatchMake.Venezianico)]
-    [TestCase("Unimatic", WatchMake.Unimatic)]
-    [TestCase("Orient", WatchMake.Orient)]
-    [TestCase("Watchdives", WatchMake.Watchdives)]
-    [TestCase("Sugess", WatchMake.Sugess)]
-    [TestCase("Timex", WatchMake.Timex)]
-    [TestCase("Sinn", WatchMake.Sinn)]
-    [TestCase("Bulova", WatchMake.Bulova)]
-    [TestCase("Caravelle", WatchMake.Caravelle)]
-    [TestCase("Shinola", WatchMake.Shinola)]
-    [TestCase("D1 Milano", WatchMake.D1Milano)]
-    [TestCase("TAG Heuer", WatchMake.TagHeuer)]
-    [TestCase("Helm", WatchMake.Helm)]
-    [TestCase("Vaer", WatchMake.Vaer)]
-    [TestCase("Squale", WatchMake.Squale)]
-    [TestCase("Hamilton", WatchMake.Hamilton)]
-    [TestCase("Marathon", WatchMake.Marathon)]
-    [TestCase("Wyler", WatchMake.Wyler)]
-    [TestCase("Abercrombie & Fitch", WatchMake.AbercrombieAndFitch)]
-    [TestCase("Heuer", WatchMake.Heuer)]
-    [TestCase("Wakmann", WatchMake.Wakmann)]
-    [TestCase("Doxa", WatchMake.Doxa)]
-    [TestCase("Favre Leuba", WatchMake.FavreLeuba)]
-    [TestCase("Eberhard & Co.", WatchMake.Eberhard)]
-    public void Parses_a_make_by_its_written_name(string name, WatchMake make)
-    {
-        var watch = Parse(ValidWatch.Replace("make: Rolex", $"make: {name}")).Watch.ShouldNotBeNull();
-
-        watch.Make.ShouldBe(make);
-        make.Name().ShouldBe(name);
     }
 
     [Test]
@@ -171,15 +104,7 @@ public class WatchTests
         watch.Decades(currentYear: 2026).ShouldBeEmpty();
     }
 
-    [Test]
-    public void Rejects_an_unknown_make()
-    {
-        var result = MarkdownPost.Parse(ValidWatch.Replace("make: Rolex", "make: Acme"));
-
-        result.Post.ShouldBeNull();
-        result.Errors.ShouldBe([$"'make' must be one of: {string.Join(", ", WatchMakes.All)}."]);
-    }
-
+    [TestCase("make: Rolex", "make: ''", "'make' is required.")]
     [TestCase("reference: \"16610\"", "reference: ''", "'reference' is required.")]
     [TestCase("modelName: Submariner Date", "modelName: ''", "'modelName' is required.")]
     [TestCase("productionStart: 1988", "productionStart: eighties", "'productionStart' must be a year.")]
