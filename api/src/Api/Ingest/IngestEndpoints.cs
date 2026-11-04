@@ -11,7 +11,9 @@ public static class IngestEndpoints
     /// left out loses its intro; when absent, intros are left alone.</param>
     /// <param name="Clients">The content repo's clients file (YAML). When present it replaces every Client.</param>
     /// <param name="Makes">The content repo's makes file (YAML). When present it replaces every watch make.</param>
-    public sealed record ManifestRequest(Dictionary<string, string> Posts, Dictionary<string, string>? Intros, string? Clients, string? Makes = null);
+    /// <param name="Foods">The content repo's foods file (YAML). When present it replaces every food.</param>
+    public sealed record ManifestRequest(
+        Dictionary<string, string> Posts, Dictionary<string, string>? Intros, string? Clients, string? Makes = null, string? Foods = null);
 
     /// <param name="Markdown">The Post file, frontmatter and body.</param>
     /// <param name="Images">Each image the Markdown references relatively, by that path, as base64.</param>
@@ -54,7 +56,17 @@ public static class IngestEndpoints
                 }
                 makes = parsed.Makes;
             }
-            return Results.Ok(await service.StartAsync(request.Posts, intros, clients, makes, dryRun, includeDrafts, cancellationToken));
+            IReadOnlyList<Food>? foods = null;
+            if (request.Foods is not null)
+            {
+                var parsed = FoodsFile.Parse(request.Foods);
+                if (parsed.Errors.Count > 0)
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["foods"] = [.. parsed.Errors] });
+                }
+                foods = parsed.Foods;
+            }
+            return Results.Ok(await service.StartAsync(request.Posts, intros, clients, makes, foods, dryRun, includeDrafts, cancellationToken));
         });
 
         ingest.MapPut("/runs/{runId}/posts/{postId}", async (string runId, string postId, UploadRequest request, IngestService service, CancellationToken cancellationToken) =>

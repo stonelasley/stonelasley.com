@@ -17,11 +17,12 @@ public static class Ingest
         bool dryRun = false,
         bool includeDrafts = false,
         string? clients = null,
-        string? makes = null)
+        string? makes = null,
+        string? foods = null)
     {
         var response = await client.PostAsJsonAsync(
             $"/ingest/manifest?dryRun={dryRun}&includeDrafts={includeDrafts}",
-            new { posts = markdownById.ToDictionary(p => p.Key, p => TestPosts.Hash(p.Value)), clients, makes });
+            new { posts = markdownById.ToDictionary(p => p.Key, p => TestPosts.Hash(p.Value)), clients, makes, foods });
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<ManifestResponse>())!;
     }

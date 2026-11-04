@@ -26,10 +26,13 @@ public sealed record WatchSummary(string Make, string Reference, string ModelNam
 
 public sealed record WatchFacets(IReadOnlyList<string> Makes, IReadOnlyList<string> ModelNames, IReadOnlyList<int> Decades);
 
+// Macros: a Recipe's macros per serving, computed from the stored foods (ADR 0007). Null when an ingredient that counts
+// isn't declared, and outside Recipes.
 public sealed record PostDetail(
     string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<string> Tags, string Excerpt, string Body, Recipe? Recipe, Watch? Watch,
     bool AudiencePublic,
-    bool Draft);
+    bool Draft,
+    Macros? Macros = null);
 
 public sealed record AreaDetail(string Slug, string? Intro);
 
@@ -102,10 +105,15 @@ public sealed class PostReader(ID1Database database, TimeProvider clock, IOption
         }
 
         var row = rows[0];
+        var recipe = PostColumns.RecipeFromRow(row);
+        var macros = recipe is null
+            ? null
+            : recipe.MacrosPerServing(new Foods((await database.QueryAsync(PostColumns.SelectFoods, cancellationToken: cancellationToken)).Select(PostColumns.FoodFromRow)));
         return new PostDetail(
-            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), Text(row, "body"), PostColumns.RecipeFromRow(row), PostColumns.WatchFromRow(row),
+            Text(row, "id"), Text(row, "title"), Text(row, "slug"), Text(row, "area"), Text(row, "date"), Tags(row), Text(row, "excerpt"), Text(row, "body"), recipe, PostColumns.WatchFromRow(row),
             Text(row, "audience") == Audience.Public.Stored,
-            Text(row, "status") == PostColumns.DraftStatus);
+            Text(row, "status") == PostColumns.DraftStatus,
+            macros);
     }
 
     /// <summary>The Watches index filters: every make, model name and production decade in use.</summary>
