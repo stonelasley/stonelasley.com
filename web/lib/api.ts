@@ -46,6 +46,14 @@ const recipeSchema = z.object({
   ingredients: z.array(ingredientSchema),
 });
 
+// A Recipe's macros per serving, computed by the API from the content repo's foods (ADR 0007).
+const macrosSchema = z.object({
+  protein: z.number(),
+  carbs: z.number(),
+  fat: z.number(),
+  kcal: z.number(),
+});
+
 // The Watch typed core, metric-only, with feet and "in production" derived by the API.
 const watchSchema = z.object({
   make: z.string(),
@@ -66,6 +74,7 @@ const postSchema = postSummarySchema.omit({ watch: true, hero: true }).extend({
   audiencePublic: z.boolean().default(true), // false for a Private Post
   body: z.string(), // Markdown
   recipe: recipeSchema.nullable(),
+  macros: macrosSchema.nullable().default(null), // null when an ingredient isn't declared, and outside Recipes
   watch: watchSchema.nullable(),
 });
 
@@ -84,6 +93,7 @@ export type PostSummary = z.infer<typeof postSummarySchema>;
 export type Post = z.infer<typeof postSchema>;
 export type Recipe = z.infer<typeof recipeSchema>;
 export type Ingredient = z.infer<typeof ingredientSchema>;
+export type Macros = z.infer<typeof macrosSchema>;
 export type Watch = z.infer<typeof watchSchema>;
 export type WatchFacets = z.infer<typeof watchFacetsSchema>;
 

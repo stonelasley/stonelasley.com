@@ -25,6 +25,34 @@ public sealed record Recipe(
 
     public int? OvenTempF => OvenTempC is { } celsius ? ToFahrenheit(celsius) : null;
 
+    /// <summary>
+    /// Macros for one serving, to one decimal place (ADR 0007). Optional ingredients and ingredients without a
+    /// quantity count for nothing; null when any other ingredient's food or unit isn't declared, since a partial
+    /// total would read as a whole one.
+    /// </summary>
+    public Macros? MacrosPerServing(Foods foods)
+    {
+        var counted = Ingredients.Where(i => !i.Optional && i.Quantity is not null).ToList();
+        if (counted.Count == 0)
+        {
+            return null;
+        }
+        decimal protein = 0, carbs = 0, fat = 0;
+        foreach (var ingredient in counted)
+        {
+            if (foods.Weigh(ingredient) is not (var food, var grams))
+            {
+                return null;
+            }
+            protein += food.Protein * grams / 100;
+            carbs += food.Carbs * grams / 100;
+            fat += food.Fat * grams / 100;
+        }
+        return new Macros(PerServing(protein), PerServing(carbs), PerServing(fat));
+    }
+
+    private decimal PerServing(decimal grams) => Math.Round(grams / Servings, 1, MidpointRounding.AwayFromZero);
+
     /// <summary>Rounded to the nearest 5 °F, the step most oven dials use.</summary>
     public static int ToFahrenheit(int celsius) =>
         (int)(Math.Round((celsius * 9m / 5m + 32m) / 5m, MidpointRounding.AwayFromZero) * 5m);

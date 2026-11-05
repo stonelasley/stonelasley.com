@@ -114,6 +114,30 @@ public class RecipeTests
         post.Recipe.ShouldBeNull();
     }
 
+    // 80 g oats and 1 scoop (30 g) of whey, over 2 servings; the optional cinnamon counts for nothing.
+    private static readonly Foods Pantry = new(
+    [
+        new Food("rolled oats", [], 13m, 67m, 7m, new Dictionary<string, decimal>()),
+        new Food("whey", [], 80m, 10m, 5m, new Dictionary<string, decimal> { ["scoop"] = 30m }),
+    ]);
+
+    [Test]
+    public void Macros_per_serving_add_up_each_ingredient_by_weight()
+    {
+        var macros = Parse(ValidRecipe).Recipe!.MacrosPerServing(Pantry).ShouldNotBeNull();
+
+        macros.ShouldBe(new Macros(17.2m, 28.3m, 3.6m));
+        macros.Kcal.ShouldBe(214);
+    }
+
+    [Test]
+    public void A_recipe_with_an_undeclared_ingredient_has_no_macros() =>
+        Parse(ValidRecipe.Replace("name: whey", "name: casein")).Recipe!.MacrosPerServing(Pantry).ShouldBeNull();
+
+    [Test]
+    public void A_recipe_whose_ingredients_all_go_uncounted_has_no_macros() =>
+        Parse(ValidRecipe.Replace("quantity: 80, unit: g, ", "").Replace("quantity: 1, unit: scoop, ", "")).Recipe!.MacrosPerServing(Pantry).ShouldBeNull();
+
     private static Post Parse(string markdown)
     {
         var result = MarkdownPost.Parse(markdown);

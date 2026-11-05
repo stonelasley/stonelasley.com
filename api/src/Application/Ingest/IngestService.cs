@@ -26,6 +26,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
         IReadOnlyDictionary<ContentArea, string>? intros,
         IReadOnlyList<Client>? clients,
         IReadOnlyList<WatchMake>? makes,
+        IReadOnlyList<Food>? foods,
         bool dryRun,
         bool includeDrafts,
         CancellationToken cancellationToken)
@@ -58,7 +59,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
 
         var runId = Guid.CreateVersion7().ToString("N");
         await database.QueryAsync(
-            "INSERT INTO ingest_runs (id, hashes, requested, intros, clients, makes, dry_run, include_drafts) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO ingest_runs (id, hashes, requested, intros, clients, makes, foods, dry_run, include_drafts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 runId,
                 JsonSerializer.Serialize(hashes),
@@ -66,6 +67,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
                 intros is null ? null : JsonSerializer.Serialize(intros.ToDictionary(intro => intro.Key.Slug(), intro => intro.Value)),
                 clients is null ? null : JsonSerializer.Serialize(clients),
                 makes is null ? null : JsonSerializer.Serialize(makes),
+                foods is null ? null : JsonSerializer.Serialize(foods),
                 dryRun ? 1 : 0,
                 includeDrafts ? 1 : 0,
             ],
@@ -197,6 +199,9 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
             .Where(post => !keptIds.Contains(post.Key))
             .ToDictionary(post => post.Key, post => post.Value);
 
+        // Macros are computed on read (ADR 0007), so changed foods change Recipe pages without changing any Post.
+        var foodsChanged = run.Foods is not null && !run.DryRun && await FoodsChangedAsync(run.Foods, cancellationToken);
+
         List<D1Statement> statements = [];
         var previousChunks = new Dictionary<string, int>();
         var chunks = new List<PostChunks>();
@@ -302,6 +307,20 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
                     [run.Makes]));
             }
 
+            // Like makes: a manifest with a foods file replaces every food; one without leaves them alone.
+            if (run.Foods is not null)
+            {
+                statements.Add(new D1Statement("DELETE FROM foods", []));
+                statements.Add(new D1Statement(
+                    """
+                    INSERT INTO foods (name, aliases, protein, carbs, fat, units)
+                    SELECT json_extract(value, '$.Name'), json_extract(value, '$.Aliases'), json_extract(value, '$.Protein'),
+                           json_extract(value, '$.Carbs'), json_extract(value, '$.Fat'), json_extract(value, '$.Units')
+                    FROM json_each(?)
+                    """,
+                    [run.Foods]));
+            }
+
             // A manifest without intros leaves them as they are; one with intros replaces them all.
             if (run.Intros is not null)
             {
@@ -318,7 +337,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
             await vectors.ApplyAsync(previousChunks, chunks, cancellationToken);
         }
 
-        if (!run.DryRun && (upserted.Count > 0 || deleted.Count > 0 || run.Intros is not null))
+        if (!run.DryRun && (upserted.Count > 0 || deleted.Count > 0 || run.Intros is not null || foodsChanged))
         {
             await site.RevalidateAsync(cancellationToken);
         }
@@ -398,10 +417,16 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
             : (await database.QueryAsync("SELECT name, aliases FROM watch_makes", cancellationToken: cancellationToken))
                 .Select(row => new WatchMake(Text(row, "name"), JsonSerializer.Deserialize<List<string>>(Text(row, "aliases"))!)));
 
+    private async Task<bool> FoodsChangedAsync(string foods, CancellationToken cancellationToken)
+    {
+        var stored = (await database.QueryAsync(PostColumns.SelectFoods, cancellationToken: cancellationToken)).Select(PostColumns.FoodFromRow);
+        return !JsonSerializer.Deserialize<List<Food>>(foods)!.ToHashSet().SetEquals(stored);
+    }
+
     private async Task<(Run? Run, IngestOutcome? Refusal)> OpenRunAsync(string runId, CancellationToken cancellationToken)
     {
         var rows = await database.QueryAsync(
-            "SELECT hashes, requested, intros, clients, makes, dry_run, include_drafts, committed_at FROM ingest_runs WHERE id = ?",
+            "SELECT hashes, requested, intros, clients, makes, foods, dry_run, include_drafts, committed_at FROM ingest_runs WHERE id = ?",
             [runId],
             cancellationToken);
         if (rows.Count == 0)
@@ -421,6 +446,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
             row.GetProperty("intros").GetString(),
             row.GetProperty("clients").GetString(),
             row.GetProperty("makes").GetString(),
+            row.GetProperty("foods").GetString(),
             row.GetProperty("dry_run").GetInt32() == 1,
             row.GetProperty("include_drafts").GetInt32() == 1);
         return (run, null);
@@ -442,7 +468,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
     private static string Text(JsonElement row, string column) => row.GetProperty(column).GetString()!;
 
     private sealed record Run(
-        IReadOnlyDictionary<string, string> Hashes, IReadOnlySet<string> Requested, string? Intros, string? Clients, string? Makes, bool DryRun, bool IncludeDrafts);
+        IReadOnlyDictionary<string, string> Hashes, IReadOnlySet<string> Requested, string? Intros, string? Clients, string? Makes, string? Foods, bool DryRun, bool IncludeDrafts);
 
     private sealed record StoredAddress(PostAddress Address, string Status);
 }
