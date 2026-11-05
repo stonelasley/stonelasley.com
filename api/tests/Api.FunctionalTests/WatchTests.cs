@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 
 namespace StoneLasley.Api.FunctionalTests;
@@ -86,5 +87,75 @@ public class WatchTests
         facets.Makes.ShouldBe(["Patek Philippe", "Rolex"]);
         facets.ModelNames.ShouldBe(["Nautilus", "Submariner Date"]);
         facets.Decades.ShouldBe(Enumerable.Range(198, (DateTime.UtcNow.Year / 10) - 198 + 1).Select(d => d * 10));
+    }
+
+    // Other tests' Watches name Rolex and Patek Philippe, so every makes file here keeps them.
+    private const string Makes = """
+        - name: Rolex
+        - name: Patek Philippe
+        - name: TAG Heuer
+          aliases: [TAG-Heuer]
+        """;
+
+    [TestCase("TAG Heuer")]
+    [TestCase("tag heuer")]
+    [TestCase("TAG-Heuer")]
+    public async Task A_make_is_stored_under_the_name_the_makes_file_gives_it(string written)
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var id = TestPosts.NewUlid();
+        var slug = TestPosts.NewSlug("watch");
+        var markdown = TestPosts.Markdown(id, slug, area: "watches", extra: TestPosts.WatchCore(make: written));
+
+        var manifest = await Ingest.ManifestAsync(client, Ingest.ById(markdown), makes: Makes);
+        (await Ingest.UploadAsync(client, manifest.RunId, id, markdown)).EnsureSuccessStatusCode();
+        (await Ingest.CommitAsync(client, manifest.RunId)).EnsureSuccessStatusCode();
+
+        var post = await client.GetFromJsonAsync<WatchPostResponse>($"/areas/watches/posts/{slug}");
+        post.ShouldNotBeNull().Watch.ShouldNotBeNull().Make.ShouldBe("TAG Heuer");
+    }
+
+    [Test]
+    public async Task A_make_the_makes_file_does_not_declare_is_rejected()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var id = TestPosts.NewUlid();
+        var markdown = TestPosts.Markdown(id, TestPosts.NewSlug("watch"), area: "watches", extra: TestPosts.WatchCore(make: "Acme"));
+
+        var manifest = await Ingest.ManifestAsync(client, Ingest.ById(markdown), dryRun: true, makes: Makes);
+        var upload = await Ingest.UploadAsync(client, manifest.RunId, id, markdown);
+
+        upload.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await upload.Content.ReadAsStringAsync()).ShouldContain("'make' Acme is not a declared make.");
+    }
+
+    [Test]
+    public async Task Without_a_makes_file_the_stored_makes_apply()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var id = TestPosts.NewUlid();
+        var markdown = TestPosts.Markdown(id, TestPosts.NewSlug("watch"), area: "watches", extra: TestPosts.WatchCore(make: "Acme"));
+
+        var manifest = await Ingest.ManifestAsync(client, Ingest.ById(markdown), dryRun: true);
+
+        (await Ingest.UploadAsync(client, manifest.RunId, id, markdown)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task An_invalid_makes_file_fails_the_manifest()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var markdown = TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("watch"), area: "watches", extra: TestPosts.WatchCore());
+
+        var response = await client.PostAsJsonAsync(
+            "/ingest/manifest?dryRun=true",
+            new { posts = Ingest.ById(markdown).ToDictionary(p => p.Key, p => TestPosts.Hash(p.Value)), makes = "- name: Rolex\n- name: rolex" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).ShouldContain("declared more than once");
     }
 }

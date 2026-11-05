@@ -9,8 +9,8 @@ namespace StoneLasley.Cli;
 /// <summary>
 /// Sends every Markdown Post under a directory through the API's manifest → upload → commit protocol.
 /// The API parses and validates; this only finds each Post's id and hashes its file.
-/// <c>_areas/{area}.md</c> holds a Content Area's intro and <c>_clients.yaml</c> the Clients; nothing under a
-/// <c>_</c> folder is a Post.
+/// <c>_areas/{area}.md</c> holds a Content Area's intro, <c>_clients.yaml</c> the Clients and <c>_makes.yaml</c> the
+/// watch makes; nothing under a <c>_</c> folder is a Post.
 /// </summary>
 internal static partial class IngestCommand
 {
@@ -55,12 +55,16 @@ internal static partial class IngestCommand
         var clientsFile = Path.Combine(directory, "_clients.yaml");
         var clients = File.Exists(clientsFile) ? await File.ReadAllTextAsync(clientsFile) : null;
 
+        // The watch makes, and their aliases, a Watch Post may name in 'make'.
+        var makesFile = Path.Combine(directory, "_makes.yaml");
+        var makes = File.Exists(makesFile) ? await File.ReadAllTextAsync(makesFile) : null;
+
         using var client = new HttpClient { BaseAddress = apiUrl };
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var manifestResponse = await client.PostAsJsonAsync(
             $"ingest/manifest?dryRun={dryRun}&includeDrafts={includeDrafts}",
-            new { posts = posts.ToDictionary(p => p.Key, p => Hash(p.Value, ImagesOf(directory, postFiles[p.Key], p.Value))), intros, clients });
+            new { posts = posts.ToDictionary(p => p.Key, p => Hash(p.Value, ImagesOf(directory, postFiles[p.Key], p.Value))), intros, clients, makes });
         if (!await SucceededAsync(manifestResponse, "manifest"))
         {
             return 1;

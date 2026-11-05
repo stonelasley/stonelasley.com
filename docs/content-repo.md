@@ -10,17 +10,20 @@ Posts live in the private `stonelasley/content` repo (ADR 0002). This public rep
 | next to a Post                                 | its images, referenced relatively (`![Hero](./hero.jpg)`)          |
 | `_areas/<area>.md`                             | a Content Area's intro                                             |
 | `_clients.yaml`                                | Clients: `[{ id: <ULID>, name: <display name> }]`                  |
+| `_makes.yaml`                                  | Makes: `[{ name: <as written>, aliases: [<other spellings>] }]`    |
 
 Nothing under a `_` folder is a Post.
+
+A Watch Post's `make` must match a make's name or one of its aliases, ignoring case, and is stored under the name (ADR 0006). To add a make, add it to `_makes.yaml` in the same PR as the first Post that names it. Renaming a make doesn't rewrite Posts already stored: keep the old name as an alias, and change the `make` in those Posts so ingest picks them up again.
 
 ## Publishing
 
 The content repo's `.github/workflows/ingest.yml` checks out this repo at `master` and runs `sl ingest` (`api/src/Cli`):
 
-| Event           | Production                                                                                                  | Preview            |
-| --------------- | ----------------------------------------------------------------------------------------------------------- | ------------------ |
-| PR push         | `--dry-run`: fails on bad frontmatter, an unknown Client ULID, a broken image reference or a duplicate slug | `--include-drafts` |
-| merge to `main` | ingest without Drafts                                                                                       | `--include-drafts` |
+| Event           | Production                                                                                                          | Preview            |
+| --------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| PR push         | `--dry-run`: fails on bad frontmatter, an unknown Client ULID or make, a broken image reference or a duplicate slug | `--include-drafts` |
+| merge to `main` | ingest without Drafts                                                                                               | `--include-drafts` |
 
 - Each ingest is a full set: Posts missing from it are deleted. `sl ingest` refuses an empty directory for that reason.
 - The API revalidates the site after a commit that changed anything, so revalidation follows only a successful ingest.

@@ -15,7 +15,7 @@ internal static class PostColumns
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
-        Converters = { new WatchMakeJsonConverter(), new JsonStringEnumConverter() },
+        Converters = { new JsonStringEnumConverter() },
     };
 
     public static string? RecipeJson(Recipe? recipe) => recipe is null ? null : JsonSerializer.Serialize(recipe, Json);

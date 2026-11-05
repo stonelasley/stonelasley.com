@@ -25,6 +25,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
         IReadOnlyDictionary<string, string> hashes,
         IReadOnlyDictionary<ContentArea, string>? intros,
         IReadOnlyList<Client>? clients,
+        IReadOnlyList<WatchMake>? makes,
         bool dryRun,
         bool includeDrafts,
         CancellationToken cancellationToken)
@@ -57,13 +58,14 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
 
         var runId = Guid.CreateVersion7().ToString("N");
         await database.QueryAsync(
-            "INSERT INTO ingest_runs (id, hashes, requested, intros, clients, dry_run, include_drafts) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO ingest_runs (id, hashes, requested, intros, clients, makes, dry_run, include_drafts) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 runId,
                 JsonSerializer.Serialize(hashes),
                 JsonSerializer.Serialize(requested),
                 intros is null ? null : JsonSerializer.Serialize(intros.ToDictionary(intro => intro.Key.Slug(), intro => intro.Value)),
                 clients is null ? null : JsonSerializer.Serialize(clients),
+                makes is null ? null : JsonSerializer.Serialize(makes),
                 dryRun ? 1 : 0,
                 includeDrafts ? 1 : 0,
             ],
@@ -98,6 +100,15 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
         if (post.Audience.ClientId is { } clientId && !(await ClientIdsAsync(run, cancellationToken)).Contains(clientId))
         {
             return new IngestOutcome.Invalid([$"'audience' {clientId} is not a declared Client."]);
+        }
+
+        if (post.Watch is { } watch)
+        {
+            if ((await MakesAsync(run, cancellationToken)).Resolve(watch.Make) is not { } make)
+            {
+                return new IngestOutcome.Invalid([$"'make' {watch.Make} is not a declared make. Add it, or an alias for it, to _makes.yaml."]);
+            }
+            post = post with { Watch = watch with { Make = make } };
         }
 
         var stored = await StoreImagesAsync(post.Body, uploadedImages, cancellationToken);
@@ -282,6 +293,15 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
                     [run.Clients]));
             }
 
+            // Like Clients: a manifest with a makes file replaces every make; one without leaves them alone.
+            if (run.Makes is not null)
+            {
+                statements.Add(new D1Statement("DELETE FROM watch_makes", []));
+                statements.Add(new D1Statement(
+                    "INSERT INTO watch_makes (name, aliases) SELECT json_extract(value, '$.Name'), json_extract(value, '$.Aliases') FROM json_each(?)",
+                    [run.Makes]));
+            }
+
             // A manifest without intros leaves them as they are; one with intros replaces them all.
             if (run.Intros is not null)
             {
@@ -371,10 +391,17 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
             ? [.. JsonSerializer.Deserialize<List<Client>>(run.Clients)!.Select(client => client.Id)]
             : [.. (await database.QueryAsync("SELECT id FROM clients", cancellationToken: cancellationToken)).Select(row => Text(row, "id"))];
 
+    // The makes a Watch Post may name: the run's makes file if it sent one, otherwise the stored makes.
+    private async Task<WatchMakes> MakesAsync(Run run, CancellationToken cancellationToken) =>
+        new(run.Makes is not null
+            ? JsonSerializer.Deserialize<List<WatchMake>>(run.Makes)!
+            : (await database.QueryAsync("SELECT name, aliases FROM watch_makes", cancellationToken: cancellationToken))
+                .Select(row => new WatchMake(Text(row, "name"), JsonSerializer.Deserialize<List<string>>(Text(row, "aliases"))!)));
+
     private async Task<(Run? Run, IngestOutcome? Refusal)> OpenRunAsync(string runId, CancellationToken cancellationToken)
     {
         var rows = await database.QueryAsync(
-            "SELECT hashes, requested, intros, clients, dry_run, include_drafts, committed_at FROM ingest_runs WHERE id = ?",
+            "SELECT hashes, requested, intros, clients, makes, dry_run, include_drafts, committed_at FROM ingest_runs WHERE id = ?",
             [runId],
             cancellationToken);
         if (rows.Count == 0)
@@ -393,6 +420,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
             JsonSerializer.Deserialize<List<string>>(Text(row, "requested"))!.ToHashSet(),
             row.GetProperty("intros").GetString(),
             row.GetProperty("clients").GetString(),
+            row.GetProperty("makes").GetString(),
             row.GetProperty("dry_run").GetInt32() == 1,
             row.GetProperty("include_drafts").GetInt32() == 1);
         return (run, null);
@@ -414,7 +442,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
     private static string Text(JsonElement row, string column) => row.GetProperty(column).GetString()!;
 
     private sealed record Run(
-        IReadOnlyDictionary<string, string> Hashes, IReadOnlySet<string> Requested, string? Intros, string? Clients, bool DryRun, bool IncludeDrafts);
+        IReadOnlyDictionary<string, string> Hashes, IReadOnlySet<string> Requested, string? Intros, string? Clients, string? Makes, bool DryRun, bool IncludeDrafts);
 
     private sealed record StoredAddress(PostAddress Address, string Status);
 }
