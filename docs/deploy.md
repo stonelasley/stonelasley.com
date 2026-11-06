@@ -21,16 +21,16 @@ The smoke suite (`e2e/smoke/`) reads whatever content the environment serves, so
 
 GitHub Actions secrets are the only source. The workflow pushes them into Container Apps secrets and `wrangler secret`; there's no Key Vault.
 
-| Secret                                                        | Used by                                                                                                                                                                                             |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CLOUDFLARE_API_TOKEN` (+ variable `CLOUDFLARE_ACCOUNT_ID`)   | D1 migrations, Worker deploy                                                                                                                                                                        |
-| `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | OIDC login as `gh-stonelasley-com` (Contributor on `rg-stonelasley`). Federated subjects: `pull_request` and `ref:refs/heads/master`. A job `environment:` would change the subject and break login |
-| `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`          | `vercel pull/build/deploy`, reading the automation bypass secret                                                                                                                                    |
-| `PREVIEW_WORKER_SECRET`                                       | API → Worker bearer secret                                                                                                                                                                          |
-| `PREVIEW_INGEST_TOKEN`                                        | content CI → API ingest                                                                                                                                                                             |
-| `PREVIEW_REVALIDATE_SECRET`                                   | API → site `/api/revalidate`                                                                                                                                                                        |
-| `PREVIEW_ADMIN_TOKEN`, `PREVIEW_ACCESS_SESSION_KEY`           | admin endpoints; signing Client sessions                                                                                                                                                            |
-| `PRODUCTION_*`                                                | the same five for production                                                                                                                                                                        |
+| Secret                                                        | Used by                                                                                                                                                                                                   |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN` (+ variable `CLOUDFLARE_ACCOUNT_ID`)   | D1 migrations, Worker deploy                                                                                                                                                                              |
+| `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | OIDC login as `gh-stonelasley-com` (Contributor on `rg-proof-of-concepts`). Federated subjects: `pull_request` and `ref:refs/heads/master`. A job `environment:` would change the subject and break login |
+| `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`          | `vercel pull/build/deploy`, reading the automation bypass secret                                                                                                                                          |
+| `PREVIEW_WORKER_SECRET`                                       | API → Worker bearer secret                                                                                                                                                                                |
+| `PREVIEW_INGEST_TOKEN`                                        | content CI → API ingest                                                                                                                                                                                   |
+| `PREVIEW_REVALIDATE_SECRET`                                   | API → site `/api/revalidate`                                                                                                                                                                              |
+| `PREVIEW_ADMIN_TOKEN`, `PREVIEW_ACCESS_SESSION_KEY`           | admin endpoints; signing Client sessions                                                                                                                                                                  |
+| `PRODUCTION_*`                                                | the same five for production                                                                                                                                                                              |
 
 Rotate a secret by setting a new value (`gh secret set NAME`) and re-running the deploy.
 
@@ -88,7 +88,7 @@ Measured 2026-10-24 on preview (0.25 vCPU / 0.5 GiB, West US 3). The app had sca
 Production stays off until each of these is done, in order. Until then, merges to `master` deploy nothing, and the v1 site keeps serving `stonelasley.com`.
 
 1. **Cloudflare.** Check D1 `stonelasley-prod` and Vectorize `posts-v1-prod` exist (both are named in `worker/wrangler.jsonc`). Create the R2 bucket `stonelasley-images-prod` and connect `img.stonelasley.com` to it.
-2. **Azure.** Check the Container Apps environment `cae-stonelasley-prod` exists in `rg-stonelasley` (subscription StoneSubscription). The first production deploy creates `ca-stonelasley-api-prod` in it.
+2. **Azure.** Check the Container Apps environment `cae-stonelasley-prod` exists in `rg-proof-of-concepts` (subscription StoneSubscription). The first production deploy creates `ca-stonelasley-api-prod` in it.
 3. **Secrets.** Set the five `PRODUCTION_*` secrets with `gh secret set`.
 4. **API and Worker.** Set the variable `PRODUCTION_ENABLED=true`, then run the workflow by hand for `production` on `master`. Without `PRODUCTION_SITE_ENABLED` it stops after the API is healthy, so `stonelasley.com` doesn't change.
 5. **API domain.** Bind `api.stonelasley.com` to `ca-stonelasley-api-prod` (`az containerapp hostname add` and `bind`), then set `PRODUCTION_API_URL=https://api.stonelasley.com`.
