@@ -9,17 +9,13 @@ public sealed record MacrosPostResponse(string Id, MacrosResponse? Macros);
 
 public class FoodTests
 {
-    // TestPosts.RecipeCore: half a cup (40 g) of oats over 4 servings, and an optional pinch of salt.
-    private static string Foods(decimal protein) => $"""
-        - name: oats
-          protein: {protein}
-          carbs: 60
-          fat: 8
-          units:
-            cup: 80
+    // 40 g of oats over 4 servings, and an optional pinch of salt.
+    private static string Foods(decimal protein) => $$"""
+        { "oats": { "per100g": { "kcal": 350, "protein": {{protein}}, "carbs": 60, "fat": 8 }, "source": "test label" } }
         """;
 
-    private static string Recipe(string slug) => TestPosts.Markdown(TestPosts.NewUlid(), slug, area: "recipes", extra: TestPosts.RecipeCore);
+    private static string Recipe(string slug) => TestPosts.Markdown(
+        TestPosts.NewUlid(), slug, area: "recipes", extra: TestPosts.RecipeCore.Replace("quantity: 0.5, unit: cup", "quantity: 40, unit: g", StringComparison.Ordinal));
 
     private static async Task<string> IngestRecipeAsync(HttpClient client, string? foods) =>
         await IngestAsync(client, Recipe(TestPosts.NewSlug("recipe")), foods);
@@ -86,7 +82,7 @@ public class FoodTests
     {
         await using var api = new ApiFactory();
         using var client = api.CreateIngestClient();
-        var slug = await IngestRecipeAsync(client, "- name: rice\n  protein: 7\n  carbs: 80\n  fat: 1");
+        var slug = await IngestRecipeAsync(client, """{ "rice": { "per100g": { "kcal": 360, "protein": 7, "carbs": 80, "fat": 1 }, "source": "test label" } }""");
 
         var post = await client.GetFromJsonAsync<MacrosPostResponse>($"/areas/recipes/posts/{slug}");
 
@@ -101,9 +97,9 @@ public class FoodTests
 
         var response = await client.PostAsJsonAsync(
             "/ingest/manifest?dryRun=true",
-            new { posts = new Dictionary<string, string>(), foods = "- name: oats\n  protein: 1" });
+            new { posts = new Dictionary<string, string>(), foods = """{ "oats": { "per100g": { "protein": 1 }, "source": "test label" } }""" });
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        (await response.Content.ReadAsStringAsync()).ShouldContain("'protein', 'carbs' and 'fat' are required");
+        (await response.Content.ReadAsStringAsync()).ShouldContain("'per100g' needs 'kcal', 'protein', 'carbs' and 'fat'");
     }
 }

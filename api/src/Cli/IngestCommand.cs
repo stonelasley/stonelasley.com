@@ -10,7 +10,7 @@ namespace StoneLasley.Cli;
 /// Sends every Markdown Post under a directory through the API's manifest → upload → commit protocol.
 /// The API parses and validates; this only finds each Post's id and hashes its file.
 /// <c>_areas/{area}.md</c> holds a Content Area's intro, <c>_clients.yaml</c> the Clients, <c>_makes.yaml</c> the
-/// watch makes and <c>_foods.yaml</c> the foods; nothing under a <c>_</c> folder is a Post.
+/// watch makes and <c>_foods.json</c> the foods; nothing under a <c>_</c> folder is a Post.
 /// </summary>
 internal static partial class IngestCommand
 {
@@ -60,7 +60,7 @@ internal static partial class IngestCommand
         var makes = File.Exists(makesFile) ? await File.ReadAllTextAsync(makesFile) : null;
 
         // The foods Recipe ingredients name, for macros per serving.
-        var foodsFile = Path.Combine(directory, "_foods.yaml");
+        var foodsFile = Path.Combine(directory, "_foods.json");
         var foods = File.Exists(foodsFile) ? await File.ReadAllTextAsync(foodsFile) : null;
 
         using var client = new HttpClient { BaseAddress = apiUrl };

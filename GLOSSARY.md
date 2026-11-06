@@ -20,7 +20,7 @@ _Avoid_: Unpublished post, WIP
 A Post in the Recipes area that also carries structured cooking details such as times, servings, and ingredients.
 
 **Food**:
-Something a Recipe's ingredients name, declared in the content repo's foods file with its protein, carbs and fat per 100 g and the weight of each unit it's measured in. A Recipe's macros per serving are computed from its foods when it is read.
+Something a Recipe's ingredients name, declared in the content repo's foods file with its calories, protein, carbs and fat per 100 g, the source of those numbers, and the weight of one when it's counted by `each`. A Recipe's macros per serving are computed from its foods when it is read.
 _Avoid_: Ingredient (when meaning the declared food, not one line of a Recipe)
 
 **Watch**:

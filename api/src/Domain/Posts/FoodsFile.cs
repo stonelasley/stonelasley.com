@@ -1,35 +1,18 @@
-using YamlDotNet.Core;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
+using System.Text.Json;
 
 namespace StoneLasley.Domain.Posts;
 
 /// <summary>
-/// A food Recipe ingredients may name: its macros in grams per 100 g, and the gram weight of each unit other than
-/// <c>g</c> and <c>kg</c> that a Recipe measures it in.
+/// A food Recipe ingredients may name: its calories and macros per 100 g, and the gram weight of one of it when a
+/// Recipe counts it by <c>each</c>.
 /// </summary>
-public sealed record Food(string Name, IReadOnlyList<string> Aliases, decimal Protein, decimal Carbs, decimal Fat, IReadOnlyDictionary<string, decimal> Units)
-{
-    // Equality compares aliases and units by value, not by reference.
-    public bool Equals(Food? other) =>
-        other is not null
-        && (Name, Protein, Carbs, Fat) == (other.Name, other.Protein, other.Carbs, other.Fat)
-        && Aliases.SequenceEqual(other.Aliases)
-        && Units.Count == other.Units.Count
-        && Units.All(unit => other.Units.TryGetValue(unit.Key, out var grams) && grams == unit.Value);
+public sealed record Food(string Name, decimal Kcal, decimal Protein, decimal Carbs, decimal Fat, decimal? Each);
 
-    public override int GetHashCode() => Name.GetHashCode(StringComparison.Ordinal);
-}
-
-/// <summary>Protein, carbs and fat in grams, and calories derived from them at 4, 4 and 9 per gram.</summary>
-public sealed record Macros(decimal Protein, decimal Carbs, decimal Fat)
-{
-    public int Kcal => (int)Math.Round(Protein * 4 + Carbs * 4 + Fat * 9, MidpointRounding.AwayFromZero);
-}
+/// <summary>Calories, and protein, carbs and fat in grams.</summary>
+public sealed record Macros(decimal Protein, decimal Carbs, decimal Fat, int Kcal);
 
 /// <summary>
-/// The foods declared in the content repo's foods file (ADR 0007). An ingredient matches a food's name or an alias,
-/// ignoring case.
+/// The foods declared in the content repo's foods file (ADR 0007). An ingredient matches a food's name, ignoring case.
 /// </summary>
 public sealed class Foods
 {
@@ -50,16 +33,13 @@ public sealed class Foods
     {
         foreach (var food in declared)
         {
-            foreach (var written in food.Aliases.Prepend(food.Name))
-            {
-                foods.TryAdd(written, food);
-            }
+            foods.TryAdd(food.Name, food);
         }
     }
 
     /// <summary>
-    /// The ingredient's food and its weight in grams: grams and kilograms always convert, any other unit by the
-    /// food's units, and no unit by its <c>each</c>. Null when the food or unit isn't declared, or the ingredient has
+    /// The ingredient's food and its weight in grams: grams and kilograms always convert, and <c>each</c> or no unit
+    /// by the food's <c>each</c>. Null when the food isn't declared, the unit doesn't convert, or the ingredient has
     /// no quantity.
     /// </summary>
     public (Food Food, decimal Grams)? Weigh(Ingredient ingredient)
@@ -69,96 +49,86 @@ public sealed class Foods
             return null;
         }
         var unit = ingredient.Unit?.Trim().ToLowerInvariant() ?? "each";
-        return MetricUnits.TryGetValue(unit, out var perUnit) || food.Units.TryGetValue(unit, out perUnit)
-            ? (food, quantity * perUnit)
-            : null;
+        decimal? perUnit = unit == "each" ? food.Each : MetricUnits.TryGetValue(unit, out var grams) ? grams : null;
+        return perUnit is { } weight ? (food, quantity * weight) : null;
     }
 }
 
 public sealed record FoodsFileResult(IReadOnlyList<Food> Foods, IReadOnlyList<string> Errors);
 
-/// <summary>Reads the content repo's foods file: a YAML list of <c>{ name, aliases, protein, carbs, fat, units }</c>.</summary>
+/// <summary>
+/// Reads the content repo's foods file, the recipe skill's sourced nutrition table: a JSON object from each food's
+/// name to <c>{ per100g: { kcal, protein, carbs, fat, … }, source, each? }</c>. Other fields are the skill's own.
+/// </summary>
 public static class FoodsFile
 {
-    private static readonly IDeserializer Yaml = new DeserializerBuilder()
-        .WithNamingConvention(CamelCaseNamingConvention.Instance)
-        .IgnoreUnmatchedProperties()
-        .Build();
-
-    public static FoodsFileResult Parse(string yaml)
+    public static FoodsFileResult Parse(string json)
     {
-        List<Entry?>? entries;
+        JsonDocument document;
         try
         {
-            entries = Yaml.Deserialize<List<Entry?>>(yaml);
+            document = JsonDocument.Parse(json);
         }
-        catch (YamlException exception)
+        catch (JsonException exception)
         {
-            return new FoodsFileResult([], [$"The foods file is not valid YAML: {exception.Message}"]);
+            return new FoodsFileResult([], [$"The foods file is not valid JSON: {exception.Message}"]);
         }
 
-        var foods = new List<Food>();
-        var errors = new List<string>();
-        // Names and aliases share one namespace, so an ingredient can only ever mean one food.
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (entry, index) in (entries ?? []).Select((e, i) => (e ?? new Entry(), i + 1)))
+        using (document)
         {
-            var name = entry.Name?.Trim();
-            if (string.IsNullOrEmpty(name))
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
             {
-                errors.Add($"Food {index}: 'name' is required.");
-                continue;
+                return new FoodsFileResult([], ["The foods file must be a JSON object from each food's name to its entry."]);
             }
-            var count = errors.Count;
-            var aliases = (entry.Aliases ?? []).Select(alias => alias?.Trim() ?? "").ToList();
-            if (aliases.Any(alias => alias.Length == 0))
-            {
-                errors.Add($"Food {name}: aliases must not be empty.");
-            }
-            if (entry.Protein is not >= 0 || entry.Carbs is not >= 0 || entry.Fat is not >= 0)
-            {
-                errors.Add($"Food {name}: 'protein', 'carbs' and 'fat' are required, in grams per 100 g, 0 or more.");
-            }
-            else if (entry.Protein + entry.Carbs + entry.Fat > 100)
-            {
-                errors.Add($"Food {name}: protein, carbs and fat add up to more than 100 g per 100 g.");
-            }
-            var units = new Dictionary<string, decimal>();
-            foreach (var (unit, grams) in entry.Units ?? [])
-            {
-                var key = unit.Trim().ToLowerInvariant();
-                if (key.Length == 0 || Foods.MetricUnits.ContainsKey(key))
-                {
-                    errors.Add($"Food {name}: unit '{unit}' can't be declared; grams and kilograms always convert.");
-                }
-                else if (grams is not > 0)
-                {
-                    errors.Add($"Food {name}: unit '{key}' must weigh more than 0 g.");
-                }
-                else if (!units.TryAdd(key, grams.Value))
-                {
-                    errors.Add($"Food {name}: unit '{key}' is declared more than once.");
-                }
-            }
-            foreach (var written in aliases.Prepend(name).Where(written => written.Length > 0 && !seen.Add(written)))
-            {
-                errors.Add($"'{written}' is declared more than once.");
-            }
-            if (errors.Count == count)
-            {
-                foods.Add(new Food(name, aliases, entry.Protein!.Value, entry.Carbs!.Value, entry.Fat!.Value, units));
-            }
-        }
-        return new FoodsFileResult(errors.Count == 0 ? foods : [], errors);
-    }
 
-    private sealed class Entry
-    {
-        public string? Name { get; set; }
-        public List<string?>? Aliases { get; set; }
-        public decimal? Protein { get; set; }
-        public decimal? Carbs { get; set; }
-        public decimal? Fat { get; set; }
-        public Dictionary<string, decimal?>? Units { get; set; }
+            var foods = new List<Food>();
+            var errors = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var property in document.RootElement.EnumerateObject())
+            {
+                var name = property.Name.Trim();
+                if (name.Length == 0)
+                {
+                    errors.Add("A food's name must not be empty.");
+                    continue;
+                }
+                if (!seen.Add(name))
+                {
+                    errors.Add($"'{name}' is declared more than once.");
+                    continue;
+                }
+                var count = errors.Count;
+                var entry = property.Value;
+                var per100g = entry.ValueKind == JsonValueKind.Object && entry.TryGetProperty("per100g", out var p) && p.ValueKind == JsonValueKind.Object ? p : default;
+                decimal? Amount(JsonElement element, string field) =>
+                    element.ValueKind == JsonValueKind.Object && element.TryGetProperty(field, out var value) && value.ValueKind == JsonValueKind.Number
+                        ? value.GetDecimal()
+                        : null;
+                var (kcal, protein, carbs, fat) = (Amount(per100g, "kcal"), Amount(per100g, "protein"), Amount(per100g, "carbs"), Amount(per100g, "fat"));
+                if (kcal is not >= 0 || protein is not >= 0 || carbs is not >= 0 || fat is not >= 0)
+                {
+                    errors.Add($"Food {name}: 'per100g' needs 'kcal', 'protein', 'carbs' and 'fat', each 0 or more.");
+                }
+                else if (protein + carbs + fat > 100)
+                {
+                    errors.Add($"Food {name}: protein, carbs and fat add up to more than 100 g per 100 g.");
+                }
+                // Every number traces to USDA or a label, never to memory.
+                if (entry.ValueKind != JsonValueKind.Object || !entry.TryGetProperty("source", out var source) || source.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(source.GetString()))
+                {
+                    errors.Add($"Food {name}: 'source' is required: the USDA entry or label the numbers come from.");
+                }
+                var each = Amount(entry, "each");
+                if (entry.ValueKind == JsonValueKind.Object && entry.TryGetProperty("each", out _) && each is not > 0)
+                {
+                    errors.Add($"Food {name}: 'each' must weigh more than 0 g.");
+                }
+                if (errors.Count == count)
+                {
+                    foods.Add(new Food(name, kcal!.Value, protein!.Value, carbs!.Value, fat!.Value, each));
+                }
+            }
+            return new FoodsFileResult(errors.Count == 0 ? foods : [], errors);
+        }
     }
 }

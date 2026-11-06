@@ -27,7 +27,7 @@ public sealed record Recipe(
 
     /// <summary>
     /// Macros for one serving, to one decimal place (ADR 0007). Optional ingredients and ingredients without a
-    /// quantity count for nothing; null when any other ingredient's food or unit isn't declared, since a partial
+    /// quantity count for nothing; null when any other ingredient's food isn't declared or its unit doesn't convert, since a partial
     /// total would read as a whole one.
     /// </summary>
     public Macros? MacrosPerServing(Foods foods)
@@ -37,18 +37,19 @@ public sealed record Recipe(
         {
             return null;
         }
-        decimal protein = 0, carbs = 0, fat = 0;
+        decimal kcal = 0, protein = 0, carbs = 0, fat = 0;
         foreach (var ingredient in counted)
         {
             if (foods.Weigh(ingredient) is not (var food, var grams))
             {
                 return null;
             }
+            kcal += food.Kcal * grams / 100;
             protein += food.Protein * grams / 100;
             carbs += food.Carbs * grams / 100;
             fat += food.Fat * grams / 100;
         }
-        return new Macros(PerServing(protein), PerServing(carbs), PerServing(fat));
+        return new Macros(PerServing(protein), PerServing(carbs), PerServing(fat), (int)Math.Round(kcal / Servings, MidpointRounding.AwayFromZero));
     }
 
     private decimal PerServing(decimal grams) => Math.Round(grams / Servings, 1, MidpointRounding.AwayFromZero);

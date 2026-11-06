@@ -14,8 +14,8 @@ difficulty: Easy
 ovenTempC: 200
 ingredients:
   - { quantity: 80, unit: g, name: rolled oats }
-  - { quantity: 0.5, unit: cup, name: water }
-  - { quantity: 1, unit: scoop, name: whey protein, note: vanilla }
+  - { quantity: 120, unit: g, name: water }
+  - { quantity: 1, unit: each, name: whey protein, note: vanilla }
   - { name: cinnamon, optional: true }
 ---
 

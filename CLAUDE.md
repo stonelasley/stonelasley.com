@@ -69,7 +69,7 @@ status: published # or draft
 - Parsing and validation live in `api/src/Domain/Posts/MarkdownPost.cs`.
 - Ingest is manifest → upload → commit (see `api/README.md`). `sl ingest <dir>` drives it.
 - `npm run build` runs `web/scripts/warm-api.mjs` first: it waits for `API_URL/health` with retries and a per-attempt timeout, and fails the build if the API never answers.
-- Fixture Posts for E2E live in `e2e/fixtures/content/`. Made-up content only: this repo is public. Clients are declared in the content repo's `_clients.yaml` (ULID and display name); the fixture one uses made-up names. Watch makes are declared in its `_makes.yaml` (name and aliases, ADR 0006); the fixture one lists only the makes the fixtures use. Foods are declared in its `_foods.yaml` (macros per 100 g and unit weights, ADR 0007); the API computes a Recipe's macros per serving on read.
+- Fixture Posts for E2E live in `e2e/fixtures/content/`. Made-up content only: this repo is public. Clients are declared in the content repo's `_clients.yaml` (ULID and display name); the fixture one uses made-up names. Watch makes are declared in its `_makes.yaml` (name and aliases, ADR 0006); the fixture one lists only the makes the fixtures use. Foods are declared in its `_foods.json`, the recipe skill's sourced nutrition table (calories and macros per 100 g and an `each` weight, ADR 0007); the API computes a Recipe's macros per serving on read.
 - Private Posts are never pre-rendered: `proxy.ts` sends visitors with the `sl_access` cookie to the dynamic `/unlocked/[area]/[slug]` route, which forwards the session to the API.
 - The Notion fetch script (`web/scripts/fetch-notion-content.js`) is no longer part of the build. It stays until the Notion migration (#54).
 

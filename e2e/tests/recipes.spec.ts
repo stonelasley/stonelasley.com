@@ -16,8 +16,8 @@ test.describe("Recipes", () => {
     const ingredients = page.getByRole("table", { name: "Ingredients" }).getByRole("row");
     await expect(ingredients).toHaveText([
       "80 grolled oats",
-      "½ cupwater",
-      "1 scoopwhey proteinvanilla",
+      "120 gwater",
+      "1whey proteinvanilla",
       "cinnamon optional",
     ]);
   });
