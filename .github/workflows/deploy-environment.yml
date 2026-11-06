@@ -15,7 +15,7 @@ env:
   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
   AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  RESOURCE_GROUP: rg-stonelasley
+  RESOURCE_GROUP: rg-proof-of-concepts
   IMAGE: ghcr.io/${{ github.repository_owner }}/stonelasley-api
   PREVIEW: ${{ inputs.environment == 'preview' }}
   # Secrets are named PREVIEW_* and PRODUCTION_*.
