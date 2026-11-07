@@ -313,9 +313,9 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
                 statements.Add(new D1Statement("DELETE FROM foods", []));
                 statements.Add(new D1Statement(
                     """
-                    INSERT INTO foods (name, aliases, protein, carbs, fat, units)
-                    SELECT json_extract(value, '$.Name'), json_extract(value, '$.Aliases'), json_extract(value, '$.Protein'),
-                           json_extract(value, '$.Carbs'), json_extract(value, '$.Fat'), json_extract(value, '$.Units')
+                    INSERT INTO foods (name, kcal, protein, carbs, fat, each_grams)
+                    SELECT json_extract(value, '$.Name'), json_extract(value, '$.Kcal'), json_extract(value, '$.Protein'),
+                           json_extract(value, '$.Carbs'), json_extract(value, '$.Fat'), json_extract(value, '$.Each')
                     FROM json_each(?)
                     """,
                     [run.Foods]));

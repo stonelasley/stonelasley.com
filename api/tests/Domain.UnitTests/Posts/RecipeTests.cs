@@ -20,7 +20,7 @@ public class RecipeTests
         ovenTempC: 180
         ingredients:
           - { quantity: 80, unit: g, name: rolled oats }
-          - { quantity: 1, unit: scoop, name: whey, note: vanilla }
+          - { quantity: 1, unit: each, name: whey, note: vanilla }
           - { name: cinnamon, optional: true }
         ---
         Stir.
@@ -39,7 +39,7 @@ public class RecipeTests
         recipe.Ingredients.ShouldBe(
         [
             new Ingredient(80m, "g", "rolled oats", null, false),
-            new Ingredient(1m, "scoop", "whey", "vanilla", false),
+            new Ingredient(1m, "each", "whey", "vanilla", false),
             new Ingredient(null, null, "cinnamon", null, true),
         ]);
     }
@@ -114,11 +114,11 @@ public class RecipeTests
         post.Recipe.ShouldBeNull();
     }
 
-    // 80 g oats and 1 scoop (30 g) of whey, over 2 servings; the optional cinnamon counts for nothing.
+    // 80 g oats and 1 whey (30 g each), over 2 servings; the optional cinnamon counts for nothing.
     private static readonly Foods Pantry = new(
     [
-        new Food("rolled oats", [], 13m, 67m, 7m, new Dictionary<string, decimal>()),
-        new Food("whey", [], 80m, 10m, 5m, new Dictionary<string, decimal> { ["scoop"] = 30m }),
+        new Food("rolled oats", 379m, 13m, 67m, 7m, null),
+        new Food("whey", 370m, 80m, 10m, 5m, 30m),
     ]);
 
     [Test]
@@ -126,8 +126,7 @@ public class RecipeTests
     {
         var macros = Parse(ValidRecipe).Recipe!.MacrosPerServing(Pantry).ShouldNotBeNull();
 
-        macros.ShouldBe(new Macros(17.2m, 28.3m, 3.6m));
-        macros.Kcal.ShouldBe(214);
+        macros.ShouldBe(new Macros(17.2m, 28.3m, 3.6m, 207));
     }
 
     [Test]
@@ -136,7 +135,7 @@ public class RecipeTests
 
     [Test]
     public void A_recipe_whose_ingredients_all_go_uncounted_has_no_macros() =>
-        Parse(ValidRecipe.Replace("quantity: 80, unit: g, ", "").Replace("quantity: 1, unit: scoop, ", "")).Recipe!.MacrosPerServing(Pantry).ShouldBeNull();
+        Parse(ValidRecipe.Replace("quantity: 80, unit: g, ", "").Replace("quantity: 1, unit: each, ", "")).Recipe!.MacrosPerServing(Pantry).ShouldBeNull();
 
     private static Post Parse(string markdown)
     {

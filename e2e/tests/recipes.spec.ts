@@ -16,8 +16,8 @@ test.describe("Recipes", () => {
     const ingredients = page.getByRole("table", { name: "Ingredients" }).getByRole("row");
     await expect(ingredients).toHaveText([
       "80 grolled oats",
-      "½ cupwater",
-      "1 scoopwhey proteinvanilla",
+      "120 gwater",
+      "1whey proteinvanilla",
       "cinnamon optional",
     ]);
   });
@@ -36,7 +36,7 @@ test.describe("Recipes", () => {
 
     await expect(page.getByRole("group", { name: "Batch" }).getByRole("status")).toHaveText("2×");
     await expect(ingredients.getByRole("row", { name: /rolled oats/ })).toContainText("160 g");
-    await expect(ingredients.getByRole("row", { name: /water/ })).toContainText("1 cup");
+    await expect(ingredients.getByRole("row", { name: /water/ })).toContainText("240 g");
     await expect(
       ingredients
         .getByRole("row", { name: /cinnamon/ })
@@ -64,7 +64,7 @@ test.describe("Recipes", () => {
 
     await units.getByRole("radio", { name: "Imperial" }).click();
     await expect(ingredients.getByRole("row", { name: /rolled oats/ })).toContainText("2¾ oz");
-    await expect(ingredients.getByRole("row", { name: /water/ })).toContainText("½ cup");
+    await expect(ingredients.getByRole("row", { name: /water/ })).toContainText("4¼ oz");
 
     await page.getByRole("button", { name: "Larger batch" }).click();
     await page.getByRole("button", { name: "Larger batch" }).click();
@@ -128,8 +128,8 @@ test.describe("Recipes", () => {
     expect(jsonLd.recipeYield).toBe("2 servings");
     expect(jsonLd.recipeIngredient).toEqual([
       "80 g rolled oats",
-      "½ cup water",
-      "1 scoop whey protein (vanilla)",
+      "120 g water",
+      "1 whey protein (vanilla)",
       "cinnamon (optional)",
     ]);
   });

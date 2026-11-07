@@ -32,15 +32,15 @@ internal static class PostColumns
             ? JsonSerializer.Deserialize<Watch>(column.GetString()!, Json)
             : null;
 
-    public const string SelectFoods = "SELECT name, aliases, protein, carbs, fat, units FROM foods";
+    public const string SelectFoods = "SELECT name, kcal, protein, carbs, fat, each_grams AS each FROM foods";
 
     public static Food FoodFromRow(JsonElement row) => new(
         row.GetProperty("name").GetString()!,
-        JsonSerializer.Deserialize<List<string>>(row.GetProperty("aliases").GetString()!)!,
+        row.GetProperty("kcal").GetDecimal(),
         row.GetProperty("protein").GetDecimal(),
         row.GetProperty("carbs").GetDecimal(),
         row.GetProperty("fat").GetDecimal(),
-        JsonSerializer.Deserialize<Dictionary<string, decimal>>(row.GetProperty("units").GetString()!)!);
+        row.GetProperty("each").ValueKind == JsonValueKind.Number ? row.GetProperty("each").GetDecimal() : null);
 
     /// <summary>The hero image URL, or null for a Post with none ('') or not yet ingested with one (NULL).</summary>
     public static string? HeroFromRow(JsonElement row) =>

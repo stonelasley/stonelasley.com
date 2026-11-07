@@ -5,47 +5,49 @@ namespace StoneLasley.Domain.UnitTests.Posts;
 public class FoodsFileTests
 {
     [Test]
-    public void Reads_names_aliases_macros_and_units()
+    public void Reads_each_food_s_calories_macros_and_each_weight()
     {
         var result = FoodsFile.Parse("""
-            - name: rolled oats
-              aliases: [oats]
-              protein: 13.2
-              carbs: 67.7
-              fat: 6.5
-            - name: whey protein
-              protein: 80
-              carbs: 8
-              fat: 6
-              units: { Scoop: 30 }
+            {
+              "Rolled Oats": {
+                "per100g": { "kcal": 379, "protein": 13.2, "carbs": 67.7, "sugar": 1, "fat": 6.5, "fiber": 10, "sodiumMg": 6 },
+                "source": "USDA FDC 173904"
+              },
+              "Large Egg": {
+                "per100g": { "kcal": 143, "protein": 12.6, "carbs": 0.7, "fat": 9.5 },
+                "source": "USDA FDC 171287",
+                "each": 50,
+                "polyols": 0
+              }
+            }
             """);
 
         result.Errors.ShouldBeEmpty();
         result.Foods.ShouldBe(
         [
-            new Food("rolled oats", ["oats"], 13.2m, 67.7m, 6.5m, new Dictionary<string, decimal>()),
-            new Food("whey protein", [], 80m, 8m, 6m, new Dictionary<string, decimal> { ["scoop"] = 30m }),
+            new Food("Rolled Oats", 379m, 13.2m, 67.7m, 6.5m, null),
+            new Food("Large Egg", 143m, 12.6m, 0.7m, 9.5m, 50m),
         ], ignoreOrder: false);
     }
 
     [Test]
-    public void An_empty_file_declares_no_foods() =>
-        FoodsFile.Parse("").Foods.ShouldBeEmpty();
+    public void An_empty_table_declares_no_foods() =>
+        FoodsFile.Parse("{}").Foods.ShouldBeEmpty();
 
-    [TestCase("- protein: 1\n  carbs: 1\n  fat: 1", "Food 1: 'name' is required.")]
-    [TestCase("- name: oats\n  carbs: 1\n  fat: 1", "Food oats: 'protein', 'carbs' and 'fat' are required")]
-    [TestCase("- name: oats\n  protein: -1\n  carbs: 1\n  fat: 1", "Food oats: 'protein', 'carbs' and 'fat' are required")]
-    [TestCase("- name: oats\n  protein: 60\n  carbs: 50\n  fat: 1", "Food oats: protein, carbs and fat add up to more than 100 g")]
-    [TestCase("- name: oats\n  aliases: ['']\n  protein: 1\n  carbs: 1\n  fat: 1", "Food oats: aliases must not be empty.")]
-    [TestCase("- name: oats\n  protein: 1\n  carbs: 1\n  fat: 1\n  units: { g: 2 }", "Food oats: unit 'g' can't be declared")]
-    [TestCase("- name: oats\n  protein: 1\n  carbs: 1\n  fat: 1\n  units: { gram: 2 }", "Food oats: unit 'gram' can't be declared")]
-    [TestCase("- name: oats\n  protein: 1\n  carbs: 1\n  fat: 1\n  units: { cup: 0 }", "Food oats: unit 'cup' must weigh more than 0 g.")]
-    [TestCase("- name: oats\n  protein: 1\n  carbs: 1\n  fat: 1\n  units: { cup: 80, Cup: 90 }", "Food oats: unit 'cup' is declared more than once.")]
-    [TestCase("- name: oats\n  protein: 1\n  carbs: 1\n  fat: 1\n- name: OATS\n  protein: 1\n  carbs: 1\n  fat: 1", "'OATS' is declared more than once.")]
-    [TestCase("- name: [oats", "The foods file is not valid YAML")]
-    public void Rejects_an_invalid_file(string yaml, string error)
+    private const string Source = "\"source\": \"label\"";
+
+    [TestCase($$"""{ "oats": { "per100g": { "protein": 1, "carbs": 1, "fat": 1 }, {{Source}} } }""", "Food oats: 'per100g' needs 'kcal', 'protein', 'carbs' and 'fat'")]
+    [TestCase($$"""{ "oats": { "per100g": { "kcal": 1, "protein": -1, "carbs": 1, "fat": 1 }, {{Source}} } }""", "Food oats: 'per100g' needs")]
+    [TestCase($$"""{ "oats": { {{Source}} } }""", "Food oats: 'per100g' needs")]
+    [TestCase($$"""{ "oats": { "per100g": { "kcal": 1, "protein": 60, "carbs": 50, "fat": 1 }, {{Source}} } }""", "Food oats: protein, carbs and fat add up to more than 100 g")]
+    [TestCase("""{ "oats": { "per100g": { "kcal": 1, "protein": 1, "carbs": 1, "fat": 1 } } }""", "Food oats: 'source' is required")]
+    [TestCase($$"""{ "oats": { "per100g": { "kcal": 1, "protein": 1, "carbs": 1, "fat": 1 }, {{Source}}, "each": 0 } }""", "Food oats: 'each' must weigh more than 0 g.")]
+    [TestCase($$"""{ "oats": { "per100g": { "kcal": 1, "protein": 1, "carbs": 1, "fat": 1 }, {{Source}} }, "OATS": { "per100g": { "kcal": 1, "protein": 1, "carbs": 1, "fat": 1 }, {{Source}} } }""", "'OATS' is declared more than once.")]
+    [TestCase("""[{ "name": "oats" }]""", "The foods file must be a JSON object")]
+    [TestCase("""{ "oats": """, "The foods file is not valid JSON")]
+    public void Rejects_an_invalid_table(string json, string error)
     {
-        var result = FoodsFile.Parse(yaml);
+        var result = FoodsFile.Parse(json);
 
         result.Foods.ShouldBeEmpty();
         result.Errors.ShouldHaveSingleItem().ShouldStartWith(error);
@@ -53,31 +55,27 @@ public class FoodsFileTests
 
     private static readonly Foods Pantry = new(
     [
-        new Food("rolled oats", ["oats"], 10m, 60m, 5m, new Dictionary<string, decimal> { ["cup"] = 80m }),
-        new Food("egg", [], 12m, 1m, 10m, new Dictionary<string, decimal> { ["each"] = 50m }),
+        new Food("rolled oats", 379m, 10m, 60m, 5m, null),
+        new Food("egg", 143m, 12m, 1m, 10m, 50m),
     ]);
 
     [TestCase(40, "g", 40)]
     [TestCase(40, "gram", 40)]
     [TestCase(40, "Grams", 40)]
     [TestCase(0.5, "kg", 500)]
-    [TestCase(2, "cup", 160)]
-    [TestCase(2, "Cup", 160)]
-    public void Weighs_an_ingredient_by_its_unit(decimal quantity, string unit, decimal grams) =>
-        Pantry.Weigh(new Ingredient(quantity, unit, "Oats", null, false)).ShouldNotBeNull().Grams.ShouldBe(grams);
+    public void Weighs_an_ingredient_in_grams_or_kilograms(decimal quantity, string unit, decimal grams) =>
+        Pantry.Weigh(new Ingredient(quantity, unit, "Rolled Oats", null, false)).ShouldNotBeNull().Grams.ShouldBe(grams);
 
-    [Test]
-    public void A_quantity_without_a_unit_weighs_by_each() =>
-        Pantry.Weigh(new Ingredient(3, null, "egg", null, false)).ShouldNotBeNull().Grams.ShouldBe(150m);
+    [TestCase(null)]
+    [TestCase("each")]
+    [TestCase("Each")]
+    public void A_counted_ingredient_weighs_by_each(string? unit) =>
+        Pantry.Weigh(new Ingredient(3, unit, "egg", null, false)).ShouldNotBeNull().Grams.ShouldBe(150m);
 
-    [TestCase(1, "tbsp", "rolled oats")]
-    [TestCase(1, null, "rolled oats")]
+    [TestCase(1, "cup", "rolled oats")]
+    [TestCase(1, "each", "rolled oats")]
     [TestCase(1, "g", "quinoa")]
-    [TestCase(null, null, "rolled oats")]
+    [TestCase(null, null, "egg")]
     public void An_undeclared_food_or_unit_does_not_weigh(int? quantity, string? unit, string name) =>
         Pantry.Weigh(new Ingredient(quantity, unit, name, null, false)).ShouldBeNull();
-
-    [Test]
-    public void Calories_are_4_per_gram_of_protein_and_carbs_and_9_per_gram_of_fat() =>
-        new Macros(10m, 20m, 5.5m).Kcal.ShouldBe(170);
 }

@@ -32,6 +32,12 @@ describe("ingredientText", () => {
     ).toBe("1 scoop whey (vanilla)");
   });
 
+  it('counts "each" bare, as the ingredients table does', () => {
+    expect(
+      ingredientText({ quantity: 2, unit: "each", name: "eggs", note: null, optional: false })
+    ).toBe("2 eggs");
+  });
+
   it("leaves out a missing quantity and unit", () => {
     expect(
       ingredientText({ quantity: null, unit: null, name: "salt", note: null, optional: false })

@@ -11,7 +11,7 @@ public static class IngestEndpoints
     /// left out loses its intro; when absent, intros are left alone.</param>
     /// <param name="Clients">The content repo's clients file (YAML). When present it replaces every Client.</param>
     /// <param name="Makes">The content repo's makes file (YAML). When present it replaces every watch make.</param>
-    /// <param name="Foods">The content repo's foods file (YAML). When present it replaces every food.</param>
+    /// <param name="Foods">The content repo's foods file (JSON, the recipe skill's nutrition table). When present it replaces every food.</param>
     public sealed record ManifestRequest(
         Dictionary<string, string> Posts, Dictionary<string, string>? Intros, string? Clients, string? Makes = null, string? Foods = null);
 

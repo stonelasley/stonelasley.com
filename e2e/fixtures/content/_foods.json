@@ -1,0 +1,15 @@
+{
+  "rolled oats": {
+    "per100g": { "kcal": 380, "protein": 13, "carbs": 67, "fat": 7 },
+    "source": "Made-up content for the E2E suite: the foods its fixture Recipe names. The real table lives in the content repo."
+  },
+  "water": {
+    "per100g": { "kcal": 0, "protein": 0, "carbs": 0, "fat": 0 },
+    "source": "Made-up"
+  },
+  "whey protein": {
+    "per100g": { "kcal": 370, "protein": 80, "carbs": 8, "fat": 6 },
+    "source": "Made-up",
+    "each": 30
+  }
+}
