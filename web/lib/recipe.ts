@@ -22,7 +22,7 @@ export function formatQuantity(quantity: number): string {
 export function ingredientText(ingredient: Ingredient, { markOptional = false } = {}): string {
   const parts = [
     ingredient.quantity != null ? formatQuantity(ingredient.quantity) : null,
-    ingredient.unit,
+    ingredient.unit !== "each" ? ingredient.unit : null,
     ingredient.name,
   ].filter(Boolean);
   let text = parts.join(" ");
