@@ -184,9 +184,13 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
         }
 
         // One Make Post per make, across what this run keeps and what it leaves stored. A re-staged Post replaces its
-        // stored row, so moving a Make Post to a new slug doesn't conflict with itself.
+        // stored row, so moving a Make Post to a new slug doesn't conflict with itself. A stored make is resolved again,
+        // so a make renamed in the makes file still matches its old name.
+        var makes = await MakesAsync(run, cancellationToken);
         var makeConflicts = MakePostConflicts.Find(
-            untouched.Concat(kept).Where(post => post.MakePost is not null).Select(post => new MakePostAddress(post.Address, post.MakePost!)));
+            untouched.Concat(kept)
+                .Where(post => post.MakePost is not null)
+                .Select(post => new MakePostAddress(post.Address, makes.Resolve(post.MakePost!) ?? post.MakePost!)));
         if (makeConflicts.Count > 0)
         {
             return new IngestOutcome.Invalid(makeConflicts);

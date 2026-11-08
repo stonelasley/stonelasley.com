@@ -218,6 +218,25 @@ public class WatchTests
     }
 
     [Test]
+    public async Task A_make_post_conflicts_with_a_stored_one_whose_make_was_renamed()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var stored = TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore("Fixture Time"));
+        (await CommitWithMakesFileAsync(client, dryRun: false, Makes + "\n- name: Fixture Time", stored)).EnsureSuccessStatusCode();
+
+        var commit = await CommitWithMakesFileAsync(
+            client,
+            dryRun: false,
+            Makes + "\n- name: Fixture Time Co\n  aliases: [Fixture Time]",
+            stored,
+            TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore("Fixture Time Co")));
+
+        commit.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await commit.Content.ReadAsStringAsync()).ShouldContain("are both Make Posts for Fixture Time Co.");
+    }
+
+    [Test]
     public async Task Re_ingesting_a_make_post_with_a_new_slug_passes()
     {
         await using var api = new ApiFactory();
@@ -235,10 +254,13 @@ public class WatchTests
     }
 
     // Manifest with the makes file, upload whatever is requested, then commit; the commit's response is the result.
-    private static async Task<HttpResponseMessage> CommitWithMakesAsync(HttpClient client, bool dryRun, params string[] markdowns)
+    private static Task<HttpResponseMessage> CommitWithMakesAsync(HttpClient client, bool dryRun, params string[] markdowns) =>
+        CommitWithMakesFileAsync(client, dryRun, Makes, markdowns);
+
+    private static async Task<HttpResponseMessage> CommitWithMakesFileAsync(HttpClient client, bool dryRun, string makes, params string[] markdowns)
     {
         var byId = Ingest.ById(markdowns);
-        var manifest = await Ingest.ManifestAsync(client, byId, dryRun: dryRun, makes: Makes);
+        var manifest = await Ingest.ManifestAsync(client, byId, dryRun: dryRun, makes: makes);
         foreach (var id in manifest.Requested)
         {
             (await Ingest.UploadAsync(client, manifest.RunId, id, byId[id])).EnsureSuccessStatusCode();
