@@ -24,8 +24,15 @@ Something a Recipe's ingredients name, declared in the content repo's foods file
 _Avoid_: Ingredient (when meaning the declared food, not one line of a Recipe)
 
 **Watch**:
-A Post in the Watches area about one Reference, carrying structured specs for it. Whether Stone owns an example is irrelevant to the Post.
+A Post in the Watches area: either a Make Post or a Reference Post. Whether Stone owns an example is irrelevant to the Post.
 _Avoid_: Watch catalog entry (no catalog exists yet)
+
+**Reference Post**:
+A Watch about one Reference, carrying structured specs for it.
+
+**Make Post**:
+A Watch about a Make as a whole. It names a make and no Reference, and carries no specs. Each make has at most one.
+_Avoid_: Manufacturer page, brand page
 
 **Reference**:
 A manufacturer's model number identifying one watch design, such as Rolex 16610. Close variants of it may be covered by the same Watch.
