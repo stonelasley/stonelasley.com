@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 import type { PostSummary } from "@/lib/api";
+import { watchLabel } from "@/lib/watches";
 import { DraftBadge } from "./DraftBadge";
 import { PostThumbnail } from "./PostThumbnail";
 
@@ -9,11 +10,9 @@ interface PostTileProps {
   headingLevel?: "h2" | "h3";
 }
 
-/** A Post in an area's grid: its hero, then a Watch's make and reference (or the tags), title, excerpt and date. */
+/** A Post in an area's grid: its hero, then a Watch's make and reference (a Make Post's make, or the tags), title, excerpt and date. */
 export function PostTile({ post, headingLevel: Heading = "h2" }: PostTileProps) {
-  const eyebrow = post.watch
-    ? `${post.watch.make} · ${post.watch.reference}`
-    : post.tags.slice(0, 3).join(" · ");
+  const eyebrow = post.watch ? watchLabel(post.watch) : post.tags.slice(0, 3).join(" · ");
   return (
     <article className="group relative flex flex-col">
       <PostThumbnail

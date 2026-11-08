@@ -5,6 +5,7 @@ import { Prose } from "@/components/Prose";
 import { Tag } from "@/components/Tag";
 import { RecipeDetails } from "@/components/RecipeDetails";
 import { WatchSpecs } from "@/components/WatchSpecs";
+import { MakeLinks } from "@/components/MakeLinks";
 import type { Post } from "@/lib/api";
 import type { ContentArea } from "@/lib/areas";
 import { generateBlogPostingJsonLd, generateRecipeJsonLd } from "@/lib/metadata";
@@ -79,12 +80,15 @@ export async function PostView({
           )}
         </header>
 
-        {post.watch && <WatchSpecs watch={post.watch} />}
+        {/* A Make Post has no Reference, so no specs. */}
+        {post.watch?.reference != null && <WatchSpecs watch={post.watch} />}
 
         {recipe && <RecipeDetails recipe={recipe} />}
         <Prose>
           <div dangerouslySetInnerHTML={{ __html: html }} />
         </Prose>
+
+        {post.watch && <MakeLinks slug={post.slug} watch={post.watch} />}
       </Container>
     </article>
   );

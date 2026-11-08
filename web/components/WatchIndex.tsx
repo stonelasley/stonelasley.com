@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { PostSummary, WatchFacets } from "@/lib/api";
+import { matchesWatchFilters, modelNamesFor } from "@/lib/watches";
 import { PostList } from "./PostList";
 
 interface WatchIndexProps {
@@ -25,11 +26,7 @@ export function WatchIndex({ posts, facets }: WatchIndexProps) {
   const decade = params.get("decade") ?? "";
 
   // Models offered are the chosen make's, so make + model can't combine into an empty list.
-  const models = make
-    ? [
-        ...new Set(posts.flatMap(({ watch }) => (watch?.make === make ? [watch.modelName] : []))),
-      ].sort()
-    : facets.modelNames;
+  const models = make ? modelNamesFor(posts, make) : facets.modelNames;
 
   const setFilter = (name: string, value: string) => {
     const next = new URLSearchParams(params);
@@ -43,13 +40,7 @@ export function WatchIndex({ posts, facets }: WatchIndexProps) {
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   };
 
-  const shown = posts.filter(
-    ({ watch }) =>
-      watch &&
-      (!make || watch.make === make) &&
-      (!model || watch.modelName === model) &&
-      (!decade || watch.decades.includes(Number(decade)))
-  );
+  const shown = posts.filter(({ watch }) => matchesWatchFilters(watch, { make, model, decade }));
 
   return (
     <>

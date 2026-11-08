@@ -8,8 +8,8 @@ import { contentAreas, type AreaSlug } from "./areas";
 // What the Watches index shows and filters on.
 const watchSummarySchema = z.object({
   make: z.string(),
-  reference: z.string(),
-  modelName: z.string(),
+  reference: z.string().nullable(), // null for a Make Post
+  modelName: z.string().nullable(),
   decades: z.array(z.number()), // 1980 for the 1980s
 });
 
@@ -57,8 +57,8 @@ const macrosSchema = z.object({
 // The Watch typed core, metric-only, with feet and "in production" derived by the API.
 const watchSchema = z.object({
   make: z.string(),
-  reference: z.string(),
-  modelName: z.string(),
+  reference: z.string().nullable(), // null for a Make Post, which has no specs
+  modelName: z.string().nullable(),
   variants: z.array(z.string()),
   productionStart: z.number().nullable(),
   productionEnd: z.number().nullable(),
@@ -240,7 +240,7 @@ const searchResultSchema = z.object({
       excerpt: z.array(z.object({ text: z.string(), match: z.boolean() })),
       hero: z.string().nullable(),
       // What a Watch's stand-in shows until it has a hero.
-      watch: z.object({ make: z.string(), reference: z.string() }).nullable(),
+      watch: z.object({ make: z.string(), reference: z.string().nullable() }).nullable(),
     })
   ),
   counts: z.record(z.string(), z.number()),
