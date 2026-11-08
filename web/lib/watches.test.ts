@@ -110,6 +110,11 @@ describe("moreFromMake", () => {
   it("is empty for a make's only Reference", () => {
     expect(moreFromMake(posts, { slug: "patek-5711", make: "Patek Philippe" })).toEqual([]);
   });
+
+  it("is empty on a Make Post whose make has no References", () => {
+    const omega = post("omega", "2026-09-01", "Omega", null, null);
+    expect(moreFromMake([...posts, omega], { slug: "omega", make: "Omega" })).toEqual([]);
+  });
 });
 
 describe("makePostFor", () => {

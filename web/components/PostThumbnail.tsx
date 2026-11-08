@@ -83,7 +83,7 @@ export function PostThumbnail({
     >
       <span
         className={cn(
-          "max-w-full font-semibold break-all",
+          "max-w-full font-semibold break-words",
           watch ? "text-foreground tracking-tight tabular-nums" : "",
           textSize
         )}
