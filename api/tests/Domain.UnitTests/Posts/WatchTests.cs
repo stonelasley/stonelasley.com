@@ -158,6 +158,16 @@ public class WatchTests
         Parse(ValidWatch).Watch.ShouldNotBeNull().IsMakePost.ShouldBeFalse();
     }
 
+    [Test]
+    public void The_make_post_flag_is_not_stored_with_the_watch()
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(
+            Parse(ValidWatch).Watch.ShouldNotBeNull(),
+            new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+
+        json.ShouldNotContain("isMakePost");
+    }
+
     // A Reference Post whose reference was forgotten fails, rather than publishing as a Make Post.
     [TestCase("modelName: Submariner")]
     [TestCase("variants: [16610LV]")]

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace StoneLasley.Domain.Posts;
 
 /// <summary>
@@ -17,6 +19,7 @@ public sealed record Watch(
     string? CaseMaterial,
     int? WaterResistanceM)
 {
+    [JsonIgnore]
     public bool IsMakePost => Reference is null;
 
     public bool InProduction => ProductionStart is not null && ProductionEnd is null;
