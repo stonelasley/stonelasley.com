@@ -33,11 +33,13 @@
 ### Task 1: Domain — parse Make Posts
 
 **Files:**
+
 - Modify: `api/src/Domain/Posts/Watch.cs`, `api/src/Domain/Posts/MarkdownPost.Watch.cs`, `api/src/Domain/Posts/SearchText.cs`
 - Modify (compile only, null-safe): `api/src/Application/Search/KeywordSearch.cs:19-21`, `api/src/Application/Posts/PostReader.cs:21-24`
 - Test: `api/tests/Domain.UnitTests/Posts/WatchTests.cs`, `api/tests/Domain.UnitTests/Posts/SearchTextTests.cs`
 
 **Interfaces:**
+
 - Produces: `Watch(string Make, string? Reference, string? ModelName, ...)` with the rest unchanged, and `bool IsMakePost => Reference is null`. `SearchWatch(string Make, string? Reference)`. `WatchSummary(string Make, string? Reference, string? ModelName, IReadOnlyList<int> Decades)`.
 
 - [ ] **Step 1: Write the failing tests** in `WatchTests.cs`:
@@ -97,10 +99,12 @@ Also assert that `Parse(ValidWatch).Watch!.IsMakePost` is false. In `SearchTextT
 ### Task 2: API read side — summaries and facets
 
 **Files:**
+
 - Modify: `api/src/Application/Posts/PostReader.cs:119-127`
 - Test: `api/tests/Api.FunctionalTests/WatchTests.cs`, `api/tests/Api.FunctionalTests/TestPosts.cs`
 
 **Interfaces:**
+
 - Consumes: Task 1 types.
 - Produces: `TestPosts.MakeCore(string make = "Rolex") => $"make: {make}"`. The API returns `reference: null, modelName: null, decades: []` for a Make Post.
 
@@ -119,11 +123,13 @@ Also assert that `Parse(ValidWatch).Watch!.IsMakePost` is false. In `SearchTextT
 ### Task 3: Ingest — one Make Post per make
 
 **Files:**
+
 - Create: `api/src/Domain/Posts/MakePostConflicts.cs`
 - Modify: `api/src/Application/Ingest/IngestService.cs` (`CommitAsync` around line 163-183, `AddressesAsync`, `StoredAddress`)
 - Test: `api/tests/Domain.UnitTests/Posts/MakePostConflictsTests.cs`, `api/tests/Api.FunctionalTests/WatchTests.cs`
 
 **Interfaces:**
+
 - Produces: `public sealed record MakePostAddress(PostAddress Address, string Make);` and `public static IReadOnlyList<string> MakePostConflicts.Find(IEnumerable<MakePostAddress> posts)`. It returns one error per make that has more than one Make Post: `Posts {slugs joined like SlugConflicts} both|all are Make Posts for {make}.` Group by make with ordinal comparison, since makes are stored canonical. Slugs are ordered ordinally.
 
 - [ ] **Step 1: Write the failing domain tests.** These mirror `SlugConflictsTests`: two Rolex Make Posts give `["Posts rolex and rolex-history both are Make Posts for Rolex."]`; different makes give no errors; three give `all`.
@@ -148,11 +154,13 @@ Also assert that `Parse(ValidWatch).Watch!.IsMakePost` is false. In `SearchTextT
 ### Task 4: Web — schemas, watch helpers, tiles, index, Post page
 
 **Files:**
+
 - Modify: `web/lib/api.ts` (`watchSummarySchema`, `watchSchema`, search-hit `watch` near line 243)
 - Create: `web/lib/watches.ts`
 - Test: `web/lib/watches.test.ts`
 
 **Interfaces:**
+
 - Produces, from `web/lib/watches.ts`:
   - `watchLabel(watch: { make: string; reference: string | null }): string`: `"Seiko"` or `"Seiko · 6105"`.
   - `matchesWatchFilters(watch: WatchSummary | null, f: { make: string; model: string; decade: string }): boolean`
@@ -175,10 +183,12 @@ Also assert that `Parse(ValidWatch).Watch!.IsMakePost` is false. In `SearchTextT
 - [ ] **Step 4: Run them and check they pass.** `npm run test -- --run web/lib/watches.test.ts`. Don't commit yet. The schema change breaks the type-check until the call sites below are fixed, and each commit must stay green.
 
 **UI part of this task. Files:**
+
 - Modify: `web/components/PostTile.tsx`, `web/components/PostThumbnail.tsx`, `web/app/page.tsx` (`Exhibit`), `web/components/WatchIndex.tsx`, `web/components/PostView.tsx`
 - Create: `web/components/MakeLinks.tsx`
 
 **Interfaces:**
+
 - Consumes: everything from `web/lib/watches.ts` above.
 - Produces: `MakeLinks({ slug, watch }: { slug: string; watch: Watch })`, an async server component. It calls `getPostsByArea("watches")` and renders:
   - An `About {make}` link to `makePostFor(...)` when the current Post is a Reference Post and a Make Post exists.
@@ -198,6 +208,7 @@ Also assert that `Parse(ValidWatch).Watch!.IsMakePost` is false. In `SearchTextT
 ### Task 5: E2E — fixture Make Post and flows
 
 **Files:**
+
 - Create: `e2e/fixtures/content/watches/rolex.md`, with id `01JBX5Q7Z9K3M8N2P4R6T0V1X2`, title `Rolex`, slug `rolex`, date `2026-07-01`, `make: Rolex`, no image, and a one-line made-up body.
 - Modify: `e2e/tests/watches.spec.ts`, plus any other spec whose Watches count changes.
 
@@ -215,6 +226,7 @@ Also assert that `Parse(ValidWatch).Watch!.IsMakePost` is false. In `SearchTextT
 ### Task 6: Docs
 
 **Files:**
+
 - Modify: `GLOSSARY.md` (Watch, plus the new Make Post and Reference Post entries, worded as in the spec's Vocabulary section), `docs/content-repo.md` (Make Post frontmatter, the one-per-make rule, and the `needs a 'reference'` error), `web/lib/areas.ts:11` (the Watches description "one Reference at a time" now reads false, so change it to "Notes on mechanical watches: makes and their References.")
 - Create: `docs/adr/0008-a-watch-without-a-reference-is-a-make-post.md`. Status accepted. In under 15 lines: the decision, the rejected alternatives (a separate Makes area; Make bodies in `_makes.yaml`), and the consequences (one per make enforced at commit; spec fields need a reference).
 
