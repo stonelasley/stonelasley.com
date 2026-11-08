@@ -184,6 +184,69 @@ public class WatchTests
     }
 
     [Test]
+    public async Task A_second_make_post_for_a_make_fails_the_run()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+
+        var commit = await CommitWithMakesAsync(
+            client,
+            dryRun: true,
+            TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore()),
+            TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore()));
+
+        commit.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await commit.Content.ReadAsStringAsync()).ShouldContain("are both Make Posts for Rolex.");
+    }
+
+    [Test]
+    public async Task A_make_post_conflicts_with_a_stored_one_under_an_alias()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var stored = TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore("TAG Heuer"));
+        (await CommitWithMakesAsync(client, dryRun: false, stored)).EnsureSuccessStatusCode();
+
+        var commit = await CommitWithMakesAsync(
+            client,
+            dryRun: false,
+            stored,
+            TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore("TAG-Heuer")));
+
+        commit.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await commit.Content.ReadAsStringAsync()).ShouldContain("are both Make Posts for TAG Heuer.");
+    }
+
+    [Test]
+    public async Task Re_ingesting_a_make_post_with_a_new_slug_passes()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var id = TestPosts.NewUlid();
+        var slug = TestPosts.NewSlug("make");
+        (await CommitWithMakesAsync(client, dryRun: false, TestPosts.Markdown(id, TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore())))
+            .EnsureSuccessStatusCode();
+
+        (await CommitWithMakesAsync(client, dryRun: false, TestPosts.Markdown(id, slug, area: "watches", extra: TestPosts.MakeCore())))
+            .EnsureSuccessStatusCode();
+
+        var post = await client.GetFromJsonAsync<WatchPostResponse>($"/areas/watches/posts/{slug}");
+        post.ShouldNotBeNull().Id.ShouldBe(id);
+    }
+
+    // Manifest with the makes file, upload whatever is requested, then commit; the commit's response is the result.
+    private static async Task<HttpResponseMessage> CommitWithMakesAsync(HttpClient client, bool dryRun, params string[] markdowns)
+    {
+        var byId = Ingest.ById(markdowns);
+        var manifest = await Ingest.ManifestAsync(client, byId, dryRun: dryRun, makes: Makes);
+        foreach (var id in manifest.Requested)
+        {
+            (await Ingest.UploadAsync(client, manifest.RunId, id, byId[id])).EnsureSuccessStatusCode();
+        }
+        return await Ingest.CommitAsync(client, manifest.RunId);
+    }
+
+    [Test]
     public async Task An_invalid_makes_file_fails_the_manifest()
     {
         await using var api = new ApiFactory();

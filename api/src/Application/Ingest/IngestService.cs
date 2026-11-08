@@ -161,7 +161,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
         }
 
         var staged = await AddressesAsync(
-            "SELECT id, area, slug, status FROM ingest_staged_posts WHERE run_id = ?", [runId], cancellationToken);
+            $"SELECT id, area, slug, status, {MakePostColumn} FROM ingest_staged_posts WHERE run_id = ?", [runId], cancellationToken);
         var stagedIds = staged.Select(post => post.Address.Id).ToHashSet();
 
         var missing = run.Requested.Where(id => !stagedIds.Contains(id)).ToList();
@@ -172,7 +172,7 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
 
         bool Keeps(StoredAddress post) => run.IncludeDrafts || post.Status == PostColumns.PublishedStatus;
         var kept = staged.Where(Keeps).ToList();
-        var stored = await AddressesAsync("SELECT id, area, slug, status FROM posts", [], cancellationToken);
+        var stored = await AddressesAsync($"SELECT id, area, slug, status, {MakePostColumn} FROM posts", [], cancellationToken);
         var untouched = stored
             .Where(post => run.Hashes.ContainsKey(post.Address.Id) && !stagedIds.Contains(post.Address.Id) && Keeps(post))
             .ToList();
@@ -181,6 +181,15 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
         if (conflicts.Count > 0)
         {
             return new IngestOutcome.Invalid(conflicts);
+        }
+
+        // One Make Post per make, across what this run keeps and what it leaves stored. A re-staged Post replaces its
+        // stored row, so moving a Make Post to a new slug doesn't conflict with itself.
+        var makeConflicts = MakePostConflicts.Find(
+            untouched.Concat(kept).Where(post => post.MakePost is not null).Select(post => new MakePostAddress(post.Address, post.MakePost!)));
+        if (makeConflicts.Count > 0)
+        {
+            return new IngestOutcome.Invalid(makeConflicts);
         }
 
         // Whatever survives is either untouched or freshly staged; everything else stored goes, including
@@ -460,7 +469,8 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
             .. rows.Select(row =>
             {
                 ContentAreas.TryParse(Text(row, "area"), out var area);
-                return new StoredAddress(new PostAddress(Text(row, "id"), area, Text(row, "slug")), Text(row, "status"));
+                var makePost = row.TryGetProperty("make_post", out var make) && make.ValueKind == JsonValueKind.String ? make.GetString() : null;
+                return new StoredAddress(new PostAddress(Text(row, "id"), area, Text(row, "slug")), Text(row, "status"), makePost);
             }),
         ];
     }
@@ -470,5 +480,9 @@ public sealed class IngestService(ID1Database database, IImageStore images, Vect
     private sealed record Run(
         IReadOnlyDictionary<string, string> Hashes, IReadOnlySet<string> Requested, string? Intros, string? Clients, string? Makes, string? Foods, bool DryRun, bool IncludeDrafts);
 
-    private sealed record StoredAddress(PostAddress Address, string Status);
+    // The make a Make Post is about; null for any other Post. The watch JSON is camelCase.
+    private const string MakePostColumn =
+        "CASE WHEN json_extract(watch, '$.reference') IS NULL THEN json_extract(watch, '$.make') END AS make_post";
+
+    private sealed record StoredAddress(PostAddress Address, string Status, string? MakePost);
 }
