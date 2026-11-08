@@ -5,8 +5,8 @@ namespace StoneLasley.Api.FunctionalTests;
 
 public sealed record WatchResponse(
     string Make,
-    string Reference,
-    string ModelName,
+    string? Reference,
+    string? ModelName,
     IReadOnlyList<string> Variants,
     int? ProductionStart,
     int? ProductionEnd,
@@ -19,7 +19,7 @@ public sealed record WatchResponse(
 
 public sealed record WatchPostResponse(string Id, string Slug, WatchResponse? Watch);
 
-public sealed record WatchSummaryResponse(string Make, string Reference, string ModelName, IReadOnlyList<int> Decades);
+public sealed record WatchSummaryResponse(string Make, string? Reference, string? ModelName, IReadOnlyList<int> Decades);
 
 public sealed record WatchListItem(string Id, string Slug, WatchSummaryResponse? Watch);
 
@@ -87,6 +87,45 @@ public class WatchTests
         facets.Makes.ShouldBe(["Patek Philippe", "Rolex"]);
         facets.ModelNames.ShouldBe(["Nautilus", "Submariner Date"]);
         facets.Decades.ShouldBe(Enumerable.Range(198, (DateTime.UtcNow.Year / 10) - 198 + 1).Select(d => d * 10));
+    }
+
+    [Test]
+    public async Task A_make_post_is_read_with_no_reference()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var id = TestPosts.NewUlid();
+        var slug = TestPosts.NewSlug("make");
+        await Ingest.RunAsync(client, TestPosts.Markdown(id, slug, area: "watches", extra: TestPosts.MakeCore()));
+
+        var post = await client.GetFromJsonAsync<WatchPostResponse>($"/areas/watches/posts/{slug}");
+        var watch = post.ShouldNotBeNull().Watch.ShouldNotBeNull();
+        watch.Make.ShouldBe("Rolex");
+        watch.Reference.ShouldBeNull();
+        watch.ModelName.ShouldBeNull();
+
+        var posts = await client.GetFromJsonAsync<List<WatchListItem>>("/areas/watches/posts");
+        var summary = posts.ShouldNotBeNull().Single(p => p.Id == id).Watch.ShouldNotBeNull();
+        summary.Reference.ShouldBeNull();
+        summary.Decades.ShouldBeEmpty();
+    }
+
+    [Test]
+    public async Task Facets_count_a_make_post_for_makes_only()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        await Ingest.RunAsync(
+            client,
+            TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("watch"), area: "watches", extra: TestPosts.WatchCore()),
+            TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore("Patek Philippe")));
+
+        var facets = await client.GetFromJsonAsync<FacetsResponse>("/areas/watches/facets");
+
+        facets.ShouldNotBeNull();
+        facets.Makes.ShouldBe(["Patek Philippe", "Rolex"]);
+        facets.ModelNames.ShouldBe(["Submariner Date"]);
+        facets.Decades.ShouldBe([1980, 1990, 2000, 2010]);
     }
 
     // Other tests' Watches name Rolex and Patek Philippe, so every makes file here keeps them.

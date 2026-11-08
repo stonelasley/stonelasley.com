@@ -116,13 +116,13 @@ public sealed class PostReader(ID1Database database, TimeProvider clock, IOption
             macros);
     }
 
-    /// <summary>The Watches index filters: every make, model name and production decade in use.</summary>
+    /// <summary>The Watches index filters: every make, model name and production decade in use. Make Posts add only their make.</summary>
     public async Task<WatchFacets> WatchFacetsAsync(CancellationToken cancellationToken)
     {
         var watches = (await ListAsync(ContentArea.Watches, cancellationToken)).Select(post => post.Watch).OfType<WatchSummary>().ToList();
         return new WatchFacets(
             [.. watches.Select(w => w.Make).Distinct().Order(StringComparer.Ordinal)],
-            [.. watches.Select(w => w.ModelName!).Distinct().Order(StringComparer.Ordinal)],
+            [.. watches.Select(w => w.ModelName).OfType<string>().Distinct().Order(StringComparer.Ordinal)],
             [.. watches.SelectMany(w => w.Decades).Distinct().Order()]);
     }
 
