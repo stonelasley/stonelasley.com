@@ -18,7 +18,7 @@ public sealed class SiteOptions
 }
 
 /// <summary>What the Watches index shows and filters on.</summary>
-public sealed record WatchSummary(string Make, string Reference, string ModelName, IReadOnlyList<int> Decades)
+public sealed record WatchSummary(string Make, string? Reference, string? ModelName, IReadOnlyList<int> Decades)
 {
     public static WatchSummary? Of(Watch? watch, int currentYear) =>
         watch is null ? null : new WatchSummary(watch.Make, watch.Reference, watch.ModelName, watch.Decades(currentYear));
@@ -122,7 +122,7 @@ public sealed class PostReader(ID1Database database, TimeProvider clock, IOption
         var watches = (await ListAsync(ContentArea.Watches, cancellationToken)).Select(post => post.Watch).OfType<WatchSummary>().ToList();
         return new WatchFacets(
             [.. watches.Select(w => w.Make).Distinct().Order(StringComparer.Ordinal)],
-            [.. watches.Select(w => w.ModelName).Distinct().Order(StringComparer.Ordinal)],
+            [.. watches.Select(w => w.ModelName!).Distinct().Order(StringComparer.Ordinal)],
             [.. watches.SelectMany(w => w.Decades).Distinct().Order()]);
     }
 

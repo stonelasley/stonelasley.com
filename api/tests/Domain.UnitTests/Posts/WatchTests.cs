@@ -105,7 +105,6 @@ public class WatchTests
     }
 
     [TestCase("make: Rolex", "make: ''", "'make' is required.")]
-    [TestCase("reference: \"16610\"", "reference: ''", "'reference' is required.")]
     [TestCase("modelName: Submariner Date", "modelName: ''", "'modelName' is required.")]
     [TestCase("productionStart: 1988", "productionStart: eighties", "'productionStart' must be a year.")]
     [TestCase("productionEnd: 2010", "productionEnd: 1980", "'productionEnd' must not be before 'productionStart'.")]
@@ -125,6 +124,57 @@ public class WatchTests
         var result = MarkdownPost.Parse(ValidWatch.Replace("productionStart: 1988\n", ""));
 
         result.Errors.ShouldBe(["'productionEnd' needs a 'productionStart'."]);
+    }
+
+    private const string MakePost = """
+        ---
+        id: 01JBX5Q7Z9K3M8N2P4R6T0V1X1
+        title: Rolex
+        slug: rolex
+        area: watches
+        date: 2026-08-01
+        audience: public
+        status: published
+        make: Rolex
+        ---
+        About Rolex.
+        """;
+
+    [Test]
+    public void A_watch_with_a_make_and_no_reference_is_a_make_post()
+    {
+        var watch = Parse(MakePost).Watch.ShouldNotBeNull();
+
+        watch.Make.ShouldBe("Rolex");
+        watch.Reference.ShouldBeNull();
+        watch.ModelName.ShouldBeNull();
+        watch.IsMakePost.ShouldBeTrue();
+        watch.Decades(currentYear: 2026).ShouldBeEmpty();
+    }
+
+    [Test]
+    public void A_watch_with_a_reference_is_not_a_make_post()
+    {
+        Parse(ValidWatch).Watch.ShouldNotBeNull().IsMakePost.ShouldBeFalse();
+    }
+
+    // A Reference Post whose reference was forgotten fails, rather than publishing as a Make Post.
+    [TestCase("modelName: Submariner")]
+    [TestCase("variants: [16610LV]")]
+    [TestCase("productionStart: 1988")]
+    [TestCase("productionEnd: 2010")]
+    [TestCase("caseDiameterMm: 40")]
+    [TestCase("calibre: \"3135\"")]
+    [TestCase("caseMaterial: Oystersteel")]
+    [TestCase("waterResistanceM: 300")]
+    public void A_spec_field_without_a_reference_is_rejected(string line)
+    {
+        var field = line[..line.IndexOf(':')];
+
+        var result = MarkdownPost.Parse(MakePost.Replace("make: Rolex\n", $"make: Rolex\n{line}\n"));
+
+        result.Post.ShouldBeNull();
+        result.Errors.ShouldContain($"'{field}' needs a 'reference'.");
     }
 
     [Test]

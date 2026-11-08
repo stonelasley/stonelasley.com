@@ -31,6 +31,26 @@ public class SearchTextTests
     }
 
     [Test]
+    public void A_make_post_is_found_by_its_make()
+    {
+        var post = Parse("""
+            ---
+            id: 01JBX5Q7Z9K3M8N2P4R6T0V1X1
+            title: Rolex
+            slug: rolex
+            area: watches
+            date: 2026-08-01
+            audience: public
+            status: published
+            make: Rolex
+            ---
+            Body.
+            """);
+
+        SearchText.Structured(post).ShouldBe("Rolex");
+    }
+
+    [Test]
     public void Flattens_recipe_ingredients_into_structured_text()
     {
         var post = Parse("""

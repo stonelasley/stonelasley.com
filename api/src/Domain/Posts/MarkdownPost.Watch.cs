@@ -10,7 +10,22 @@ public static partial class MarkdownPost
 
         // Whether the make is declared is checked at ingest, against the content repo's makes file.
         var make = Required(frontmatter.Make, "make", errors);
-        var reference = Required(frontmatter.Reference, "reference", errors);
+
+        // No reference makes it a Make Post, which carries no specs. A spec field without one is a Reference Post whose
+        // reference was forgotten, so it fails rather than publishing as a Make Post.
+        if (string.IsNullOrWhiteSpace(frontmatter.Reference))
+        {
+            foreach (var (field, value) in SpecFields(frontmatter))
+            {
+                if (value is not null)
+                {
+                    errors.Add($"'{field}' needs a 'reference'.");
+                }
+            }
+            return errors.Count > count ? null : new Watch(make!, null, null, [], null, null, null, null, null, null);
+        }
+
+        var reference = frontmatter.Reference.Trim();
         var modelName = Required(frontmatter.ModelName, "modelName", errors);
 
         var variants = (frontmatter.Variants ?? []).Select(v => v?.Trim() ?? string.Empty).ToList();
@@ -49,8 +64,20 @@ public static partial class MarkdownPost
 
         return errors.Count > count
             ? null
-            : new Watch(make!, reference!, modelName!, variants, start, end, diameter, Blank(frontmatter.Calibre), Blank(frontmatter.CaseMaterial), waterResistance);
+            : new Watch(make!, reference, modelName!, variants, start, end, diameter, Blank(frontmatter.Calibre), Blank(frontmatter.CaseMaterial), waterResistance);
     }
+
+    private static IEnumerable<(string Field, object? Value)> SpecFields(Frontmatter frontmatter) =>
+    [
+        ("modelName", frontmatter.ModelName),
+        ("variants", frontmatter.Variants),
+        ("productionStart", frontmatter.ProductionStart),
+        ("productionEnd", frontmatter.ProductionEnd),
+        ("caseDiameterMm", frontmatter.CaseDiameterMm),
+        ("calibre", frontmatter.Calibre),
+        ("caseMaterial", frontmatter.CaseMaterial),
+        ("waterResistanceM", frontmatter.WaterResistanceM),
+    ];
 
     private static string? Required(string? text, string field, List<string> errors)
     {
