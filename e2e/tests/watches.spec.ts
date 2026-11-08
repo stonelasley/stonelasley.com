@@ -38,7 +38,7 @@ test.describe("Watches", () => {
 
   test("the index filters by make, model name and decade", async ({ page }) => {
     await page.goto("/watches");
-    await expect(listed(page)).toHaveCount(3);
+    await expect(listed(page)).toHaveCount(4);
 
     await page.getByLabel("Make").selectOption("Patek Philippe");
     await expect(listed(page)).toHaveText(["Patek Philippe Nautilus 5711"]);
@@ -60,6 +60,65 @@ test.describe("Watches", () => {
     await expect(page.getByLabel("Model").locator("option")).toHaveText(["All models", "Nautilus"]);
     await expect(page.getByLabel("Model")).toHaveValue("");
     await expect(listed(page)).toHaveText(["Patek Philippe Nautilus 5711"]);
+  });
+
+  test("a Make Post sits in the grid under its make, and drops out under a model", async ({
+    page,
+  }) => {
+    await page.goto("/watches");
+    const makePost = page
+      .getByRole("main")
+      .getByRole("article")
+      .filter({ hasText: "Fixture notes on the make" });
+    await expect(makePost.getByText("Rolex", { exact: true }).first()).toBeVisible();
+    await expect(makePost).not.toContainText("·");
+
+    await page.getByLabel("Make").selectOption("Rolex");
+    await expect(listed(page)).toHaveCount(3);
+    await expect(listed(page)).toContainText(["Rolex"]);
+    await expect(page.getByLabel("Model").locator("option")).toHaveText([
+      "All models",
+      "Submariner Date",
+    ]);
+
+    await page.getByLabel("Model").selectOption("Submariner Date");
+    await expect(listed(page)).toHaveCount(2);
+  });
+
+  test("a Make Post has no specs and lists its make's References, newest first", async ({
+    page,
+  }) => {
+    await page.goto("/watches/rolex");
+
+    await expect(page.getByRole("region", { name: "Specifications" })).toHaveCount(0);
+    const more = page.getByRole("region", { name: "More from Rolex" });
+    await expect(more.getByRole("article").getByRole("link")).toHaveText([
+      "Rolex Submariner Date 126610LN",
+      "Rolex Submariner Date 16610",
+    ]);
+    await expect(page.getByRole("link", { name: "About Rolex" })).toHaveCount(0);
+  });
+
+  test("a Reference links to its Make Post and lists the make's other References", async ({
+    page,
+  }) => {
+    await page.goto("/watches/rolex-submariner-date-16610");
+
+    await expect(page.getByRole("link", { name: "About Rolex" })).toHaveAttribute(
+      "href",
+      "/watches/rolex"
+    );
+    const more = page.getByRole("region", { name: "More from Rolex" });
+    await expect(more.getByRole("article").getByRole("link")).toHaveText([
+      "Rolex Submariner Date 126610LN",
+    ]);
+  });
+
+  test("a make's only Reference, with no Make Post, ends with no make links", async ({ page }) => {
+    await page.goto("/watches/patek-philippe-nautilus-5711");
+
+    await expect(page.getByRole("heading", { name: /^More from/ })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /^About / })).toHaveCount(0);
   });
 
   test("a filtered index link can be shared", async ({ page }) => {

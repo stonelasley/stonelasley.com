@@ -8,7 +8,7 @@ export const contentAreas = [
   {
     slug: "watches",
     name: "Watches",
-    description: "Notes on mechanical watches, one Reference at a time.",
+    description: "Notes on mechanical watches: makes and their References.",
   },
   {
     slug: "ai-development",

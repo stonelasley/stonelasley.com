@@ -17,7 +17,7 @@ const VARIANTS = {
 interface PostThumbnailProps {
   hero: string | null;
   area: AreaSlug;
-  watch: { make: string; reference: string } | null;
+  watch: { make: string; reference: string | null } | null;
   /** The rendered size, for the browser's pick from the srcset, such as "(min-width: 768px) 96px, 64px". */
   sizes: string;
   /** Compact tiles drop the stand-in's second line and shorten the Content Area to its initial. */
@@ -59,13 +59,14 @@ export function PostThumbnail({
     );
   }
 
-  // A Watch shows its reference, anything else its Content Area: in full, or the initial on a small tile.
+  // A Watch shows its reference (a Make Post its make), anything else its Content Area: in full, or the initial on a
+  // small tile.
   const areaName = findArea(area)?.name ?? "";
-  const label = watch?.reference ?? (compact ? areaName.charAt(0) : areaName);
+  const label = watch ? (watch.reference ?? watch.make) : compact ? areaName.charAt(0) : areaName;
   const textSize = compact
     ? "text-[10px] leading-tight"
     : watch
-      ? variant === "row" && watch.reference.length > 6
+      ? variant === "row" && label.length > 6
         ? "text-small"
         : reference
       : variant === "card"
@@ -82,14 +83,14 @@ export function PostThumbnail({
     >
       <span
         className={cn(
-          "max-w-full font-semibold break-all",
+          "max-w-full font-semibold break-words",
           watch ? "text-foreground tracking-tight tabular-nums" : "",
           textSize
         )}
       >
         {label}
       </span>
-      {watch && !compact && (
+      {watch?.reference && !compact && (
         <span
           className={cn("text-small", variant === "card" ? "mt-1.5" : "mt-0.5 hidden md:block")}
         >

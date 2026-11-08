@@ -16,7 +16,7 @@ public sealed record HighlightPart(string Text, bool Match);
 public sealed record SearchHit(
     string Id, string Title, string Slug, string Area, string Date, IReadOnlyList<HighlightPart> Excerpt, string? Hero, SearchWatch? Watch);
 
-public sealed record SearchWatch(string Make, string Reference)
+public sealed record SearchWatch(string Make, string? Reference)
 {
     public static SearchWatch? Of(Watch? watch) => watch is null ? null : new SearchWatch(watch.Make, watch.Reference);
 }

@@ -5,8 +5,8 @@ namespace StoneLasley.Api.FunctionalTests;
 
 public sealed record WatchResponse(
     string Make,
-    string Reference,
-    string ModelName,
+    string? Reference,
+    string? ModelName,
     IReadOnlyList<string> Variants,
     int? ProductionStart,
     int? ProductionEnd,
@@ -19,7 +19,7 @@ public sealed record WatchResponse(
 
 public sealed record WatchPostResponse(string Id, string Slug, WatchResponse? Watch);
 
-public sealed record WatchSummaryResponse(string Make, string Reference, string ModelName, IReadOnlyList<int> Decades);
+public sealed record WatchSummaryResponse(string Make, string? Reference, string? ModelName, IReadOnlyList<int> Decades);
 
 public sealed record WatchListItem(string Id, string Slug, WatchSummaryResponse? Watch);
 
@@ -89,6 +89,45 @@ public class WatchTests
         facets.Decades.ShouldBe(Enumerable.Range(198, (DateTime.UtcNow.Year / 10) - 198 + 1).Select(d => d * 10));
     }
 
+    [Test]
+    public async Task A_make_post_is_read_with_no_reference()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var id = TestPosts.NewUlid();
+        var slug = TestPosts.NewSlug("make");
+        await Ingest.RunAsync(client, TestPosts.Markdown(id, slug, area: "watches", extra: TestPosts.MakeCore()));
+
+        var post = await client.GetFromJsonAsync<WatchPostResponse>($"/areas/watches/posts/{slug}");
+        var watch = post.ShouldNotBeNull().Watch.ShouldNotBeNull();
+        watch.Make.ShouldBe("Rolex");
+        watch.Reference.ShouldBeNull();
+        watch.ModelName.ShouldBeNull();
+
+        var posts = await client.GetFromJsonAsync<List<WatchListItem>>("/areas/watches/posts");
+        var summary = posts.ShouldNotBeNull().Single(p => p.Id == id).Watch.ShouldNotBeNull();
+        summary.Reference.ShouldBeNull();
+        summary.Decades.ShouldBeEmpty();
+    }
+
+    [Test]
+    public async Task Facets_count_a_make_post_for_makes_only()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        await Ingest.RunAsync(
+            client,
+            TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("watch"), area: "watches", extra: TestPosts.WatchCore()),
+            TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore("Patek Philippe")));
+
+        var facets = await client.GetFromJsonAsync<FacetsResponse>("/areas/watches/facets");
+
+        facets.ShouldNotBeNull();
+        facets.Makes.ShouldBe(["Patek Philippe", "Rolex"]);
+        facets.ModelNames.ShouldBe(["Submariner Date"]);
+        facets.Decades.ShouldBe([1980, 1990, 2000, 2010]);
+    }
+
     // Other tests' Watches name Rolex and Patek Philippe, so every makes file here keeps them.
     private const string Makes = """
         - name: Rolex
@@ -142,6 +181,91 @@ public class WatchTests
         var manifest = await Ingest.ManifestAsync(client, Ingest.ById(markdown), dryRun: true);
 
         (await Ingest.UploadAsync(client, manifest.RunId, id, markdown)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task A_second_make_post_for_a_make_fails_the_run()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+
+        var commit = await CommitWithMakesAsync(
+            client,
+            dryRun: true,
+            TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore()),
+            TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore()));
+
+        commit.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await commit.Content.ReadAsStringAsync()).ShouldContain("are both Make Posts for Rolex.");
+    }
+
+    [Test]
+    public async Task A_make_post_conflicts_with_a_stored_one_under_an_alias()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var stored = TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore("TAG Heuer"));
+        (await CommitWithMakesAsync(client, dryRun: false, stored)).EnsureSuccessStatusCode();
+
+        var commit = await CommitWithMakesAsync(
+            client,
+            dryRun: false,
+            stored,
+            TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore("TAG-Heuer")));
+
+        commit.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await commit.Content.ReadAsStringAsync()).ShouldContain("are both Make Posts for TAG Heuer.");
+    }
+
+    [Test]
+    public async Task A_make_post_conflicts_with_a_stored_one_whose_make_was_renamed()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var stored = TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore("Fixture Time"));
+        (await CommitWithMakesFileAsync(client, dryRun: false, Makes + "\n- name: Fixture Time", stored)).EnsureSuccessStatusCode();
+
+        var commit = await CommitWithMakesFileAsync(
+            client,
+            dryRun: false,
+            Makes + "\n- name: Fixture Time Co\n  aliases: [Fixture Time]",
+            stored,
+            TestPosts.Markdown(TestPosts.NewUlid(), TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore("Fixture Time Co")));
+
+        commit.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await commit.Content.ReadAsStringAsync()).ShouldContain("are both Make Posts for Fixture Time Co.");
+    }
+
+    [Test]
+    public async Task Re_ingesting_a_make_post_with_a_new_slug_passes()
+    {
+        await using var api = new ApiFactory();
+        using var client = api.CreateIngestClient();
+        var id = TestPosts.NewUlid();
+        var slug = TestPosts.NewSlug("make");
+        (await CommitWithMakesAsync(client, dryRun: false, TestPosts.Markdown(id, TestPosts.NewSlug("make"), area: "watches", extra: TestPosts.MakeCore())))
+            .EnsureSuccessStatusCode();
+
+        (await CommitWithMakesAsync(client, dryRun: false, TestPosts.Markdown(id, slug, area: "watches", extra: TestPosts.MakeCore())))
+            .EnsureSuccessStatusCode();
+
+        var post = await client.GetFromJsonAsync<WatchPostResponse>($"/areas/watches/posts/{slug}");
+        post.ShouldNotBeNull().Id.ShouldBe(id);
+    }
+
+    // Manifest with the makes file, upload whatever is requested, then commit; the commit's response is the result.
+    private static Task<HttpResponseMessage> CommitWithMakesAsync(HttpClient client, bool dryRun, params string[] markdowns) =>
+        CommitWithMakesFileAsync(client, dryRun, Makes, markdowns);
+
+    private static async Task<HttpResponseMessage> CommitWithMakesFileAsync(HttpClient client, bool dryRun, string makes, params string[] markdowns)
+    {
+        var byId = Ingest.ById(markdowns);
+        var manifest = await Ingest.ManifestAsync(client, byId, dryRun: dryRun, makes: makes);
+        foreach (var id in manifest.Requested)
+        {
+            (await Ingest.UploadAsync(client, manifest.RunId, id, byId[id])).EnsureSuccessStatusCode();
+        }
+        return await Ingest.CommitAsync(client, manifest.RunId);
     }
 
     [Test]

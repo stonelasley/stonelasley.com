@@ -1,13 +1,16 @@
+using System.Text.Json.Serialization;
+
 namespace StoneLasley.Domain.Posts;
 
 /// <summary>
-/// The typed core of a Watch Post: one Reference, stored metric-only. The make is written the way the makes file
-/// names it. A missing production end means the Reference is still made.
+/// The typed core of a Watch Post: one Reference, stored metric-only, or a Make Post (a make and no Reference, so no
+/// specs). The make is written the way the makes file names it. A missing production end means the Reference is still
+/// made.
 /// </summary>
 public sealed record Watch(
     string Make,
-    string Reference,
-    string ModelName,
+    string? Reference,
+    string? ModelName,
     IReadOnlyList<string> Variants,
     int? ProductionStart,
     int? ProductionEnd,
@@ -16,6 +19,9 @@ public sealed record Watch(
     string? CaseMaterial,
     int? WaterResistanceM)
 {
+    [JsonIgnore]
+    public bool IsMakePost => Reference is null;
+
     public bool InProduction => ProductionStart is not null && ProductionEnd is null;
 
     public int? WaterResistanceFt => WaterResistanceM is { } metres ? ToFeet(metres) : null;

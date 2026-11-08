@@ -120,7 +120,8 @@ export default async function Home() {
 }
 
 /**
- * A recent Post as a lit exhibit: a large photograph, and beside it the Watch's reference at size, then the title.
+ * A recent Post as a lit exhibit: a large photograph, and beside it the Watch's reference (a Make Post's make) at size,
+ * then the title.
  * The photograph links too, but out of the tab order, so the title is the one link announced.
  */
 function Exhibit({ post, flip }: { post: WithHero; flip: boolean }) {
@@ -152,7 +153,7 @@ function Exhibit({ post, flip }: { post: WithHero; flip: boolean }) {
       <div className={flip ? "md:col-span-4 md:col-start-1 md:row-start-1" : "md:col-span-4"}>
         {post.watch && (
           <p className="text-title font-extralight tabular-nums" aria-hidden="true">
-            {post.watch.reference}
+            {post.watch.reference ?? post.watch.make}
           </p>
         )}
         <h3 className="text-heading mt-3 font-medium">

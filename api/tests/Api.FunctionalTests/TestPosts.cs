@@ -52,6 +52,9 @@ public static class TestPosts
           - { name: salt, note: a pinch, optional: true }
         """;
 
+    /// <summary>A Make Post's typed core: a make and no Reference.</summary>
+    public static string MakeCore(string make = "Rolex") => $"make: {make}";
+
     public static string WatchCore(string make = "Rolex", string reference = "16610", string modelName = "Submariner Date", string production = "productionStart: 1988\nproductionEnd: 2010") => $"""
         make: {make}
         reference: "{reference}"
