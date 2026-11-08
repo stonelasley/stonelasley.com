@@ -69,11 +69,11 @@ test.describe("Search page", () => {
 
     const tabs = page.getByRole("navigation", { name: "Filter by Content Area" });
     await expect(tabs.getByRole("link", { name: /^All/ })).toHaveAttribute("aria-current", "page");
-    await tabs.getByRole("link", { name: /^Watches 3$/ }).click();
+    await tabs.getByRole("link", { name: /^Watches 4$/ }).click();
 
     await expect(page).toHaveURL(/\/search\?q=fixture&area=watches$/);
-    await expect(page.getByRole("article")).toHaveCount(3);
-    await expect(tabs.getByRole("link", { name: /^Watches 3$/ })).toHaveAttribute(
+    await expect(page.getByRole("article")).toHaveCount(4);
+    await expect(tabs.getByRole("link", { name: /^Watches 4$/ })).toHaveAttribute(
       "aria-current",
       "page"
     );
