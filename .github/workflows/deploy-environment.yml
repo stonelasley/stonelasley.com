@@ -34,7 +34,8 @@ env:
 jobs:
   deploy:
     name: Deploy to ${{ inputs.environment }}
-    runs-on: ubuntu-latest
+    # Pinned: Playwright 1.56 can't install Chromium on ubuntu-26.04, which ubuntu-latest became in Nov 2026.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
