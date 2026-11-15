@@ -64,11 +64,6 @@ export function constructMetadata({
       images: [image],
       creator: "@stonelasley",
     },
-    icons: {
-      icon: "/favicon.ico",
-      shortcut: "/favicon-16x16.png",
-      apple: "/apple-touch-icon.png",
-    },
     metadataBase: new URL(siteConfig.url),
     ...(noIndex && {
       robots: {
